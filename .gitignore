@@ -216,3 +216,34 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+*~
+\#*
+.#*
+*.olean
+*.tlean
+*.ast.json
+*.lock
+build
+GPATH
+GRTAGS
+GSYMS
+GTAGS
+.projectile
+.lean_options
+.vs
+src/emacs/dependencies
+compile_commands.json
+*.idea
+tasks.json
+settings.json
+.gdb_history
+.vscode
+/*.nix
+/library/init/version.lean
+CMakeSettings.json
+CppProperties.json
+/build
+/_cache/
+/.ccls-cache
+*.ast.json
