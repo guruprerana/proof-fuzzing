@@ -1,0 +1,499 @@
+You are expanding a compact implication skeleton into a verifier-oriented proof artifact.
+
+Input:
+  problem_statement:
+  {{PROBLEM_STATEMENT}}
+
+  proof_text:
+  {{PROOF_TEXT}}
+
+  skeleton:
+  {{SKELETON}}
+
+Goal:
+  Convert the skeleton into a modular claim-by-claim format that an LLM verifier can check locally.
+
+Output sections:
+  1. global context
+  2. optional lemma modules L1, L2, ...
+  3. main proof claims C1, C2, C3, ...
+
+
+Global context rules:
+  Put only shared definitions, fixed objects, and reusable notation in global context.
+
+  Include:
+    objects from the problem statement;
+    notation introduced by the proof and used in multiple claims;
+    parameterized notation such as "for each k, I_k denotes ...".
+
+  Do not include:
+    conclusions that require proof;
+    lemmas;
+    asymptotic estimates;
+    final theorem statements, unless they are part of the problem target.
+
+
+Claim format:
+  claim C1:
+  check_type: definition / arithmetic / modular arithmetic / counting / geometry / asymptotic estimate / infinitude / final assembly / other
+  variables:
+    explicit declarations for every free variable used in this claim.
+  hypotheses:
+    assumptions needed for this claim instance.
+  allowed_references:
+    structured references to earlier claims or exported lemma statements that may be used.
+  conclusion:
+    the local conclusion.
+
+
+Lemma module format:
+  lemma L1_descriptive_name:
+  statement:
+    the exported lemma statement.
+  dependencies:
+    global context only, or earlier exported lemmas if genuinely needed.
+  proof_claims:
+    claim L1.C1:
+    check_type: ...
+    variables:
+      explicit declarations for every free variable used in this internal claim.
+    hypotheses:
+      assumptions needed for this internal claim instance.
+    allowed_references:
+      earlier internal claims L1.C*, global context, or exported earlier lemmas.
+    conclusion:
+      local conclusion.
+
+    claim L1.final:
+    check_type: final assembly
+    variables:
+      same universal variables as the lemma statement.
+    hypotheses:
+      hypotheses of the lemma statement.
+    allowed_references:
+      internal proof claims needed to prove the statement.
+    conclusion:
+      the exported lemma statement.
+  exports:
+    L1.statement.
+
+
+Module rules:
+  1. If the source proof states and proves a reusable lemma, represent it as a lemma module.
+  2. Internal proof claims of a lemma should use namespaced labels such as L1.C1, L1.C2, ...
+  3. Main proof claims should not depend on internal lemma claims unless the source proof explicitly reuses an internal fact.
+  4. Main proof claims should normally reference only L1.statement instantiated with specific variables.
+  5. A lemma statement is an interface. Its proof_claims verify the interface; later claims use the interface.
+
+
+Meaning of allowed_references:
+  The verifier may assume these earlier claims are already proved.
+  The verifier should not use arbitrary earlier proof text unless it appears in hypotheses, global context, or allowed_references.
+  If a reference is used with particular variables, write the instantiation explicitly.
+  If a proved lemma is used, reference only its exported statement with a structured entry:
+    - ref: L1.statement
+      instantiation: H = G; M = 18n; K = 6n
+
+Parseable allowed_references format:
+  Use one of these forms exactly:
+
+  allowed_references:
+    none
+
+  allowed_references:
+    - ref: C2
+      instantiation: k = current k; n = witness from C5
+    - ref: L1.statement
+      instantiation: H = G; M = 18n; K = K_1
+
+  Rules:
+    - Each referenced claim or exported statement gets its own "- ref:" entry.
+    - Use stable ids such as C7, L1.C3, L1.final, or L1.statement.
+    - Do not write vague references such as "previous estimates", "the tree lemma", or "claims above".
+    - Do not use ranges such as "C1 through C10"; list each reference explicitly.
+    - If no reference is used, write exactly "none".
+
+
+Core requirements:
+  1. Each claim should be checkable locally from its variables, hypotheses, global context, and allowed_references.
+  2. Preserve the proof strategy of the source proof and the dependency structure of the skeleton.
+  3. Do not turn local lemmas into global assumptions.
+  4. Do not hide quantifier reasoning in vague aggregator claims.
+  5. Split claims when one claim would require two different kinds of reasoning.
+  6. Add small bridge claims when the skeleton uses an implicit equality, monotonicity fact, positivity fact, or distinctness fact.
+  7. Use source-faithful mathematics. Do not repair the proof by inventing a different argument.
+  8. Prefer explicit hypotheses over relying on the verifier to infer them.
+  9. Preserve modularity: do not flatten a proved reusable lemma into the main proof unless the original proof did not isolate it and flattening is clearer.
+  10. Do not expose lemma-internal proof claims as main-proof dependencies unless absolutely necessary.
+  11. Ignore dataset metadata lines and final-answer wrappers unless they contain mathematical proof content.
+  12. For positional numeral proofs, introduce quotient or remainder variables explicitly and handle the highest digit separately when a recurrence only applies below the highest digit.
+  13. Preserve endpoint splits such as 0 <= i <= k-2 plus i = k-1 as separate local claims before aggregating them.
+  14. If a claim reuses a construction proved under a WLOG ordering assumption, expose the relabeling or symmetry argument as its own claim before referencing the construction.
+  15. For integer intervals, distinguish cardinality from real length before using residue-class coverage or pigeonhole-style interval arguments.
+  16. In counting estimates, explicitly handle special counted objects such as 0 or 1, duplicate representations, and endpoint conventions; add a harmless constant term when the source proof absorbs one.
+  17. When infinitude follows from constructed witnesses, include a distinctness or unboundedness claim showing the witnesses cannot collapse to finitely many objects.
+  18. For Vieta-jumping arguments, declare the other root, prove it is a positive integer solution, and state the exact minimality comparison used before deriving a contradiction or bound.
+  19. For finite case analysis after an inequality bound, either list the boundary cases or mark the claim's check_type as finite enumeration with enough hypotheses to audit all integer cases.
+  20. For explicit existence examples after lower-bound elimination, include direct witness verification rather than relying only on a recurrence or construction description.
+  21. When a divisibility condition is converted into an integer-valued auxiliary sum, include a local equality/integrality claim before declaring a normalized quotient is an integer.
+  22. For converse directions, preserve the direction of implication explicitly: state the assumed target-side condition, prove each needed local vanishing or divisibility claim, then assemble the original condition.
+  23. Treat stated "Fact", "Claim", or "Observation" blocks in the source as lemma-module candidates when they are proved and reused.
+  24. For divisibility transitivity through a factorization, expose each bridge claim, such as A+B divides A^2-B^2 and A^2-B^2 divides A^(2m)-B^(2m).
+  25. When a quotient is introduced by divisibility, thread it as an explicit integer witness before using it in later products or sums.
+  26. For telescoping sums, separate endpoint terms, zero terms, and any reduced summation range before the final aggregation.
+  27. If the source proof appears flawed, keep the suspect theorem or step isolated as its own claim or lemma module rather than repairing it with a different argument.
+  28. In geometry proofs using directed-segment power equations, include a coordinate-translation claim mapping each directed segment to the algebraic coordinate difference.
+  29. Before canceling or dividing by a geometric coordinate factor, add an explicit nonzero or distinctness claim when the source geometry supplies one.
+  30. When a contradiction uses the existence of at least one root, state the relevant degree/root-existence fact explicitly before concluding that "no real roots" contradicts "all roots are real".
+  31. For coefficient or index descent arguments, state the repeated propagation step with the adjacent hypotheses needed at each iteration.
+  32. For elementary-symmetric polynomial arguments, expose coefficient-index translations as local claims before invoking coefficient-vanishing lemmas.
+  33. For Rolle or interlacing arguments, mark the claim as standard calculus and state the derivative order, root count, and distinct-root conclusion being used.
+  34. For finite-union or cardinality contradictions, separate the membership coverage claim from the per-fiber or per-set upper bound before aggregating cardinalities.
+  35. If a contradiction assumption introduces a root set and later uses the constant term, record nonzero-root facts such as P(0) != 0 immediately.
+  36. When converting a directed secant product to signed ordinary lengths, include a local betweenness/sign claim before the algebraic substitution.
+  37. If a source proof appends a consistency check after the final theorem, mark it as nonessential or place it after final assembly so it is not a hidden dependency.
+  38. For triangulation dual-tree proofs, record that dual edges correspond to diagonals and that component vertex counts match triangle counts in polygon parts.
+  39. For sequential tree cuts, state that the component receiving the second cut remains a tree with the needed degree bound and that the second edge is distinct from the first.
+  40. For CRT or product-modulus period decompositions, expose cross-prime lcm valuation issues as local claims before asserting that the valuation of a global period equals the valuation of a matching prime-power period.
+  41. If a source proof corrects itself midstream, preserve both the mistaken or suspect claim and the corrected claim when needed, and make later dependencies point only to the corrected source-faithful statement.
+  42. For base-expansion proofs, prove the exact digit count and valid digit-index range before applying digit-extraction formulas.
+  43. When a digit argument uses quotient/remainder variables, declare least-nonnegative remainders explicitly and prove parity or lower-bound facts before using them.
+  44. Keep strict threshold inequalities through floor-bound steps when the final target is a strict inequality such as a_j > d.
+  45. For constructive polynomial examples, separate parameter-search motivation from final direct verification of the displayed polynomials.
+  46. Degree claims for constructed polynomials should state that the relevant leading coefficients are nonzero.
+  47. For polynomial identities involving composition, introduce reusable intermediate identities when they make both sides checkable for an arbitrary variable.
+  48. If a positional-numeral proof expands a rational X and then multiplies by b^k, include an explicit claim that the resulting finite digit string is the base-b representation of the target integer.
+  49. Separate digit-validity claims such as 0 <= c_i < b from digit lower-bound claims when both are present.
+  50. When a transformation makes the problem symmetric, state that symmetry before using WLOG ordering assumptions.
+  51. When eventual constancy passes to a scaled auxiliary sequence, declare the scaled eventual value and its integrality explicitly, such as a_n = g b_n and b_n = K.
+  52. In divisibility contradictions using selected subsequences, separate "the large divisor divides the subsequence terms" from "eventual constancy forces the same divisor to divide the limiting value".
+  53. If a geometry proof resolves an ambiguous interpretation of tangent, secant, or intersection objects, isolate the chosen interpretation before using it; discarded interpretations should not become dependencies.
+  54. For reflection-based constructions, record post-reflection collinearity or midpoint facts before invoking midpoint, midsegment, or angle claims.
+  55. For signed product cyclicity claims, state both magnitude equality and the side/order information needed to determine signs.
+  56. For finite-operation problems, separate invariant claims, one-step transition analysis, and constructive sufficiency sequences.
+  57. When defining an operation word or repeated operation sequence, compute each affected coordinate's final value locally.
+  58. If a preliminary reduction may solve the problem immediately, state an "if not already solved" branch before invoking the general construction.
+  59. When a game rule is converted into a named graph such as a Gabriel graph, include a dedicated equivalence or reduction claim before proving graph properties.
+  60. In geometric graph planarity proofs, isolate geometric facts such as "crossing segments form a convex quadrilateral" before applying angle or planarity arguments.
+  61. For connectivity proofs by infimum, separate the disconnected partition, infimum-approaching sequence, witness non-edge, membership case split, and final limit contradiction.
+  62. For direct-similarity definitions in the complex plane, record the affine normalization or coordinate map that sends the reference points to the target points and derives the third vertex coordinate.
+  63. In strict geometric graph arguments, preserve strict inequalities from conditions such as exterior of a closed disk or distance > 1 through the final contradiction.
+  64. For auxiliary-polynomial substitutions such as R(x) = Q(x)-x-1, include a claim translating the final auxiliary identity back to the original variables or functional equation.
+  65. When source proofs say "by construction" for polynomial witnesses, expand the construction into local identities for both sides of the target equation.
+  66. Preserve source-specific packaging of standard obstacles when the proof uses boundary cases or case splits instead of naming a reusable lemma.
+  67. In k-subset family arguments, separate the combinatorial setup of two distinct k-subsets of a (k+1)-set from the algebraic consequence used afterward.
+  68. For point-reflection auxiliary points, immediately record midpoint, collinearity, and equal-distance consequences before downstream cyclicity, diameter, or midpoint-theorem claims.
+  69. When a proof identifies a named circumcircle with a diameter circle, include a claim that the same defining points determine both circles.
+  70. When proving a chord is bisected by a point, isolate the bridge that a perpendicular from the circle center to the chord line implies the point is the chord midpoint.
+  71. For fractional-part case splits, isolate integer-part removal and name any complementary fractional variable before starting the case analysis.
+  72. When a ceiling or complementary sum is introduced, include a local equivalence claim relating it back to the original floor/fractional-part expression.
+  73. Avoid overfitting to earlier examples of the same problem; preserve the proof strategy actually present in the current source text.
+  74. For Gaussian-integer UFD arguments, state coprimality of conjugate factors, unit absorption, norm relation, and coordinate comparison before extracting powers from products.
+  75. For descent arguments, name the minimal counterexample, the descent measure, the factorization or transformation step, and the strictly smaller constructed solution separately.
+  76. For long number-theory proofs, isolate heavyweight standard facts as lemma modules with narrow exported statements.
+  77. When a transformed pair has absolute difference divisible by m, add a relabeling claim turning it into an ordered pair with positive difference divisible by m before invoking ordered constructions.
+  78. Rename overloaded source variables when needed for clarity, and document the rename in metadata or a local note.
+  79. For recurrence-generated examples, include direct verification of the displayed witness even if the recurrence explains how it was found.
+  80. If the source includes optional equality or characterization after the requested result, prove the requested theorem first and keep the optional material separate from required dependencies.
+  81. For algebraic inequalities with substitutions, state the exact substituted variables, their sign/range hypotheses, and any boundary cases needed before cancellation or division.
+  82. For positive nondecreasing sequences with product 1, check the direction of partial-product claims such as P_m <= 1 before using them in inequality estimates.
+  83. For constructive existence proofs, after direct witness verification include a separate eligibility claim checking all problem-side constraints such as degree bounds, positivity, integrality, or distinctness.
+  84. If a derivation tries an excluded lower-degree or degenerate case as motivation, do not let it serve as the final witness unless the final eligibility claim satisfies the original constraints.
+  85. For constructive finite-operation sequences with repeated operations, state the exact step count, operation applied to each coordinate in each segment, any empty-segment endpoint case, and the final expression for each coordinate.
+  86. For unordered or symmetric pair problems, include a symmetry/relabeling claim that transfers a construction for u < v back to the original ordered pair.
+  87. If one legal move transforms a pair into a previously solved case, prove the transformed pair satisfies all hypotheses of that case, including positivity, order or distinctness, and congruence class.
+  88. For eventual-periodicity lemmas, export a precise statement with threshold, modulus, period or period-divisibility relation, and the exact implication used in induction or lifting.
+  89. When solution progressions are built using auxiliary period moduli, distinguish those moduli from the original coprime prime-power moduli.
+  90. Before applying CRT to arithmetic progressions n congruent to u_i modulo M_i, include a compatibility claim for the moduli and residues.
+  91. In recursive base-digit constructions, if the recurrence has a terminal modulus equal to 1, isolate the terminal remainder-zero claim before telescoping.
+  92. Before asserting a proposed digit string is a positional representation, verify weighted-sum equality, every digit lies in [0, base), and the leading digit is nonzero.
+  93. If parity of remainders is used, state the exact range where the modulus is even and keep any final modulus-1 endpoint separate.
+  94. State digit-index orientation explicitly before digit-extraction formulas, for example whether a_0 is the least significant or most significant digit.
+  95. When a quotient-difference argument uses K_(n+1)-K_n or similar, declare all normalized quantities and the difference variable explicitly before deriving an approximation.
+  96. For integer-forcing approximation arguments, separate nearest-integer distance, positivity under the noninteger assumption, Archimedean choice, and the final contradiction.
+  97. For coefficient-matching derivations, include a final substitution claim showing the chosen constants satisfy the coefficient equations before direct witness verification.
+  98. In game-to-graph reductions, when a rule has an or condition and the chosen set is symmetric, prove both symmetry directions before replacing the disjunction by one condition.
+  99. For complex-plane direct similarities with reversed ordered triangles, compute the transformed shape coordinate locally, such as z_BAC = 1 - z_ABC.
+  100. In strict geometric graph arguments, separate road, non-road, outside closed disk, and inside-or-on closed disk conditions before using their strictness.
+  101. In infimum-connectivity proofs, produce the non-edge witness for each approximating pair before splitting by component membership.
+  102. When a finite-operation construction has an initial reduction step, split the resulting difference into zero, positive, and negative cases before invoking an ordered construction.
+  103. If an operation sequence is reused after swapping coordinate roles, state how each coordinate operation pair is transformed.
+  104. For repeated operation words, make endpoint counts explicit for intervals such as steps 2 through K.
+  105. For self-correcting source proofs, preserve only the corrected branch as a dependency and document discarded computations in metadata or a local note.
+  106. In complex-coordinate geometry, rename auxiliary constants if they conflict with verifier claim labels and record the mapping.
+  107. For constant-argument rational functions, include claims for proportionality to a real rational function, pole conjugacy, common-factor cancellation, and final direct verification of the constructed point.
+  108. For geometric existence witnesses derived algebraically, separately verify all problem-side constraints before final assembly.
+  109. When instantiating a lemma whose threshold depends on an actual maximum degree Delta, and the proof only gives Delta <= c, include a local inequality showing the lemma threshold is satisfied for the actual Delta.
+  110. In bounded-degree tree splitting lemmas, isolate small parameter cases such as K = 1 when the orientation or small-component contradiction assumes K >= 2.
+  111. If a condition says a real expression is a multiple of an integer, introduce an explicit integer witness or prove it equals an integer-valued expression before using divisibility language.
+  112. For integer-valued normalized quantities that converge or have differences converging, define the integer sequence, prove integer-valuedness, prove convergence, and state the integer-limit contradiction separately.
+  113. For parameter-bounded Vieta jumping, create a local module with other-root construction, positivity, integrality, minimality comparison, and finite boundary enumeration.
+  114. For minimization proofs, separate claims excluding each smaller value from the direct eligibility verification of the first attained value.
+  115. For divisor-complement substitutions, name e = n/d or an equivalent integer witness before converting congruences and remainders into Diophantine equations.
+  116. Before extracting coefficient equations from an ansatz, state why the compared monomials are distinct, such as 2N > N > 0.
+  117. When residue coverage chooses witnesses and later distinctness uses a subinterval, prove the witness lies in that exact subinterval.
+  118. If a union is bounded by summing over parameterizations, state that duplicate representations are harmless because the sum is an upper bound.
+  119. In enumeration or interval proofs with source uncertainty about an equality, make later dependencies use the weakest source-supported interval statement.
+  120. In finite-operation proofs, if the source names both an operation and an integer parameter with the same letter, rename the parameter and document the mapping.
+  121. For residue-flipping invariants where one step maps x to -x modulo m, state the k-step propagation formula before using eventual equality.
+  122. For repeated operation intervals like steps 2 through T, explicitly compute the count as T-1 and handle the smallest T allowed by the proof.
+  123. For perfect-power counting proofs, separate square counts, non-square perfect-power counts, maximal-exponent representation, duplicate handling, and interval witness disjointness.
+  124. After reflecting across a line, state reflected-point collinearity, perpendicular-axis midpoint, and equal-distance or midpoint facts before using them.
+  125. If a similar-triangle product identity is later substituted into a power expression, isolate the similarity proof and the resulting product identity as separate claims.
+  126. When averaging fractional parts, record both the lower bound and strict upper bound for each average before subtracting two averages.
+  127. For vector geometry, distinguish point vectors, side lengths, and angle symbols when source notation overloads the same letters.
+  128. For tangent-line constructions, derive segment locations from parallel-line similarity and inradius or altitude relations before vector substitution.
+  129. For arc-midpoint or circumcircle facts used in dot products, state equal radii, angle relation, and dot-product consequence as a separate bridge claim.
+  130. For direct-similarity alternatives such as ABC and BAC, write the affine or complex coordinate equations for both ordered triangles before using symmetry.
+  131. When using the diameter disk theorem, state whether the point is outside, on, or inside the closed disk and exclude collinear endpoint cases if the proof needs a strict angle.
+  132. In strict Gabriel graph connectivity, separate the non-edge witness, law-of-cosines descent, and component-preserving next-pair claims.
+  133. Do not infer inf S > a merely because every element of S is > a; use inf S >= a unless a uniform gap is proved.
+  134. If a connectivity-by-infimum proof avoids approximating sequences, state the inequality for every cross-distance and then apply monotonicity on nonnegative distances to the infimum.
+  135. When correcting an overstrict but unnecessary source inequality, document the correction and keep the downstream proof strategy unchanged.
+  136. In Rolle-based coefficient-vanishing lemmas, split leading-coefficient endpoint cases from derivative or multiple-root contradiction cases.
+  137. For monic products over root subsets, verify degree, leading coefficient, and nonzero constant coefficient before applying coefficient-product hypotheses.
+  138. After differentiating j times in a Rolle argument, state both the derivative degree and the exact count of distinct real roots obtained by repeated Rolle.
+  139. In double-counting arguments, separate coverage lower bounds from per-witness uniqueness upper bounds before combining them.
+  140. For two distinct k-subsets of a (k+1)-set, name their common (k-1)-element intersection and the two exchanged elements before using symmetric-polynomial identities.
+  141. When translating elementary-symmetric vanishings to coefficients, state the polynomial degree and exact coefficient index in both directions, including shifts for products over (k-1)-element intersections.
+  142. In elementary-symmetric/Rolle proofs with j in 1,...,k-1, split endpoint cases j=1 and j=k-1 from the interior case before invoking coefficient descent, e_0, full-product, or repeated-Rolle arguments.
+  143. If a tree-splitting lemma is stated with a maximum-degree parameter D, keep D in the lemma module and instantiate D explicitly, rather than silently specializing to D = 3.
+  144. Before each tree-splitting lemma instantiation, state the exact inequality required by that lemma, not only a nearby lower bound; handle any D <= 1 or small-K exceptional cases if the proof uses D >= 2.
+  145. For sequential triangulation cuts, after choosing the second edge inside a component, add a claim that this edge is distinct from the first and that the resulting three components correspond to the desired polygon parts.
+  146. In functional-equation classification proofs, phrases such as "this suggests the solution" or "verified in the thought process" do not prove uniqueness; isolate them as suspect source claims unless the response gives a recurrence, induction, or complete residue-class propagation.
+  147. For minimal-counterexample or minimal-absolute-value arguments, state the strict decrease or explicit contradiction obtained; producing another object with the same or larger minimal measure is not enough.
+  148. Do not list an existential witness as an input variable of the claim that creates it; introduce the witness in that claim's conclusion, then thread it through later allowed_references.
+  149. When a rooted-subtree lemma supplies a vertex or child subtree, check whether the returned vertex may be the root; if the desired edge must be internal or non-adjacent to a previous cut, prove the returned vertex is non-root or isolate the step as suspect.
+  150. Do not infer the residue of gcd(A,B) modulo p only from residues of A and B modulo p; require an exact gcd equality, common-factor control, or a proof that every common divisor has the asserted residue/divisibility property.
+
+
+Few-shot example 1: converting a skeleton definition
+
+Skeleton:
+  impl3:
+  k is a positive integer,
+  n is a positive integer
+  =>
+  (A_n = k <=> s_k <= n < s_{k+1}).
+
+Verifier format:
+  claim C1:
+  check_type: definition
+  variables:
+    k is a positive integer.
+    n is a positive integer.
+  hypotheses:
+    A_n is the number of elements of S less than or equal to n.
+    s_1 < s_2 < s_3 < ... are the elements of S in increasing order.
+  allowed_references:
+    none
+  conclusion:
+    A_n = k if and only if s_k <= n < s_{k+1}.
+
+
+Few-shot example 2: converting a referenced implication
+
+Skeleton:
+  impl8:
+  k is a positive integer,
+  I_k = [s_k, s_{k+1}-1],
+  L_k = s_{k+1}-s_k,
+  s_{k+1}-s_k >= k,
+  impl4,
+  impl6,
+  impl7
+  =>
+  there exists a positive integer n such that A_n = k and A_n divides n+2024.
+
+Verifier format:
+  claim C7:
+  check_type: reduction
+  variables:
+    k is a positive integer.
+  hypotheses:
+    I_k = [s_k, s_{k+1}-1].
+    L_k = s_{k+1}-s_k.
+    s_{k+1}-s_k >= k.
+    every integer in I_k is positive.
+  allowed_references:
+    - ref: C2
+      instantiation: k = current k; n = witness from C5
+    - ref: C4
+      instantiation: k = current k
+    - ref: C5
+      instantiation: k = current k
+    - ref: C6
+      instantiation: k = current k
+  conclusion:
+    there exists a positive integer n such that A_n = k and A_n divides n+2024.
+
+
+Few-shot example 3: global context vs claim
+
+Bad global context:
+  R(N) = O(N^(1/3)).
+  There are infinitely many m such that J_m contains no perfect power.
+
+Good global context:
+  R(x) denotes the number of non-square perfect powers less than or equal to x.
+  For each positive integer m, J_m denotes (m^2, (m+1)^2).
+
+Good claims:
+  claim C12:
+  check_type: asymptotic estimate
+  variables:
+    N is a real number with N >= 2.
+  hypotheses:
+    R(N) <= N^(1/3) + (log_2(N)) N^(1/5).
+  allowed_references:
+    none
+  conclusion:
+    R(N) = O(N^(1/3)).
+
+  claim C17:
+  check_type: infinitude
+  variables:
+    none
+  hypotheses:
+    for every positive integer X, the number of m with 1 <= m <= X and J_m empty of non-square perfect powers is X - O(X^(2/3)).
+  allowed_references:
+    none
+  conclusion:
+    there are infinitely many positive integers m such that J_m contains no perfect power.
+
+
+Few-shot example 4: final infinitude bridge
+
+Skeleton:
+  impl25:
+  there are infinitely many positive integers k such that for each such k there exists a positive integer n with A_n = k and A_n divides n+2024
+  =>
+  there are infinitely many positive integers n such that A_n divides n+2024.
+
+Verifier format:
+  claim C25:
+  check_type: infinitude
+  variables:
+    none
+  hypotheses:
+    there are infinitely many positive integers k such that for each such k there exists a positive integer n with A_n = k and A_n divides n+2024.
+    a fixed positive integer n has exactly one value of A_n.
+  allowed_references:
+    none
+  conclusion:
+    there are infinitely many positive integers n such that A_n divides n+2024.
+
+
+Few-shot example 5: lemma module and later instantiation
+
+Skeleton:
+  lemma L1_tree_partition:
+  statement:
+  H is a tree with M vertices and maximum degree at most 3,
+  K is a positive integer,
+  M >= 3K-1
+  =>
+  there exists an edge e of H such that removing e splits H into two components each having at least K vertices.
+
+  proof:
+  L1.impl1, L1.impl2, L1.impl3, L1.impl4.
+
+  exports:
+  L1.statement.
+
+  impl_main:
+  G is a tree with 18n vertices and maximum degree at most 3,
+  K_1 = 6n,
+  18n >= 3K_1-1,
+  L1.statement instantiated with H=G, M=18n, K=K_1
+  =>
+  there exists an edge e_1 of G such that removing e_1 splits G into two components each having at least 6n vertices.
+
+Verifier format:
+  lemma L1_tree_partition:
+  statement:
+    For every tree H with M vertices and maximum degree at most 3, and every integer K >= 1, if M >= 3K-1, then there exists an edge e of H such that removing e splits H into two components each having at least K vertices.
+  dependencies:
+    none
+  proof_claims:
+    claim L1.C1:
+    check_type: contradiction setup
+    variables:
+      H is a tree with M vertices.
+      K is an integer with K >= 1.
+    hypotheses:
+      M >= 3K-1.
+      for contradiction, no edge e of H splits H into two components each having at least K vertices.
+    allowed_references:
+      none
+    conclusion:
+      every edge e of H has at least one component with at most K-1 vertices after removing e.
+
+    intermediate claims L1.C2, L1.C3, and L1.C4 are omitted from this few-shot snippet, but a real output should include every claim referenced below.
+
+    claim L1.final:
+    check_type: final assembly
+    variables:
+      H is a tree with M vertices and maximum degree at most 3.
+      K is an integer with K >= 1.
+    hypotheses:
+      M >= 3K-1.
+    allowed_references:
+      - ref: L1.C1
+        instantiation: H = current H; K = current K
+      - ref: L1.C2
+        instantiation: M = current M; K = current K
+      - ref: L1.C3
+        instantiation: H = current H; M = current M; K = current K
+      - ref: L1.C4
+        instantiation: H = current H; K = current K
+    conclusion:
+      there exists an edge e of H such that removing e splits H into two components each having at least K vertices.
+  exports:
+    L1.statement.
+
+  claim C_first_split:
+  check_type: lemma instantiation
+  variables:
+    none
+  hypotheses:
+    G is a tree with 18n vertices and maximum degree at most 3.
+    K_1 = 6n.
+    K_1 is an integer and K_1 >= 1.
+    18n >= 3K_1-1.
+  allowed_references:
+    - ref: L1.statement
+      instantiation: H = G; M = 18n; K = K_1
+  conclusion:
+    there exists an edge e_1 of G such that removing e_1 splits G into two components each having at least 6n vertices.
+
+
+Few-shot example 6: parseable final assembly
+
+Verifier format:
+  claim C_final:
+  check_type: final assembly
+  variables:
+    e_1, A, and B are witnesses from C3.
+    C_1 and R are the renamed components from C4.
+    e_2, C_2, and C_3 are witnesses from C9.
+  hypotheses:
+    global context holds.
+  allowed_references:
+    - ref: C1
+      instantiation: current global context
+    - ref: C3
+      instantiation: G = current G; K_1 = 6n
+    - ref: C4
+      instantiation: A = witness from C3; B = witness from C3
+    - ref: C9
+      instantiation: R = component from C4; K_2 = 3n
+    - ref: C12
+      instantiation: C_1 = component from C4; C_2 = witness from C9; C_3 = witness from C9
+  conclusion:
+    the desired final theorem follows.
+
+
+Final instruction:
+  Output only the modular verifier-oriented artifact. Do not include commentary or a validation report.

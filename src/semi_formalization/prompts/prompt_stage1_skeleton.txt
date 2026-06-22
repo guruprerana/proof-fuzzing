@@ -1,0 +1,211 @@
+You are converting a natural-language olympiad proof into a compact implication skeleton.
+
+Input:
+  problem_statement:
+  {{PROBLEM_STATEMENT}}
+
+  proof_text:
+  {{PROOF_TEXT}}
+
+Goal:
+  Produce a semi-formal proof skeleton in terms of implications, equivalences, conjunctions, disjunctions, atomic English math statements, and references to other implications.
+
+Core requirements:
+  1. Preserve the proof strategy and source order unless a small reorder makes dependencies clearer.
+  2. Use numbered labels impl1, impl2, impl3, ...
+  3. Each impl block has premises, optional references to earlier implications, an arrow => or <=>, and a conclusion.
+  4. Keep each conclusion local. Do not conclude the final theorem in the middle of the proof unless the block is explicitly a final aggregator.
+  5. Prefer many small implications over one large implication.
+  6. If the proof uses a named theorem, standard fact, or hidden bridge, make it its own implication when possible.
+  7. Aggregator implications are allowed, but they should only combine already stated local claims.
+  8. Do not invent a new proof. Formalize the proof actually given.
+  9. Do not hide proof steps in global prose. Use implications.
+  10. Use atomic English math statements rather than polished exposition.
+  11. If the proof states and proves a reusable lemma, represent it as a named lemma block with internal implication labels, then use only its exported statement in the main proof.
+  12. Ignore dataset metadata lines and final-answer wrappers unless they contain mathematical proof content.
+
+Output format:
+  impl1:
+  atomic premise,
+  atomic premise,
+  implX,
+  implY
+  =>
+  atomic conclusion.
+
+Optional lemma-module format:
+  lemma L1_name:
+  statement:
+    atomic lemma statement.
+  proof:
+    L1.impl1:
+    atomic premise
+    =>
+    atomic conclusion.
+
+    L1.impl2:
+    L1.impl1
+    =>
+    atomic conclusion.
+  exports:
+    L1.statement.
+
+  main proof implications may reference:
+    L1.statement instantiated with the relevant variables.
+
+
+Guidance for choosing implication size:
+  Good:
+    one implication for a definition;
+    one implication for a modular equivalence;
+    one implication for applying a counting bound;
+    one implication for passing from infinitely many objects of one kind to infinitely many objects of another kind.
+
+  Bad:
+    one implication for an entire paragraph with several mathematical moves;
+    one implication that concludes the theorem before the final assembly;
+    one implication whose premises are only "impl3, impl4, impl5" but the necessary variables are not visible nearby.
+
+  WLOG and case-reuse guidance:
+    If a proof assumes without loss of generality that x < y for a construction, and later applies that construction to a transformed pair, include a separate implication that relabels the transformed pair by smaller/larger value.
+    If a case splits into an immediate branch and a branch that reuses an earlier construction, represent the branches separately before aggregating.
+
+
+Few-shot example 1: modular reduction
+
+Source proof fragment:
+  Let k be a positive integer. We need n such that A_n = k and k divides n+2024.
+  The divisibility condition is equivalent to n congruent to -2024 modulo k.
+
+Skeleton:
+  impl1:
+  k is a positive integer,
+  n is an integer
+  =>
+  (k divides n+2024 <=> n is congruent to -2024 modulo k).
+
+  impl2:
+  k is a positive integer,
+  A_n = k,
+  k divides n+2024
+  =>
+  A_n divides n+2024.
+
+
+Few-shot example 2: interval contains a residue
+
+Source proof fragment:
+  The interval I_k = [s_k, s_{k+1}-1] has length L_k = s_{k+1}-s_k.
+  If L_k >= k, then I_k contains a complete set of residues modulo k.
+
+Skeleton:
+  impl1:
+  k is a positive integer,
+  I_k = [s_k, s_{k+1}-1],
+  L_k = s_{k+1}-s_k,
+  L_k >= k
+  =>
+  I_k contains at least one integer in every residue class modulo k.
+
+
+Few-shot example 3: final theorem should be delayed
+
+Bad skeleton:
+  impl8:
+  there are infinitely many k with s_{k+1}-s_k >= k,
+  impl4,
+  impl7
+  =>
+  there are infinitely many n such that A_n divides n+2024.
+
+Better skeleton:
+  impl8:
+  k is a positive integer,
+  s_{k+1}-s_k >= k,
+  impl4,
+  impl7
+  =>
+  there exists a positive integer n such that A_n = k and A_n divides n+2024.
+
+  impl9:
+  there are infinitely many positive integers k such that s_{k+1}-s_k >= k,
+  impl8
+  =>
+  there are infinitely many positive integers k such that for each such k there exists a positive integer n with A_n = k and A_n divides n+2024.
+
+  impl10:
+  there are infinitely many positive integers k such that for each such k there exists a positive integer n with A_n = k and A_n divides n+2024
+  =>
+  there are infinitely many positive integers n such that A_n divides n+2024.
+
+
+Few-shot example 4: geometry bridge
+
+Source proof fragment:
+  Since O is the center of the circle and OC is perpendicular to chord XY, C bisects XY.
+
+Skeleton:
+  impl1:
+  Omega is a circle with center O,
+  X and Y are distinct points on Omega,
+  X and Y lie on line l,
+  C lies on line l,
+  OC is perpendicular to line l
+  =>
+  C is the midpoint of XY.
+
+
+Few-shot example 5: proved lemma as a module
+
+Source proof fragment:
+  Lemma: Let H be a tree with M vertices and maximum degree at most 3. If M >= 3K-1, then there is an edge whose removal leaves both components with at least K vertices.
+  Proof: Assume not. Orient each edge toward the large component. A finite tree orientation has a sink. The three branches at the sink each have at most K-1 vertices, giving M <= 3K-2, contradiction.
+  Later, apply the lemma to G with K=6n.
+
+Skeleton:
+  lemma L1_tree_partition:
+  statement:
+  H is a tree with M vertices and maximum degree at most 3,
+  K is a positive integer,
+  M >= 3K-1
+  =>
+  there exists an edge e of H such that removing e splits H into two components each having at least K vertices.
+
+  proof:
+  L1.impl1:
+  no edge e of H splits H into two components each having at least K vertices
+  =>
+  every edge e of H has at least one side with at most K-1 vertices.
+
+  L1.impl2:
+  finite tree H has an acyclic orientation
+  =>
+  H has a sink vertex S.
+
+  L1.impl3:
+  S is a sink vertex,
+  H has maximum degree at most 3,
+  every incident branch at S has at most K-1 vertices
+  =>
+  M <= 3K-2.
+
+  L1.impl4:
+  M >= 3K-1,
+  M <= 3K-2
+  =>
+  contradiction.
+
+  exports:
+  L1.statement.
+
+  impl_main:
+  G is a tree with 18n vertices and maximum degree at most 3,
+  K_1 = 6n,
+  18n >= 3K_1-1,
+  L1.statement instantiated with H=G, M=18n, K=K_1
+  =>
+  there exists an edge e_1 of G such that removing e_1 splits G into two components each having at least 6n vertices.
+
+
+Final instruction:
+  Output only the implication skeleton. Do not add explanatory paragraphs.

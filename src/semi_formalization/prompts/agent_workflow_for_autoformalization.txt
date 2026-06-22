@@ -1,0 +1,245 @@
+Agent workflow for modular proof autoformalization
+
+Purpose:
+  Convert a natural-language proof into a modular verifier-oriented artifact that can guide an LLM verifier.
+
+Inputs for each dataset example:
+  prompt.txt
+  reasoning.txt or response.txt
+  correctness.txt
+
+
+Stage 0: choose and inspect an example
+
+1. Read prompt.txt as the problem statement.
+2. Read reasoning.txt as the proof text.
+3. If reasoning.txt is empty or clearly malformed, use response.txt instead.
+4. Skim the proof for named lemmas, reusable subproofs, and final theorem statement.
+
+Suggested output files:
+  none
+
+Before starting Stage 1, confirm:
+  The proof text contains an actual proof rather than only an answer.
+  The final theorem statement is clear.
+  Any named lemma or reusable subproof is noted for possible module treatment.
+  The output filenames you plan to write do not overwrite a human-authored artifact unless requested.
+
+
+Stage 1: generate compact skeleton
+
+Prompt file:
+  prompt_stage1_skeleton.txt
+
+Inputs:
+  {{PROBLEM_STATEMENT}} = contents of the example's prompt.txt
+  {{PROOF_TEXT}} = contents of the example's reasoning.txt or response.txt
+
+Expected output:
+  A compact implication skeleton using impl1, impl2, ...
+  If the proof states and proves a reusable lemma, use a lemma module such as:
+    lemma L1_name:
+      statement:
+      proof:
+        L1.impl1:
+        ...
+      exports:
+        L1.statement.
+
+Suggested output filename:
+  semi_formalization_skeleton_generated.txt
+
+Stage 1 quality checks:
+  The skeleton follows the original proof strategy.
+  The final theorem does not appear prematurely in a mid-proof implication.
+  Each named lemma or reusable subproof has an exported statement.
+  Main proof implications reference exported lemma statements instead of lemma internals.
+  Aggregator implications are small enough to audit.
+
+If Stage 1 has obvious problems:
+  Patch the skeleton before running Stage 2.
+
+
+Stage 2: expand to modular verifier format
+
+Prompt file:
+  prompt_stage2_verifier_format.txt
+
+Inputs:
+  {{PROBLEM_STATEMENT}} = contents of the example's prompt.txt
+  {{PROOF_TEXT}} = contents of the example's reasoning.txt or response.txt
+  {{SKELETON}} = Stage 1 skeleton
+
+Expected output:
+  A modular verifier-oriented artifact with:
+    global context
+    optional lemma modules L1, L2, ...
+    main proof claims C1, C2, ...
+
+Suggested output filename:
+  verification_autoformalization_generated.txt
+
+Stage 2 quality checks:
+  Global context contains definitions and notation only.
+  Each lemma module has:
+    statement
+    dependencies
+    proof_claims
+    exports
+  Internal lemma claims use namespaced labels such as L1.C1.
+  Main proof claims reference exported lemma statements, for example:
+    L1.statement instantiated with H = G, M = 18n, K = 6n.
+  Each claim has:
+    check_type
+    variables
+    hypotheses
+    allowed_references
+    conclusion
+  Witnesses introduced by existence claims are threaded explicitly in later claims.
+
+
+Stage 3: validate the artifact
+
+Prompt file:
+  prompt_stage3_validation.txt
+
+Inputs:
+  {{PROBLEM_STATEMENT}} = contents of the example's prompt.txt
+  {{PROOF_TEXT}} = contents of the example's reasoning.txt or response.txt
+  {{ARTIFACT_TYPE}} = modular_verifier_format
+  {{ARTIFACT}} = Stage 2 verifier artifact
+
+Expected output:
+  A validation report with:
+    validation_result: PASS / NEEDS_PATCH / FAIL
+    findings
+    summary
+
+Suggested output filename:
+  verification_validation_report.txt
+
+Interpretation:
+  PASS:
+    The artifact is good enough for LLM-guided verification.
+
+  NEEDS_PATCH:
+    The proof structure is probably faithful, but the artifact has local hygiene issues.
+    Apply concrete suggested patches and rerun Stage 3.
+
+  FAIL:
+    The artifact has structural or faithfulness problems.
+    Usually return to Stage 1 or Stage 2 rather than patching only the final artifact.
+
+
+Stage 4: normalize references for parsing
+
+Prompt file:
+  prompt_stage4_parseable_normalization.txt
+
+Inputs:
+  {{ARTIFACT_TYPE}} = modular_verifier_format
+  {{ARTIFACT}} = Stage 2 verifier artifact, usually after it has passed or nearly passed validation
+
+Expected output:
+  The same modular verifier artifact, but with standardized allowed_references blocks:
+    allowed_references:
+      none
+
+    allowed_references:
+      - ref: L1.statement
+        instantiation: H = G; M = 18n; K = K_1
+
+Suggested output filename:
+  verification_autoformalization_parseable.txt
+
+Stage 4 quality checks:
+  Every dependency has a stable ref id.
+  There are no reference ranges such as "C1 through C10".
+  There are no vague references such as "previous estimates" or "the tree lemma".
+  Main proof claims reference exported lemma statements instead of lemma-internal claims.
+
+
+Stage 5: patch and revalidate
+
+When Stage 3 returns NEEDS_PATCH:
+  1. Read each finding.
+  2. Patch the smallest relevant artifact section.
+  3. Prefer adding missing hypotheses or explicit allowed_references over rewriting large sections.
+  4. If a main proof claim references a lemma-internal claim, replace it with the exported lemma statement unless the source proof explicitly reuses the internal fact.
+  5. If a claim relies on an existential witness from an earlier claim, declare that witness in variables or hypotheses.
+  6. Rerun Stage 3 on the patched artifact.
+  7. Rerun Stage 4 if references changed.
+
+Suggested output filename for rerun:
+  verification_validation_report_after_patch.txt
+
+Stop condition:
+  Stop when Stage 3 returns PASS, or when repeated validation shows the proof text itself is too ambiguous or flawed.
+
+
+Recommended agent division
+
+Single-agent workflow:
+  Run Stage 1.
+  Inspect and patch skeleton.
+  Run Stage 2.
+  Run Stage 3.
+  Patch and revalidate.
+
+Subagent workflow:
+  Main agent chooses the example and checks correctness.txt.
+  Subagent receives Stage 1 prompt and writes the skeleton.
+  Main agent skims skeleton for obvious structural issues.
+  Same subagent receives Stage 2 prompt and writes verifier artifact.
+  Main agent skims verifier artifact for formatting issues.
+  Same subagent receives Stage 3 prompt and writes validation report.
+  Main agent applies patches if needed.
+  Same subagent reruns Stage 3.
+
+Why reuse the same subagent:
+  It preserves context about the proof, skeleton, and verifier artifact.
+  It avoids duplicate interpretations of the same proof.
+
+
+Common patch patterns
+
+Premature final theorem:
+  Replace a mid-proof final conclusion with a fixed-object witness claim.
+  Add a separate infinitude or final assembly claim later.
+
+Missing witness threading:
+  Add variables such as:
+    e_1, A, and B are witnesses from C3.
+    C_1 and R are the renamed components from C4.
+
+Bad module dependency:
+  Replace:
+    L1.C4 instantiated with ...
+  with:
+    L1.statement instantiated with ...
+
+Global context too strong:
+  Move estimates, existence statements, or lemmas out of global context and into claims or lemma modules.
+
+Aggregator too large:
+  Split into:
+    local witness claim,
+    infinitude transfer claim,
+    final assembly claim.
+
+
+Final deliverables for an example
+
+Minimum:
+  semi_formalization_skeleton_generated.txt
+  verification_autoformalization_generated.txt
+  verification_validation_report.txt
+
+If patched:
+  verification_validation_report_after_patch.txt
+
+Optional stable modular artifact:
+  verification_autoformalization_modular.txt
+
+Optional parseable artifact:
+  verification_autoformalization_parseable.txt

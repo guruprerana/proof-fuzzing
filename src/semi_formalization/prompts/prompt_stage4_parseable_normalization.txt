@@ -1,0 +1,110 @@
+You are normalizing a verifier-oriented proof artifact into a more parseable reference format.
+
+Input:
+  artifact_type:
+  {{ARTIFACT_TYPE}}
+
+  artifact:
+  {{ARTIFACT}}
+
+Goal:
+  Preserve the mathematical content exactly while making dependency references easy to parse programmatically.
+
+
+Normalization rules:
+  1. Do not change global context, claim conclusions, lemma statements, or proof strategy unless needed to preserve meaning after reference normalization.
+  2. Normalize every allowed_references block.
+  3. If a claim uses no references, write:
+       allowed_references:
+         none
+  4. If a claim uses references, write one entry per dependency:
+       allowed_references:
+         - ref: C2
+           instantiation: k = current k; n = witness from C5
+         - ref: L1.statement
+           instantiation: H = G; M = 18n; K = K_1
+  5. Use stable ids only in ref fields:
+       C7
+       L1.C3
+       L1.final
+       L1.statement
+  6. Do not use vague references:
+       previous estimates
+       the tree lemma
+       claims above
+       the final contradiction claim
+  7. Do not use ranges:
+       C1 through C10
+       L1.C1-L1.C10
+     Instead list each reference explicitly.
+  8. Keep instantiation text concise and semicolon-separated.
+  9. If the original allowed_references had a range, expand it into explicit refs.
+  10. If the original allowed_references referenced a lemma-internal claim from the main proof, replace it with the exported statement when possible:
+       - ref: L1.statement
+         instantiation: ...
+  11. For Vieta-jumping or descent lemmas, keep main-proof references on exported lemma statements whenever possible; do not expose lemma-internal root-integrality or minimality claims in later finite case analyses.
+  12. For polynomial identity claims, keep arbitrary-variable instantiations explicit, such as "x = arbitrary real number", when normalizing references.
+
+
+Output:
+  The full normalized artifact.
+
+
+Few-shot example 1: no references
+
+Before:
+  allowed_references:
+    none
+
+After:
+  allowed_references:
+    none
+
+
+Few-shot example 2: sentence references
+
+Before:
+  allowed_references:
+    C2 instantiated at k and the witness n from C5.
+    C4 instantiated at k.
+
+After:
+  allowed_references:
+    - ref: C2
+      instantiation: k = current k; n = witness from C5
+    - ref: C4
+      instantiation: k = current k
+
+
+Few-shot example 3: exported lemma
+
+Before:
+  allowed_references:
+    L1.statement instantiated with H = G, M = 18n, K = K_1.
+
+After:
+  allowed_references:
+    - ref: L1.statement
+      instantiation: H = G; M = 18n; K = K_1
+
+
+Few-shot example 4: range expansion
+
+Before:
+  allowed_references:
+    L1.C1 through L1.C4.
+
+After:
+  allowed_references:
+    - ref: L1.C1
+      instantiation: current lemma variables
+    - ref: L1.C2
+      instantiation: current lemma variables
+    - ref: L1.C3
+      instantiation: current lemma variables
+    - ref: L1.C4
+      instantiation: current lemma variables
+
+
+Final instruction:
+  Output only the normalized artifact. Do not include a validation report or commentary.

@@ -1,0 +1,479 @@
+You are validating a semi-formal proof artifact against the original proof.
+
+Input:
+  problem_statement:
+  {{PROBLEM_STATEMENT}}
+
+  proof_text:
+  {{PROOF_TEXT}}
+
+  artifact_type:
+  {{ARTIFACT_TYPE}}
+
+  artifact:
+  {{ARTIFACT}}
+
+Possible artifact_type values:
+  skeleton
+  verifier_format
+  modular_verifier_format
+
+
+Goal:
+  Check whether the artifact is faithful to the original proof and whether each implication or claim is neither overclaiming nor underclaiming.
+
+
+Validation criteria:
+  1. Faithfulness:
+     The artifact should follow the original proof strategy.
+     It should not introduce a materially different argument.
+
+  2. Local validity:
+     Each implication or claim conclusion should follow from its stated premises, global context, and allowed references.
+
+  3. No overclaiming:
+     A step should not prove more than the original proof justifies.
+     A step should not state the final theorem prematurely.
+     A step should not omit necessary hypotheses.
+
+  4. No underclaiming:
+     A step should not be too weak to support later references.
+     If a later step needs positivity, distinctness, monotonicity, or an equality, that bridge should appear somewhere.
+
+  5. Dependency correctness:
+     References should point to claims that actually support the conclusion.
+     Aggregator steps should not hide major proof moves.
+
+  6. Quantifier hygiene:
+     Variables should be scoped.
+     "For infinitely many", "for all sufficiently large", and "there exists" should not be interchanged.
+     Witnesses should be distinct when infinitude arguments require distinctness.
+
+  7. Definition hygiene:
+     Global context should contain definitions and notation only.
+     Claims that require proof should not be placed in global context.
+
+  8. Module hygiene:
+     If the artifact has lemma modules, each module should have a clear statement, internal proof claims, and an exported statement.
+     Main proof claims should reference exported lemma statements, not internal lemma claims, unless the source proof explicitly reuses an internal fact.
+     The exported lemma statement should match what the internal proof claims establish.
+     Instantiations of exported lemma statements should supply all hypotheses of the lemma statement.
+
+  9. Parseability:
+     allowed_references should either be exactly "none" or a list of entries with "- ref:" and optional "instantiation:".
+     References should use stable ids such as C7, L1.C3, L1.final, or L1.statement.
+     References should not use vague names such as "the lemma", "previous estimates", or "claims above".
+     References should not use ranges such as "C1 through C10"; they should list each dependency explicitly.
+
+  10. Endpoint and range hygiene:
+      If an argument splits a range such as 0 <= i <= k-2 from an endpoint such as i = k-1, check both pieces separately.
+      Check empty-range edge cases such as k = 1 before accepting an aggregator.
+      In floor-bound arguments, check strict versus non-strict inequalities when translating steps such as n > N into n >= N+1.
+
+  11. Special-case and symmetry hygiene:
+      Check that WLOG assumptions used in earlier cases are still valid or explicitly re-established when the case is reused later.
+      Check suppressed special cases in asymptotic or counting estimates, especially 0, 1, duplicate representations, and endpoint conventions.
+      Check distinctness or unboundedness when an infinitude proof constructs witnesses from infinitely many parameters.
+
+  12. Finite enumeration and Vieta-jumping hygiene:
+      For compressed finite enumerations, confirm that the stated inequality covers all relevant integer cases and that boundary cases are not omitted.
+      In Vieta-jumping arguments, check that the other root is proved integral, positive, and still a solution before minimality is invoked.
+      Check that any descent or bound used is source-faithful rather than a stronger substitute.
+
+  13. Divisibility and limiting hygiene:
+      When divisibility is proved through an auxiliary sum or quotient, check that the artifact proves the auxiliary expression is integer-valued before using divisibility language.
+      For limiting arguments that force a real number to be an integer, check that the artifact states the positive distance to the nearest integer under the non-integer assumption.
+
+  14. Fact, divisibility-chain, and telescoping hygiene:
+      Check whether stated Facts, Claims, or Observations that are proved and reused should be lemma modules or otherwise have explicit exported statements.
+      Check divisibility transitivity chains, especially when the source passes through product factorizations.
+      Check telescoping endpoint terms, zero terms, and reduced summation ranges before accepting a final telescoping aggregate.
+
+  15. Source-false and interval-counting hygiene:
+      A source-faithful artifact may receive FAIL if the natural-language proof contains a false intermediate theorem; do not patch by inventing a different proof.
+      Check that integer counts in real intervals are not bounded by real interval length without floor/ceiling justification or an additive constant.
+      For perfect-power gap proofs, flag claims that all sufficiently large gaps between consecutive squares contain no perfect powers, since nonsquare cubes give counterexamples.
+
+  16. Geometry cancellation hygiene:
+      For directed-segment coordinate arguments, check sign conventions in the coordinate translation claim.
+      Check that any nonzero factor canceled in a final coordinate argument has an explicit geometric distinctness or nondegeneracy claim.
+
+  17. Polynomial root and descent hygiene:
+      If a contradiction compares "no real roots" with "all roots are real", check that the artifact states a root-existence hypothesis such as positive degree plus the fundamental theorem of algebra.
+      For descent arguments on coefficients or indices, check that the repeated step has the required adjacent hypotheses at each iteration.
+      For elementary-symmetric arguments, check that coefficient-index translations are explicit before coefficient-vanishing lemmas are applied.
+
+  18. Rolle and finite-union hygiene:
+      For Rolle/interlacing claims, check the derivative order, the asserted number of roots after differentiation, and whether a multiple-root contradiction is explicit.
+      For finite-union counting contradictions, check that membership coverage and per-fiber upper bounds are stated separately before cardinality aggregation.
+
+  19. Directed geometry hygiene:
+      When directed products are replaced by signed ordinary lengths, check that betweenness and sign conventions are explicit.
+      If the source appends a consistency check after the theorem, ensure the artifact marks it as nonessential or places it after final assembly.
+
+  20. Tree-dual and sequential-cut hygiene:
+      For orientation-based tree lemmas, verify that the source/sink choice matches the declared orientation direction.
+      For triangulation dual arguments, check that dual-edge and triangle-count correspondences are explicit.
+      For sequential cuts, check that the second selected edge lies in one component after the first cut and is distinct from the first edge.
+
+  21. Period and CRT valuation hygiene:
+      For key period or valuation lemmas, test stated universal inequalities against small moduli explicitly mentioned in the proof.
+      In CRT/product-modulus period arguments, check whether lcm component periods import prime-power factors from other components before accepting valuation equalities.
+      If the proof corrects itself midstream, check that later dependencies use the corrected statement rather than the earlier suspect one.
+
+  22. Positional-numeral hygiene:
+      Check that digit-extraction formulas are applied only after the digit count and digit-index range have been fixed.
+      Check highest-digit or last-index behavior separately when formulas contain exponents or ranges that change at the endpoint.
+      Check least-nonnegative remainder declarations, parity claims, and strict floor-bound inequalities before accepting digit lower bounds.
+
+  23. Constructive polynomial hygiene:
+      Check that final displayed polynomial witnesses are verified directly when the proof includes a parameter-solving derivation.
+      Check that chosen parameters make leading coefficients nonzero before accepting degree claims.
+      Check that polynomial identity claims specify the arbitrary variable or domain of identity.
+
+  24. Rational-expansion digit hygiene:
+      If digit formulas come from expanding a rational X and multiplying by b^k, check that the artifact proves the multiplication gives the target integer's finite base-b digit string.
+      For digit formulas indexed by i, verify endpoint cases such as i = k when denominators like 2^(k-i) become 1.
+
+  25. Eventual-constancy and transformed-symmetry hygiene:
+      Check that WLOG assumptions are justified after any transformation that creates the needed symmetry.
+      Check that scaled auxiliary eventual values are declared with integrality before they are used in divisibility arguments.
+      In selected-subsequence divisibility contradictions, check that divisibility of subsequence terms and divisibility of the eventual limiting value are separate claims.
+
+  26. Geometry interpretation and signed-cyclicity hygiene:
+      If the source resolves an ambiguous geometric interpretation, check that the chosen interpretation is isolated and discarded readings are not hidden dependencies.
+      For reflection constructions, check that collinearity, midpoint, or side facts after reflection are stated before they are used.
+      For signed product cyclicity, check that magnitude equality and side/order information are both present.
+
+  27. Finite-operation and modular-invariant hygiene:
+      For finite-operation classifications, check that invariants, one-step transitions, and constructive sufficiency sequences are separated.
+      Check absolute-value modular claims such as |u-v| mod m for the needed sign-insensitivity argument.
+      Check that reductions preserve positivity and the invariant class needed for later construction.
+
+  28. Game-to-graph and infimum-connectivity hygiene:
+      Check that a game rule translated into a named graph has a dedicated equivalence or reduction claim before graph properties are used.
+      In geometric graph planarity arguments, check that crossing-to-convex-quadrilateral or similar geometry bridges are explicit.
+      For infimum-based connectivity contradictions, check that the infimum sequence, non-edge witness, component-membership case split, and limit passage are each explicit.
+
+  29. Complex-plane and strictness hygiene:
+      For direct-similarity or complex-coordinate geometry, check that the affine normalization and derived third-point coordinate are stated before graph or distance claims use them.
+      For infimum/minimizing-sequence connectivity arguments, check that the witness obstruction is produced for each approximating pair and that strict lower bounds survive to the limit contradiction.
+
+  30. Auxiliary-polynomial hygiene:
+      Check that auxiliary-polynomial substitutions are translated back to the original variables before the final functional equation is claimed.
+      Check that coefficient-comparison claims handle constant terms as well as highest-degree terms.
+
+  31. Subset-family and packaged-lemma hygiene:
+      If the source proves a standard obstacle through boundary cases instead of a named lemma, check that the artifact preserves that packaging or clearly exports an equivalent local module.
+      For k-subset families of a (k+1)-set, check the claim that two distinct k-subsets differ by exactly one element before accepting downstream algebra.
+      For consecutive elementary-symmetric vanishings, check both directions of the coefficient-index translation.
+
+  32. Point-reflection and circle-identification hygiene:
+      Check that point-reflection constructions state midpoint, collinearity, and equal-distance consequences before those facts are used.
+      When a named circumcircle is identified with a diameter circle, check that the artifact states why the same defining points determine both circles.
+      For chord-bisection claims, check that the center-perpendicular-to-chord bridge is explicit.
+
+  33. Fractional-part and minimal-index hygiene:
+      For fractional-part case splits, check that integer-part removal and complementary variables are explicit before case analysis.
+      For minimal-index floor or ceiling contradictions, check the endpoint integer case separately from the noninteger case.
+      Check that the chain from minimality to endpoint bound, exact floor/ceiling value, and divisibility contradiction is local.
+
+  34. Gaussian-integer and descent hygiene:
+      For Gaussian-integer UFD arguments, check coprime conjugate factors, unit absorption, norm relation, and coordinate comparison before accepting power extraction.
+      For descent arguments, check that the descent measure is explicit and strictly decreases.
+      Check modular case coverage for splits such as 3 divides x, 3 divides y, and not both.
+
+  35. Operation-classification and Vieta-fundamental hygiene:
+      For operation classifications split by parity or another invariant, check that each class has its own stated invariant or construction before final assembly.
+      For Vieta-jumping fundamental-solution claims, check that the other root and the exact fundamental inequality or ordering condition are explicit.
+      For finite eliminations after a Vieta bound, check that integer quadratic checks and modular obstructions are separated.
+
+  36. Optional-result and cancellation hygiene:
+      If the source includes extra equality or characterization after proving the requested result, check whether it is part of the problem statement before treating it as required.
+      Before algebraic cancellation or division by a term such as 1-u, check that boundary cases are separated and sign/range hypotheses are stated.
+      For ordered positive product lemmas, check the direction of partial-product inequalities.
+
+  37. Constructive witness eligibility hygiene:
+      For existence proofs by construction, check that the final witness satisfies every explicit problem-side constraint after the identity or target property is verified.
+      Return FAIL if the witness satisfies the equation but misses a required constraint such as a minimum degree, positivity, integrality, or distinctness condition.
+
+  38. Finite-operation construction hygiene:
+      Check exact step counts, repeated-operation empty endpoint cases, and coordinate-by-coordinate final values.
+      For symmetric pair problems, check that relabeling transfers the construction back to the original ordered pair.
+      For one-step reductions into a solved case, check that all hypotheses of the solved case are preserved after the move.
+
+  39. CRT progression and eventual-periodicity hygiene:
+      Before accepting CRT on progressions n congruent to u_i modulo M_i, check pairwise coprime moduli or residue compatibility modulo gcd(M_i, M_j); do not infer compatibility from infinitude.
+      Check that auxiliary period moduli are not silently treated as the original coprime prime-power moduli.
+      Check that eventual-periodicity statements have a threshold, modulus, period relation, and exact lifting implication.
+
+  40. Recursive digit construction hygiene:
+      Check terminal modulus-1 remainder-zero claims before accepting telescoping identities.
+      Reject a base-representation claim unless weighted-sum equality, digit range, and leading nonzero digit are each present.
+      If remainder parity is used, check the modulus is even for exactly the claimed range and the endpoint is separate.
+      Confirm whether a_0 is least significant or most significant, and ensure all floor or quotient formulas match that convention.
+
+  41. Quotient approximation and coefficient-matching hygiene:
+      Check quotient-difference arguments declare all normalized quantities and the integer difference variable before approximation claims.
+      For integer-forcing approximation arguments, check nearest-integer distance, positivity, Archimedean choice, and contradiction are separate.
+      For coefficient-matching derivations, check chosen constants are substituted back into the coefficient equations before final direct verification.
+
+  42. Symmetric graph-rule and strict-disk hygiene:
+      If a game rule has an or condition simplified by symmetry of the chosen set, check both directions of the equivalence.
+      For reversed ordered triangles in complex-plane direct similarities, check the transformed coordinate is computed explicitly.
+      Check road/non-road and outside/inside-or-on closed disk conditions are separated before strict Gabriel graph arguments.
+      In infimum-connectivity arguments, check the non-edge witness is produced for each approximating pair before the component case split.
+
+  43. Operation reduction endpoint hygiene:
+      For an initial reduction step, check zero, positive, and negative resulting-difference cases before a prior ordered construction is reused.
+      If coordinate roles are swapped, check the operation sequence is translated coordinate-by-coordinate.
+      For operation-word proofs, check endpoint counts in step intervals such as steps 2 through K.
+
+  44. Complex-coordinate rational-function hygiene:
+      For self-correcting sources, check later claims depend only on the corrected computation.
+      Check auxiliary constants are renamed or scoped clearly when they collide with verifier claim labels.
+      For constant-argument rational functions, check proportionality to a real rational function, pole conjugacy, and common-factor cancellation are explicit.
+      For algebraically derived geometric witnesses, check all problem-side eligibility constraints are verified separately.
+
+  45. Bounded-parameter lemma-instantiation hygiene:
+      If a lemma uses an actual parameter such as maximum degree Delta but the proof only gives a bound Delta <= c, check that the artifact proves the lemma's threshold for the actual Delta.
+
+  46. Small-parameter tree and fractional-limit hygiene:
+      For bounded-degree tree splitting lemmas, check small parameter cases such as K = 1 are separated if later orientation arguments assume K >= 2.
+      For real-valued divisibility statements, check that an integer witness or integer-valued expression is established before divisibility is used.
+      When a sum of terms in [0,1) is zero, check that each summand is explicitly concluded to be zero before using individual terms.
+      For limiting integer-sequence arguments, check integer-valuedness, convergence, and the integer-limit contradiction are stated separately.
+
+  47. Bounded Vieta and minimization hygiene:
+      For parameter-bounded Vieta jumping, check other-root construction, positivity, integrality, minimality comparison, and finite boundary enumeration.
+      For minimization proofs, check smaller-value impossibility claims are separate from direct witness eligibility for the first attained value.
+      For divisor-complement substitutions, check the complement variable is declared as an integer witness before Diophantine conversion.
+
+  48. Coefficient-matching monomial hygiene:
+      Before accepting coefficient equations from an ansatz, check that the compared monomials are distinct under the stated parameter constraints.
+
+  49. Interval witness and overcount hygiene:
+      If a residue witness is later used for distinctness through a subinterval, check that the witness is proved to lie in that exact subinterval.
+      For counting estimates that sum over parameterizations, check duplicate representations are explicitly treated as harmless overcounts.
+      For enumeration proofs with source uncertainty about an equality, check later dependencies use a robust interval statement rather than the uncertain equality.
+
+  50. Operation residue and perfect-power counting hygiene:
+      Check renamed parameters when source notation collides with operation names.
+      For residue-flipping invariants, check the k-step propagation formula is stated before eventual equality is used.
+      For repeated operation intervals, check counts such as steps 2 through T equal T-1 and endpoint cases are covered.
+      For perfect-power bad-set estimates, check square/non-square separation, duplicate handling, and injection or disjointness from bad parameters to counted witnesses.
+
+  51. Reflection and similar-triangle product hygiene:
+      After reflection across a line, check collinearity, perpendicular-axis midpoint, and equal-distance or midpoint facts are recorded before use.
+      If a similar-triangle product identity is substituted into a power expression, check the similarity and product identity are separate local claims.
+
+  52. Fractional-average hygiene:
+      When averages of fractional parts are subtracted, check lower and strict upper bounds for each average are stated first.
+
+  53. Vector-geometry hygiene:
+      Check overloaded point, side-length, and angle notation is disambiguated before vector computations.
+      For tangent-line constructions, check parallel-line similarity and inradius or altitude bridges precede segment-coordinate substitution.
+      For arc-midpoint dot-product arguments, check equal radii, angle relation, and dot-product consequence are local claims.
+
+  54. Direct-similarity and strict Gabriel connectivity hygiene:
+      For direct-similarity alternatives, check coordinate equations are stated for each ordered triangle before symmetry simplification.
+      For diameter disk angle conversions, check outside/on/inside closed disk status and noncollinear endpoint exclusions when strict angles are needed.
+      For strict Gabriel connectivity, check non-edge witness, law-of-cosines descent, and component-preserving next-pair claims are separated.
+
+  55. Infimum strictness hygiene:
+      Check the artifact does not infer inf S > a from pointwise inequalities x > a without a uniform gap.
+      If using an every-cross-distance inequality instead of an approximating sequence, check nonnegativity and monotonicity justify passing to the infimum.
+      If an overstrict source inequality is weakened, check the correction is documented and downstream dependencies use the weaker supported statement.
+
+  56. Rolle endpoint hygiene:
+      For Rolle-based coefficient-vanishing lemmas, check leading-coefficient endpoint cases are separated from derivative or multiple-root contradiction cases.
+
+  57. Root-subset and double-counting hygiene:
+      For monic products over root subsets, check degree, leading coefficient, and nonzero constant coefficient before coefficient-product hypotheses are applied.
+      In repeated-Rolle arguments, check derivative degree and distinct-root count are both explicit after differentiating.
+      In double-counting arguments, check coverage lower bounds and uniqueness upper bounds are separate before the final contradiction.
+  58. k-subset elementary-symmetric endpoint hygiene:
+      For two distinct k-subsets of a (k+1)-set, check that the common (k-1)-element intersection and the two exchanged elements are named before algebraic identities are applied.
+      Check exact coefficient-index mapping for each elementary-symmetric vanishing, including degree shifts for products over intersections.
+      Check endpoint cases j=1 and j=k-1 separately from interior repeated-Rolle or coefficient-descent arguments.
+  59. Parametric tree-splitting and triangulation-cut hygiene:
+      If the source tree-splitting lemma has a maximum-degree parameter D, check that D is retained in the lemma statement and explicit at each instantiation.
+      Check that each lemma application proves the exact required inequality, and that any D <= 1 or small-K exceptional cases are handled when the proof assumes D >= 2.
+      For sequential triangulation cuts, check that the second edge is proved to lie in the chosen component, is distinct from the first edge, and yields exactly the three intended polygon parts.
+  60. Functional-equation classification and minimality hygiene:
+      Flag "this suggests the solution" or "verified in the thought process" as insufficient for uniqueness unless the artifact has a recurrence, induction, or complete residue-class propagation from the source proof.
+      For minimal-counterexample or minimal-absolute-value arguments, check that the constructed comparison object gives a strict decrease or an explicit contradiction, not merely another admissible object with the same or larger measure.
+  61. Existential witness dependency hygiene:
+      Check that a witness created by an existence claim is not predeclared as an input variable of that same claim.
+      The witness should appear in the creating claim's conclusion and then be threaded into later claims through allowed_references or explicit instantiation.
+  62. Rooted-subtree lemma hygiene:
+      If a rooted-subtree lemma returns a vertex or child subtree, check whether it may return the root.
+      When the proof needs an internal edge, non-root child, or non-adjacency to a previous cut, require an explicit non-root argument; otherwise flag the step as suspect.
+  63. GCD residue hygiene:
+      If a proof reduces A and B modulo a prime p, do not accept a claimed residue for gcd(A,B) from those input residues alone.
+      Require an exact gcd equality, common-factor control, or a separate argument proving the needed divisibility or nondivisibility of every common divisor.
+
+
+Output format:
+  validation_result: PASS / NEEDS_PATCH / FAIL
+
+  findings:
+    - id: F1
+      severity: critical / major / minor
+      location: claim or impl label
+      issue_type: overclaim / underclaim / missing_hypothesis / bad_reference / unfaithful / unclear_scope / definition_hygiene / module_hygiene / parseability / other
+      explanation: concise explanation of the problem.
+      suggested_patch: concrete replacement or added statement.
+
+  summary:
+    brief overall assessment.
+
+
+Severity guide:
+  critical:
+    The artifact proves a false or unsupported main conclusion, or the dependency graph is broken.
+
+  major:
+    A local implication is not justified as stated, or a key hypothesis/reference is missing.
+
+  minor:
+    The artifact is probably checkable, but wording or scoping could be clearer.
+
+
+Few-shot example 1: premature final theorem
+
+Artifact fragment:
+  impl8:
+  there are infinitely many k such that s_{k+1}-s_k >= k,
+  impl4,
+  impl7
+  =>
+  there are infinitely many n such that A_n divides n+2024.
+
+Validation finding:
+  - id: F1
+    severity: major
+    location: impl8
+    issue_type: overclaim
+    explanation: This implication jumps directly to the final theorem. The local step should first show that a fixed k with a long gap gives a witness n.
+    suggested_patch: Replace impl8 with a fixed-k witness implication, then add separate infinitude aggregator implications.
+
+
+Few-shot example 2: missing positivity hypothesis
+
+Artifact fragment:
+  claim C7:
+  hypotheses:
+    I_k = [s_k, s_{k+1}-1].
+    s_{k+1}-s_k >= k.
+  conclusion:
+    there exists a positive integer n such that A_n = k and A_n divides n+2024.
+
+Validation finding:
+  - id: F2
+    severity: minor
+    location: claim C7
+    issue_type: missing_hypothesis
+    explanation: The claim obtains an integer n in I_k. To conclude n is positive, the artifact should state that every integer in I_k is positive or that s_k >= 1.
+    suggested_patch: Add the hypothesis "every integer in I_k is positive" or add a prior claim proving it.
+
+
+Few-shot example 3: global context contains a proof claim
+
+Artifact fragment:
+  global context:
+    R(N) = O(N^(1/3)).
+
+Validation finding:
+  - id: F3
+    severity: major
+    location: global context
+    issue_type: definition_hygiene
+    explanation: This is an estimate that requires proof, not a definition or fixed notation.
+    suggested_patch: Move this statement into a separate claim with the relevant counting-bound hypotheses.
+
+
+Few-shot example 4: bad reference
+
+Artifact fragment:
+  claim C18:
+  allowed_references:
+    C9.
+  conclusion:
+    there are infinitely many m such that J_m contains no perfect power.
+
+Validation finding:
+  - id: F4
+    severity: major
+    location: claim C18
+    issue_type: bad_reference
+    explanation: C9 only classifies non-square perfect powers. It does not establish an asymptotic count or infinitude of empty intervals.
+    suggested_patch: Add references to the counting complement claim and the asymptotic estimate claim, or split the infinitude argument into smaller claims.
+
+
+Few-shot example 5: module interface misuse
+
+Artifact fragment:
+  lemma L1_tree_partition:
+    statement:
+      If H is a tree with M vertices and maximum degree at most 3 and M >= 3K-1, then there exists an edge e whose removal gives two components each having at least K vertices.
+    proof_claims:
+      claim L1.C1: ...
+    exports:
+      L1.statement.
+
+  claim C7:
+    allowed_references:
+      L1.C4 instantiated with H = G.
+    conclusion:
+      there exists an edge e_1 of G whose removal gives two components each having at least 6n vertices.
+
+Validation finding:
+  - id: F5
+    severity: minor
+    location: claim C7
+    issue_type: module_hygiene
+    explanation: The main proof reaches inside the lemma module and references an internal proof claim. It should use the exported lemma statement unless the internal fact is explicitly reused by the source proof.
+    suggested_patch: Replace the reference to L1.C4 with a structured exported-statement reference: "- ref: L1.statement" and "instantiation: H = G; M = 18n; K = 6n"; include the hypotheses needed for that instantiation.
+
+
+Few-shot example 6: lemma statement not proved by module
+
+Artifact fragment:
+  lemma L1:
+    statement:
+      If H is a tree with maximum degree at most 3, then H has an edge whose removal gives equal-size components.
+    proof_claims:
+      claim L1.C1:
+        conclusion:
+          H has an edge whose removal gives two components each having at least K vertices.
+
+Validation finding:
+  - id: F6
+    severity: major
+    location: lemma L1
+    issue_type: overclaim
+    explanation: The exported statement is stronger than the internal proof claims. The proof establishes lower bounds on component sizes, not equal-size components.
+    suggested_patch: Weaken the lemma statement to match the proved conclusion, or add proof claims establishing equality if that is faithful to the source proof.
+
+
+Few-shot example 7: unparseable reference range
+
+Artifact fragment:
+  claim L1.final:
+    allowed_references:
+      L1.C1 through L1.C10.
+
+Validation finding:
+  - id: F7
+    severity: minor
+    location: claim L1.final
+    issue_type: parseability
+    explanation: The reference range is human-readable but not ideal for simple dependency extraction.
+    suggested_patch: Replace the range with explicit entries, one per referenced claim, using "- ref: L1.C1", "- ref: L1.C2", and so on.
+
+
+Final instruction:
+  Do not rewrite the entire artifact unless validation_result is FAIL.
+  Prefer a concise findings list with concrete patches.
+  If there are no issues, output validation_result: PASS and mention any residual assumptions about standard mathematical facts.

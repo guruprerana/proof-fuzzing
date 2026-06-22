@@ -247,3 +247,5 @@ CppProperties.json
 /_cache/
 /.ccls-cache
 *.ast.json
+
+logs
