@@ -1,16 +1,15 @@
-"""IMO-GradeBench helpers for evolutionary proof fuzzing."""
+"""ProofBenchJudge helpers for evolutionary proof fuzzing."""
 
 from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from dataclasses import asdict
-from dataclasses import dataclass
-from dataclasses import replace
+from dataclasses import asdict, dataclass, replace
 from datetime import datetime
 import hashlib
 import json
 from pathlib import Path
 import random
+import re
 from typing import Iterable
 
 from src.proof_fuzzer.evolution import (
@@ -30,16 +29,16 @@ from src.proof_fuzzer.vllm_client import (
 )
 
 
-DEFAULT_IMO_GRADEBENCH_ROOT = Path(
-    "~/common-data/reasoning-dataset/imo_gradebench/imo-gradebench/gradebench-model"
+DEFAULT_PROOF_BENCH_JUDGE_ROOT = Path(
+    "~/common-data/reasoning-dataset/proof_bench_judge/proof_bench_judge/proofbenchjudgemodel"
 ).expanduser()
 
 
 @dataclass(frozen=True)
-class IMOGradeBenchEvolutionRunConfig:
-    """Hyperparameters for a complete IMO-GradeBench evolutionary fuzzing run."""
+class ProofBenchJudgeEvolutionRunConfig:
+    """Hyperparameters for a complete ProofBenchJudge evolutionary fuzzing run."""
 
-    root: str | Path = DEFAULT_IMO_GRADEBENCH_ROOT
+    root: str | Path = DEFAULT_PROOF_BENCH_JUDGE_ROOT
     limit: int | None = None
     attempts_per_example: int = 1
     num_attempts: int | None = None
@@ -75,8 +74,8 @@ class IMOGradeBenchEvolutionRunConfig:
 
 
 @dataclass(frozen=True)
-class IMOGradeBenchEvolutionRunResult:
-    """Summary for a complete IMO-GradeBench evolutionary fuzzing run."""
+class ProofBenchJudgeEvolutionRunResult:
+    """Summary for a complete ProofBenchJudge evolutionary fuzzing run."""
 
     attempts: tuple[FuzzAttempt, ...]
     storage_dir: Path
@@ -97,8 +96,8 @@ class IMOGradeBenchEvolutionRunResult:
 
 
 @dataclass(frozen=True)
-class IMOGradeBenchExample:
-    """One IMO-GradeBench proof example with a correct model response."""
+class ProofBenchJudgeExample:
+    """One ProofBenchJudge proof example."""
 
     example_id: str
     path: Path
@@ -109,39 +108,38 @@ class IMOGradeBenchExample:
     metadata: dict[str, object]
 
     @property
-    def problem(self) -> str:
-        original_data = self.metadata.get("original_data")
-        if isinstance(original_data, dict):
-            return str(original_data.get("Problem", ""))
-        return ""
+    def original_data(self) -> dict[str, object]:
+        value = self.metadata.get("original_data")
+        return value if isinstance(value, dict) else {}
 
     @property
-    def grading_id(self) -> str:
-        original_data = self.metadata.get("original_data")
-        if isinstance(original_data, dict):
-            return str(original_data.get("Grading ID", ""))
-        return ""
+    def problem(self) -> str:
+        return str(self.original_data.get("problem", ""))
+
+    @property
+    def proof(self) -> str:
+        return str(self.original_data.get("proof", self.metadata.get("full_response", "")))
+
+    @property
+    def rubric(self) -> str:
+        return str(self.original_data.get("rubric", ""))
+
+    @property
+    def problem_id(self) -> str:
+        return str(self.original_data.get("problem_id", ""))
 
     @property
     def llm_category(self) -> str:
-        category = self.metadata.get("llm_category")
-        if category:
-            return str(category)
-        original_data = self.metadata.get("original_data")
-        if isinstance(original_data, dict):
-            for key in ("llm_category", "category", "Category"):
-                category = original_data.get(key)
-                if category:
-                    return str(category)
-        return ""
+        return infer_math_topic(" ".join((self.problem_id, self.problem, self.rubric, self.proof)))
 
     def to_metadata(self) -> dict[str, object]:
         metadata = {
-            "dataset": "imo_gradebench",
+            "dataset": "proof_bench_judge",
             "example_id": self.example_id,
             "example_path": str(self.path),
-            "grading_id": self.grading_id,
+            "problem_id": self.problem_id,
             "problem": self.problem,
+            "rubric": self.rubric,
             "correctness": self.correctness,
         }
         if self.llm_category:
@@ -149,15 +147,15 @@ class IMOGradeBenchExample:
         return metadata
 
 
-def run_imo_gradebench_evolution(
-    run_config: IMOGradeBenchEvolutionRunConfig | None = None,
+def run_proof_bench_judge_evolution(
+    run_config: ProofBenchJudgeEvolutionRunConfig | None = None,
     *,
     llm: LLMClient | None = None,
-) -> IMOGradeBenchEvolutionRunResult:
-    """Run the full IMO-GradeBench evolutionary loop from hyperparameters."""
+) -> ProofBenchJudgeEvolutionRunResult:
+    """Run the full ProofBenchJudge evolutionary loop from hyperparameters."""
 
-    active_run_config = run_config or IMOGradeBenchEvolutionRunConfig()
-    storage_dir = resolve_imo_gradebench_evolution_storage_dir(
+    active_run_config = run_config or ProofBenchJudgeEvolutionRunConfig()
+    storage_dir = resolve_proof_bench_judge_evolution_storage_dir(
         active_run_config.storage_dir,
         run_name=active_run_config.run_name,
     )
@@ -192,8 +190,8 @@ def run_imo_gradebench_evolution(
         max_previous_failed_attempts_in_prompt=active_run_config.max_previous_failed_attempts_in_prompt,
         max_previous_failed_attempt_chars=active_run_config.max_previous_failed_attempt_chars,
     )
-    write_imo_gradebench_evolution_run_config(storage_dir, active_run_config)
-    attempts = run_imo_gradebench_evolutionary_pipeline(
+    write_proof_bench_judge_evolution_run_config(storage_dir, active_run_config)
+    attempts = run_proof_bench_judge_evolutionary_pipeline(
         llm=active_llm,
         root=active_run_config.root,
         limit=active_run_config.limit,
@@ -205,22 +203,19 @@ def run_imo_gradebench_evolution(
         sample_without_replacement=active_run_config.sample_without_replacement,
     )
     write_standard_source_reports(storage_dir)
-    return IMOGradeBenchEvolutionRunResult(
-        attempts=attempts,
-        storage_dir=storage_dir,
-    )
+    return ProofBenchJudgeEvolutionRunResult(attempts=attempts, storage_dir=storage_dir)
 
 
-def load_correct_imo_gradebench_examples(
-    root: str | Path = DEFAULT_IMO_GRADEBENCH_ROOT,
+def load_correct_proof_bench_judge_examples(
+    root: str | Path = DEFAULT_PROOF_BENCH_JUDGE_ROOT,
     *,
     limit: int | None = None,
-) -> tuple[IMOGradeBenchExample, ...]:
-    """Load examples whose ``correctness.txt`` is true."""
+) -> tuple[ProofBenchJudgeExample, ...]:
+    """Load examples whose ground-truth judgement says the proof is correct."""
 
-    examples: list[IMOGradeBenchExample] = []
+    examples: list[ProofBenchJudgeExample] = []
     for example_dir in _iter_example_dirs(Path(root).expanduser()):
-        example = load_imo_gradebench_example(example_dir)
+        example = load_proof_bench_judge_example(example_dir)
         if not example.correctness:
             continue
         examples.append(example)
@@ -229,39 +224,38 @@ def load_correct_imo_gradebench_examples(
     return tuple(examples)
 
 
-def load_imo_gradebench_example(example_dir: str | Path) -> IMOGradeBenchExample:
-    """Load one IMO-GradeBench example directory."""
+def load_proof_bench_judge_example(example_dir: str | Path) -> ProofBenchJudgeExample:
+    """Load one ProofBenchJudge example directory."""
 
     path = Path(example_dir)
-    correctness_path = path / "correctness.txt"
-    response_path = path / "response.txt"
     prompt_path = path / "prompt.txt"
+    response_path = path / "response.txt"
     ground_truth_path = path / "ground_truth.txt"
     metadata_path = path / "metadata.json"
-
     missing = [
         file_path.name
-        for file_path in (correctness_path, response_path, prompt_path, ground_truth_path, metadata_path)
+        for file_path in (prompt_path, response_path, ground_truth_path, metadata_path)
         if not file_path.is_file()
     ]
     if missing:
         raise FileNotFoundError(f"{path} is missing required files: {', '.join(missing)}")
 
-    return IMOGradeBenchExample(
+    metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+    return ProofBenchJudgeExample(
         example_id=path.name,
         path=path,
         prompt=prompt_path.read_text(encoding="utf-8"),
         response=response_path.read_text(encoding="utf-8"),
         ground_truth=ground_truth_path.read_text(encoding="utf-8"),
-        correctness=_parse_correctness(correctness_path.read_text(encoding="utf-8")),
-        metadata=json.loads(metadata_path.read_text(encoding="utf-8")),
+        correctness=_parse_correctness(metadata, ground_truth_path.read_text(encoding="utf-8")),
+        metadata=metadata,
     )
 
 
-def run_imo_gradebench_evolutionary_pipeline(
+def run_proof_bench_judge_evolutionary_pipeline(
     *,
     llm: LLMClient,
-    root: str | Path = DEFAULT_IMO_GRADEBENCH_ROOT,
+    root: str | Path = DEFAULT_PROOF_BENCH_JUDGE_ROOT,
     limit: int | None = None,
     config: EvolutionConfig | None = None,
     store: ProofFuzzAttemptStore | None = None,
@@ -271,7 +265,7 @@ def run_imo_gradebench_evolutionary_pipeline(
     num_attempts: int | None = None,
     sample_without_replacement: bool = False,
 ) -> tuple[FuzzAttempt, ...]:
-    """Run natural-language evolutionary fuzzing on correct IMO-GradeBench proofs."""
+    """Run natural-language evolutionary fuzzing on correct ProofBenchJudge proofs."""
 
     if max_workers < 1:
         raise ValueError("max_workers must be at least 1.")
@@ -281,10 +275,10 @@ def run_imo_gradebench_evolutionary_pipeline(
         raise ValueError("num_attempts must be at least 1 when provided.")
 
     active_config = config or EvolutionConfig(
-        storage_dir="logs/proof_fuzzer_evolution/imo_gradebench",
+        storage_dir="logs/proof_fuzzer_evolution/proof_bench_judge",
     )
     active_store = store or ProofFuzzAttemptStore(active_config.storage_dir)
-    examples = load_correct_imo_gradebench_examples(root, limit=limit)
+    examples = load_correct_proof_bench_judge_examples(root, limit=limit)
     work_items = _sample_work_items(
         examples,
         attempts_per_example=attempts_per_example,
@@ -294,7 +288,7 @@ def run_imo_gradebench_evolutionary_pipeline(
     )
     if max_workers == 1:
         return tuple(
-            _run_one_imo_gradebench_attempt(
+            _run_one_proof_bench_judge_attempt(
                 example,
                 llm=llm,
                 store=active_store,
@@ -310,7 +304,7 @@ def run_imo_gradebench_evolutionary_pipeline(
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = {
             executor.submit(
-                _run_one_imo_gradebench_attempt,
+                _run_one_proof_bench_judge_attempt,
                 example,
                 llm=llm,
                 store=active_store,
@@ -326,8 +320,77 @@ def run_imo_gradebench_evolutionary_pipeline(
     return tuple(attempts_by_index[index] for index in sorted(attempts_by_index))
 
 
-def _run_one_imo_gradebench_attempt(
-    example: IMOGradeBenchExample,
+def infer_math_topic(text: str) -> str:
+    """Infer a coarse math topic from problem/rubric/proof text."""
+
+    lowered = text.lower()
+    scores = {
+        "geometry": _keyword_score(
+            lowered,
+            "triangle", "circle", "angle", "collinear", "concurrent", "tangent", "altitude", "cyclic",
+            "perpendicular", "parallel", "midpoint", "circumcircle", "incenter",
+        ),
+        "number_theory": _keyword_score(
+            lowered,
+            "modulo", "congruence", "divisible", "divisibility", "prime", "gcd", "coprime",
+            "integer", "residue", "valuation", "factorization",
+        ),
+        "combinatorics": _keyword_score(
+            lowered,
+            "count", "subsets", "graph", "sequence", "pigeonhole", "probability", "permutation",
+            "tableaux", "coloring", "combinatorial", "partition",
+        ),
+        "algebra": _keyword_score(
+            lowered,
+            "polynomial", "coefficient", "equation", "roots", "monic", "quadratic", "identity",
+            "factor", "function", "real numbers",
+        ),
+        "analysis": _keyword_score(
+            lowered,
+            "limit", "continuous", "derivative", "integral", "converges", "sequence", "epsilon",
+            "maximum", "minimum", "supremum",
+        ),
+    }
+    topic, score = max(scores.items(), key=lambda item: item[1])
+    return topic if score > 0 else ""
+
+
+def resolve_proof_bench_judge_evolution_storage_dir(
+    storage_dir: str | Path | None,
+    *,
+    run_name: str = "",
+) -> Path:
+    base = Path("logs/proof_fuzzer_evolution")
+    name = run_name.strip() or f"proof_bench_judge_oss120b_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+    if storage_dir is None:
+        return base / name
+    path = Path(storage_dir)
+    if path == Path("logs") or path == base:
+        return path / name
+    if path.name in {"logs", "proof_fuzzer_evolution"}:
+        return path / name
+    return path
+
+
+def write_proof_bench_judge_evolution_run_config(
+    storage_dir: str | Path,
+    run_config: ProofBenchJudgeEvolutionRunConfig,
+) -> Path:
+    config = {
+        key: str(value) if isinstance(value, Path) else value
+        for key, value in asdict(run_config).items()
+    }
+    config["resolved_storage_dir"] = str(storage_dir)
+    path = Path(storage_dir) / "run_config.json"
+    path.write_text(
+        json.dumps(config, indent=2, sort_keys=True),
+        encoding="utf-8",
+    )
+    return path
+
+
+def _run_one_proof_bench_judge_attempt(
+    example: ProofBenchJudgeExample,
     *,
     llm: LLMClient,
     store: ProofFuzzAttemptStore,
@@ -336,7 +399,7 @@ def _run_one_imo_gradebench_attempt(
     attempt_index: int = 0,
     sample_index: int = 0,
 ) -> FuzzAttempt:
-    proof_text = truncate_text_head_tail(example.response, config.max_proof_chars)
+    proof_text = truncate_text_head_tail(example.proof, config.max_proof_chars)
     fuzzer = NaturalLanguageProofFuzzerLLMInterface(proof_text, llm)
     attempt_config = replace(
         config,
@@ -347,20 +410,16 @@ def _run_one_imo_gradebench_attempt(
             attempt_index=attempt_index,
         ),
     )
-    evolutionary = EvolutionaryProofFuzzer(
-        fuzzer,
-        store=store,
-        config=attempt_config,
-    )
+    evolutionary = EvolutionaryProofFuzzer(fuzzer, store=store, config=attempt_config)
     metadata = {
         **example.to_metadata(),
         "example_attempt_index": attempt_index,
         "sample_index": sample_index,
-        "proof_source": "response.txt",
+        "proof_source": "metadata.original_data.proof",
         "fuzzer_kind": FUZZER_KIND_NATURAL_LANGUAGE,
-        "proof_chars_original": len(example.response),
+        "proof_chars_original": len(example.proof),
         "proof_chars_used": len(proof_text),
-        "prompt_truncated": len(proof_text) < len(example.response),
+        "prompt_truncated": len(proof_text) < len(example.proof),
     }
     return evolutionary.run_mutation_attempt(
         objective=_format_objective(
@@ -373,7 +432,7 @@ def _run_one_imo_gradebench_attempt(
 
 
 def _format_objective(
-    example: IMOGradeBenchExample,
+    example: ProofBenchJudgeExample,
     *,
     objective_prefix: str = "",
     max_problem_chars: int | None = None,
@@ -382,7 +441,7 @@ def _format_objective(
     pieces = []
     if prefix:
         pieces.append(prefix)
-    pieces.append("Fuzz this correct IMO-GradeBench proof.")
+    pieces.append("Fuzz this correct ProofBenchJudge proof.")
     if example.problem:
         problem = (
             truncate_text_head_tail(example.problem, max_problem_chars)
@@ -394,13 +453,13 @@ def _format_objective(
 
 
 def _sample_work_items(
-    examples: tuple[IMOGradeBenchExample, ...],
+    examples: tuple[ProofBenchJudgeExample, ...],
     *,
     attempts_per_example: int,
     num_attempts: int | None,
     sample_without_replacement: bool,
     random_seed: int | None,
-) -> list[tuple[int, IMOGradeBenchExample, int]]:
+) -> list[tuple[int, ProofBenchJudgeExample, int]]:
     if not examples:
         return []
     if num_attempts is None:
@@ -429,57 +488,37 @@ def _sample_work_items(
     return work_items
 
 
-def resolve_imo_gradebench_evolution_storage_dir(
-    storage_dir: str | Path | None,
-    *,
-    run_name: str = "",
-) -> Path:
-    base = Path("logs/proof_fuzzer_evolution")
-    name = run_name.strip() or f"imo_gradebench_oss120b_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-    if storage_dir is None:
-        return base / name
-    path = Path(storage_dir)
-    if path == Path("logs") or path == base:
-        return path / name
-    if path.name in {"logs", "proof_fuzzer_evolution"}:
-        return path / name
-    return path
-
-
-def write_imo_gradebench_evolution_run_config(
-    storage_dir: str | Path,
-    run_config: IMOGradeBenchEvolutionRunConfig,
-) -> Path:
-    config = {
-        key: str(value) if isinstance(value, Path) else value
-        for key, value in asdict(run_config).items()
-    }
-    config["resolved_storage_dir"] = str(storage_dir)
-    path = Path(storage_dir) / "run_config.json"
-    path.write_text(
-        json.dumps(config, indent=2, sort_keys=True),
-        encoding="utf-8",
-    )
-    return path
-
-
 def _iter_example_dirs(root: Path) -> Iterable[Path]:
     if not root.is_dir():
-        raise FileNotFoundError(f"IMO-GradeBench root does not exist or is not a directory: {root}")
+        raise FileNotFoundError(f"ProofBenchJudge root does not exist or is not a directory: {root}")
     return (
         path
         for path in sorted(root.iterdir())
-        if path.is_dir() and (path / "correctness.txt").is_file()
+        if path.is_dir() and (path / "metadata.json").is_file()
     )
 
 
-def _parse_correctness(text: str) -> bool:
-    value = text.strip().lower()
-    if value in {"true", "t", "1", "yes"}:
+def _parse_correctness(metadata: dict[str, object], ground_truth_text: str) -> bool:
+    answer = metadata.get("ground_truth")
+    if isinstance(answer, dict):
+        parsed = _parse_yes_no(answer.get("answer"))
+        if parsed is not None:
+            return parsed
+    parsed = _parse_yes_no(ground_truth_text)
+    if parsed is not None:
+        return parsed
+    raise ValueError("ProofBenchJudge example does not contain a Yes/No ground-truth answer.")
+
+
+def _parse_yes_no(value: object) -> bool | None:
+    text = str(value or "").strip().lower()
+    if text.startswith("judgement:"):
+        text = text.split(":", 1)[1].strip()
+    if text in {"yes", "true", "correct", "1"}:
         return True
-    if value in {"false", "f", "0", "no"}:
+    if text in {"no", "false", "incorrect", "0"}:
         return False
-    raise ValueError(f"Unknown correctness value: {text!r}")
+    return None
 
 
 def _derive_attempt_seed(
@@ -491,5 +530,12 @@ def _derive_attempt_seed(
 ) -> int | None:
     if seed is None:
         return None
-    material = f"{seed}:{sample_index}:{example_id}:{attempt_index}".encode("utf-8")
-    return int.from_bytes(hashlib.sha256(material).digest()[:8], "big")
+    payload = f"{seed}:{sample_index}:{example_id}:{attempt_index}".encode("utf-8")
+    return int.from_bytes(hashlib.sha256(payload).digest()[:8], "big")
+
+
+def _keyword_score(text: str, *keywords: str) -> int:
+    score = 0
+    for keyword in keywords:
+        score += len(re.findall(rf"\b{re.escape(keyword)}\b", text))
+    return score

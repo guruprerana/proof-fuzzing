@@ -4,8 +4,6 @@
 from __future__ import annotations
 
 import argparse
-from datetime import datetime
-import json
 from pathlib import Path
 import sys
 
@@ -17,10 +15,9 @@ if str(REPO_ROOT) not in sys.path:
 from src.proof_fuzzer import (
     DEFAULT_BASE_URL,
     DEFAULT_IMO_GRADEBENCH_ROOT,
-    EvolutionConfig,
     GPT_OSS_120B,
-    VLLMProofFuzzerClient,
-    run_imo_gradebench_evolutionary_pipeline,
+    IMOGradeBenchEvolutionRunConfig,
+    run_imo_gradebench_evolution,
 )
 
 
@@ -40,6 +37,14 @@ def main() -> None:
     parser.add_argument("--temperature", type=float, default=0.7)
     parser.add_argument("--max-tokens", type=int, default=100_000)
     parser.add_argument("--strategy-probability", type=float, default=0.5)
+    parser.add_argument("--seed-mined-strategies", action="store_true")
+    parser.add_argument("--strategy-selection-mode", choices=("random", "retrieval"), default="random")
+    parser.add_argument("--mined-strategy-path", type=Path, default=None)
+    parser.add_argument("--target-judge-samples", type=int, default=1)
+    parser.add_argument("--target-judge-success-policy", choices=("any", "majority", "all"), default="all")
+    parser.add_argument("--judge-error-detection-check", action="store_true")
+    parser.add_argument("--max-previous-failed-attempts-in-prompt", type=int, default=3)
+    parser.add_argument("--max-previous-failed-attempt-chars", type=int, default=4_000)
     parser.add_argument("--evolution-threshold", type=int, default=20)
     parser.add_argument(
         "--correctness-selection-mode",
@@ -56,70 +61,45 @@ def main() -> None:
     parser.add_argument("--random-seed", type=int, default=None)
     parser.add_argument("--objective-prefix", default="")
     args = parser.parse_args()
-    storage_dir = _resolve_storage_dir(args.storage_dir, run_name=args.run_name)
-    storage_dir.mkdir(parents=True, exist_ok=True)
 
-    llm = VLLMProofFuzzerClient(
-        base_url=args.base_url,
-        model=args.model,
-        reasoning_effort=args.reasoning_effort,
-        temperature=args.temperature,
-        max_tokens=args.max_tokens,
+    result = run_imo_gradebench_evolution(
+        IMOGradeBenchEvolutionRunConfig(
+            root=args.root,
+            limit=args.limit,
+            attempts_per_example=args.attempts_per_example,
+            num_attempts=args.num_attempts,
+            sample_without_replacement=args.sample_without_replacement,
+            max_workers=args.max_workers,
+            storage_dir=args.storage_dir,
+            run_name=args.run_name,
+            base_url=args.base_url,
+            model=args.model,
+            reasoning_effort=args.reasoning_effort,
+            temperature=args.temperature,
+            max_tokens=args.max_tokens,
+            strategy_probability=args.strategy_probability,
+            seed_mined_strategies=args.seed_mined_strategies,
+            strategy_selection_mode=args.strategy_selection_mode,
+            mined_strategy_path=args.mined_strategy_path,
+            target_judge_samples=args.target_judge_samples,
+            target_judge_success_policy=args.target_judge_success_policy,
+            judge_error_detection_check=args.judge_error_detection_check,
+            max_previous_failed_attempts_in_prompt=args.max_previous_failed_attempts_in_prompt,
+            max_previous_failed_attempt_chars=args.max_previous_failed_attempt_chars,
+            evolution_threshold=args.evolution_threshold,
+            correctness_selection_mode=args.correctness_selection_mode,
+            false_proof_probability=args.false_proof_probability,
+            max_proof_chars=args.max_proof_chars,
+            max_problem_chars=args.max_problem_chars,
+            llm_retries=args.llm_retries,
+            retry_backoff_seconds=args.retry_backoff_seconds,
+            context_fallbacks=args.context_fallbacks,
+            continue_on_error=args.continue_on_error,
+            random_seed=args.random_seed,
+            objective_prefix=args.objective_prefix,
+        )
     )
-    config = EvolutionConfig(
-        storage_dir=storage_dir,
-        strategy_injection_probability=args.strategy_probability,
-        evolution_threshold=args.evolution_threshold,
-        random_seed=args.random_seed,
-        correctness_selection_mode=args.correctness_selection_mode,
-        false_proof_probability=args.false_proof_probability,
-        max_proof_chars=args.max_proof_chars,
-        max_problem_chars=args.max_problem_chars,
-        llm_retries=args.llm_retries,
-        retry_backoff_seconds=args.retry_backoff_seconds,
-        context_fallbacks=args.context_fallbacks,
-        continue_on_error=args.continue_on_error,
-    )
-    _write_run_config(storage_dir, args)
-    attempts = run_imo_gradebench_evolutionary_pipeline(
-        llm=llm,
-        root=args.root,
-        limit=args.limit,
-        config=config,
-        objective_prefix=args.objective_prefix,
-        max_workers=args.max_workers,
-        attempts_per_example=args.attempts_per_example,
-        num_attempts=args.num_attempts,
-        sample_without_replacement=args.sample_without_replacement,
-    )
-
-    successes = sum(1 for attempt in attempts if attempt.success)
-    failures = sum(1 for attempt in attempts if attempt.status == "failed")
-    print(f"Ran {len(attempts)} attempts; successes={successes}; failures={failures}; storage={storage_dir}")
-
-
-def _resolve_storage_dir(storage_dir: Path | None, *, run_name: str = "") -> Path:
-    base = Path("logs/proof_fuzzer_evolution")
-    name = run_name.strip() or f"imo_gradebench_oss120b_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-    if storage_dir is None:
-        return base / name
-    if storage_dir == Path("logs") or storage_dir == base:
-        return storage_dir / name
-    if storage_dir.name in {"logs", "proof_fuzzer_evolution"}:
-        return storage_dir / name
-    return storage_dir
-
-
-def _write_run_config(storage_dir: Path, args: argparse.Namespace) -> None:
-    config = {
-        key: str(value) if isinstance(value, Path) else value
-        for key, value in vars(args).items()
-    }
-    config["resolved_storage_dir"] = str(storage_dir)
-    (storage_dir / "run_config.json").write_text(
-        json.dumps(config, indent=2, sort_keys=True),
-        encoding="utf-8",
-    )
+    print(result.summary())
 
 
 if __name__ == "__main__":

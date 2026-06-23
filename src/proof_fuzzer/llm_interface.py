@@ -200,6 +200,7 @@ class ProofFuzzerLLMInterfaceBase(ABC):
         *,
         objective: str = "",
         strategy_guidance: tuple[str, ...] = (),
+        prior_attempt_guidance: tuple[str, ...] = (),
     ) -> str:
         """Build a prompt asking an LLM for structured mutation instructions."""
 
@@ -209,6 +210,7 @@ class ProofFuzzerLLMInterfaceBase(ABC):
         *,
         objective: str = "",
         strategy_guidance: tuple[str, ...] = (),
+        prior_attempt_guidance: tuple[str, ...] = (),
     ) -> str:
         """Build a mutation prompt where the proof must remain correct."""
 
@@ -218,6 +220,7 @@ class ProofFuzzerLLMInterfaceBase(ABC):
         *,
         objective: str = "",
         strategy_guidance: tuple[str, ...] = (),
+        prior_attempt_guidance: tuple[str, ...] = (),
     ) -> str:
         """Build a mutation prompt where the proof should become false."""
 
@@ -351,6 +354,7 @@ class SemiFormalProofFuzzerLLMInterface(ProofFuzzerLLMInterfaceBase):
         *,
         objective: str = "",
         strategy_guidance: tuple[str, ...] = (),
+        prior_attempt_guidance: tuple[str, ...] = (),
     ) -> str:
         """Build the prompt asking an LLM for structured mutation instructions."""
 
@@ -365,7 +369,7 @@ Objective:
 
 Choose whether the resulting proof should remain correct.
 - If maintain_correctness is true, later steps will update downstream blocks.
-- If maintain_correctness is false, make the mutation useful for testing by not repairing downstream blocks unless absolutely necessary.
+- If maintain_correctness is false, decide whether to propagate local changes to downstream blocks based on what makes the false proof most coherent and judge-convincing while preserving the underlying flaw.
 
 Judge-fuzzing goal:
 - For an incorrect-proof mutation, try to make the proof plausibly trick an LLM judge into thinking it is correct.
@@ -374,6 +378,7 @@ Judge-fuzzing goal:
 Mutation quality:
 {_mutation_quality_guidance(maintain_correctness=None)}
 {_format_strategy_guidance(strategy_guidance)}
+{_format_prior_attempt_guidance(prior_attempt_guidance)}
 
 Available block ids:
 {block_ids}
@@ -410,6 +415,7 @@ Each item in mutations must be one elementary mutation. Use multiple items for c
         *,
         objective: str = "",
         strategy_guidance: tuple[str, ...] = (),
+        prior_attempt_guidance: tuple[str, ...] = (),
     ) -> str:
         """Build a mutation prompt where the proof must remain correct."""
 
@@ -418,6 +424,7 @@ Each item in mutations must be one elementary mutation. Use multiple items for c
             objective_text=objective_text,
             maintain_correctness=True,
             strategy_guidance=strategy_guidance,
+            prior_attempt_guidance=prior_attempt_guidance,
         )
 
     def false_proof_mutation_instruction_prompt(
@@ -425,6 +432,7 @@ Each item in mutations must be one elementary mutation. Use multiple items for c
         *,
         objective: str = "",
         strategy_guidance: tuple[str, ...] = (),
+        prior_attempt_guidance: tuple[str, ...] = (),
     ) -> str:
         """Build a mutation prompt where the proof should become false."""
 
@@ -433,6 +441,7 @@ Each item in mutations must be one elementary mutation. Use multiple items for c
             objective_text=objective_text,
             maintain_correctness=False,
             strategy_guidance=strategy_guidance,
+            prior_attempt_guidance=prior_attempt_guidance,
         )
 
     def request_mutation_instructions(self, *, objective: str = "") -> FuzzerMutationInstructions:
@@ -758,16 +767,18 @@ Each item in mutations must be one elementary mutation. Use multiple items for c
         objective_text: str,
         maintain_correctness: bool,
         strategy_guidance: tuple[str, ...] = (),
+        prior_attempt_guidance: tuple[str, ...] = (),
     ) -> str:
         block_ids = ", ".join(self.graph.nodes)
         proof_text = self.graph.proof.raw_text or str(self.graph.proof.to_dict(include_raw=False))
         correctness_json = "true" if maintain_correctness else "false"
+        propagation_json = "true" if maintain_correctness else "true | false"
         direction = (
             "The resulting proof must remain mathematically correct. Choose mutations whose downstream "
             "consequences can be repaired by later update steps."
             if maintain_correctness
             else "The resulting proof should become mathematically false or invalid for fuzzing. Prefer a "
-            "small local mutation and do not repair downstream blocks."
+            "subtle mutation, and decide whether downstream propagation will make the false proof more coherent."
         )
         judge_goal = (
             "Generate a correctness-preserving mutation that could plausibly trick an LLM judge into "
@@ -779,7 +790,9 @@ Each item in mutations must be one elementary mutation. Use multiple items for c
         propagation_guidance = (
             "Set propagate_downstream to true for mutations whose dependent blocks should be repaired."
             if maintain_correctness
-            else "Set propagate_downstream to false unless a directly affected inserted block must be reconsidered."
+            else "For false-proof mutations, choose propagate_downstream true or false based on which makes the "
+            "resulting proof more convincing: propagate notation and downstream inferences when consistency helps, "
+            "but preserve the core mathematical flaw."
         )
 
         return f"""You are acting as a proof fuzzer for a semi-formalized mathematical proof.
@@ -799,6 +812,7 @@ The JSON field maintain_correctness must be exactly {correctness_json}.
 Mutation quality:
 {_mutation_quality_guidance(maintain_correctness=maintain_correctness)}
 {_format_strategy_guidance(strategy_guidance)}
+{_format_prior_attempt_guidance(prior_attempt_guidance)}
 
 Available block ids:
 {block_ids}
@@ -821,7 +835,7 @@ Schema:
       "summary": "one elementary mutation",
       "new_text": "replacement or inserted parseable text, empty for remove when appropriate",
       "affected_blocks": ["optional existing blocks that should be reconsidered, especially for add"],
-      "propagate_downstream": {correctness_json}
+      "propagate_downstream": {propagation_json}
     }}
   ]
 }}
@@ -851,6 +865,7 @@ class NaturalLanguageProofFuzzerLLMInterface(ProofFuzzerLLMInterfaceBase):
         *,
         objective: str = "",
         strategy_guidance: tuple[str, ...] = (),
+        prior_attempt_guidance: tuple[str, ...] = (),
     ) -> str:
         """Build the prompt asking an LLM for direct natural-language mutations."""
 
@@ -859,6 +874,7 @@ class NaturalLanguageProofFuzzerLLMInterface(ProofFuzzerLLMInterfaceBase):
             objective_text=objective_text,
             maintain_correctness=None,
             strategy_guidance=strategy_guidance,
+            prior_attempt_guidance=prior_attempt_guidance,
         )
 
     def correctness_preserving_mutation_instruction_prompt(
@@ -866,6 +882,7 @@ class NaturalLanguageProofFuzzerLLMInterface(ProofFuzzerLLMInterfaceBase):
         *,
         objective: str = "",
         strategy_guidance: tuple[str, ...] = (),
+        prior_attempt_guidance: tuple[str, ...] = (),
     ) -> str:
         """Build a mutation prompt where the proof must remain correct."""
 
@@ -874,6 +891,7 @@ class NaturalLanguageProofFuzzerLLMInterface(ProofFuzzerLLMInterfaceBase):
             objective_text=objective_text,
             maintain_correctness=True,
             strategy_guidance=strategy_guidance,
+            prior_attempt_guidance=prior_attempt_guidance,
         )
 
     def false_proof_mutation_instruction_prompt(
@@ -881,6 +899,7 @@ class NaturalLanguageProofFuzzerLLMInterface(ProofFuzzerLLMInterfaceBase):
         *,
         objective: str = "",
         strategy_guidance: tuple[str, ...] = (),
+        prior_attempt_guidance: tuple[str, ...] = (),
     ) -> str:
         """Build a mutation prompt where the proof should become false."""
 
@@ -889,6 +908,7 @@ class NaturalLanguageProofFuzzerLLMInterface(ProofFuzzerLLMInterfaceBase):
             objective_text=objective_text,
             maintain_correctness=False,
             strategy_guidance=strategy_guidance,
+            prior_attempt_guidance=prior_attempt_guidance,
         )
 
     def validate_mutation_instructions(
@@ -980,6 +1000,7 @@ class NaturalLanguageProofFuzzerLLMInterface(ProofFuzzerLLMInterfaceBase):
         objective_text: str,
         maintain_correctness: bool | None,
         strategy_guidance: tuple[str, ...] = (),
+        prior_attempt_guidance: tuple[str, ...] = (),
     ) -> str:
         segment_text = "\n\n".join(
             f"### {segment.segment_id}\n{segment.text}"
@@ -995,6 +1016,7 @@ class NaturalLanguageProofFuzzerLLMInterface(ProofFuzzerLLMInterfaceBase):
             )
         )
         correctness_schema = "true | false" if maintain_correctness is None else ("true" if maintain_correctness else "false")
+        propagation_schema = "true | false" if maintain_correctness is False else ("true" if maintain_correctness is True else "true | false")
         fixed_instruction = (
             ""
             if maintain_correctness is None
@@ -1025,6 +1047,7 @@ Judge-fuzzing goal:
 Mutation quality:
 {_natural_language_mutation_quality_guidance(maintain_correctness=maintain_correctness)}
 {_format_strategy_guidance(strategy_guidance)}
+{_format_prior_attempt_guidance(prior_attempt_guidance)}
 
 Targetable proof segments:
 {segment_text}
@@ -1042,7 +1065,7 @@ Schema:
       "summary": "one elementary mutation",
       "new_text": "replacement or inserted natural-language proof text, empty for remove when appropriate",
       "affected_blocks": [],
-      "propagate_downstream": false
+      "propagate_downstream": {propagation_schema}
     }}
   ]
 }}
@@ -1110,6 +1133,7 @@ def _natural_language_mutation_quality_guidance(*, maintain_correctness: bool | 
 - High-value direct mutations alter a hypothesis, quantifier, case split, construction, dependency, hidden exception, inequality threshold, modular condition, or the logical bridge between sentences.
 - Preserve the local writing style and plausibility of the original proof, so the mutated proof still reads naturally.
 - Avoid cosmetic rewording. The changed text should materially change what can be inferred.
+- Do not put self-incriminating language in new_text or the mutated proof, such as "incorrectly", "this is false", "invalid", "mistake", "flaw", "omitted", or comments that reveal a term was deliberately dropped. Explain the intended flaw only in the rationale or summary fields.
 - In the rationale and summary, name the intended failure mechanism or alternate valid proof route."""
     if maintain_correctness is True:
         return (
@@ -1122,6 +1146,10 @@ def _natural_language_mutation_quality_guidance(*, maintain_correctness: bool | 
             shared
             + "\n- For incorrect-proof mutations, prefer subtle proof gaps: omit a necessary case, weaken a "
             "premise, overgeneralize a claim, or make an inference that is locally plausible but invalid."
+            "\n- You may decide to propagate a local change into later sentences when doing so makes the "
+            "mutated proof more coherent and convincing to a judge. Use additional downstream mutations to "
+            "keep notation, references, and claimed conclusions consistent, while preserving the underlying "
+            "mathematical flaw."
         )
     return (
         shared
@@ -1134,7 +1162,17 @@ def _format_strategy_guidance(strategy_guidance: tuple[str, ...]) -> str:
     guidance = tuple(item.strip() for item in strategy_guidance if item.strip())
     if not guidance:
         return ""
-    lines = "\nEvolved strategy guidance:"
+    lines = "\nStrategy guidance:"
+    lines += "\n" + "\n".join(f"- {item}" for item in guidance)
+    return lines
+
+
+def _format_prior_attempt_guidance(prior_attempt_guidance: tuple[str, ...]) -> str:
+    guidance = tuple(item.strip() for item in prior_attempt_guidance if item.strip())
+    if not guidance:
+        return ""
+    lines = "\nPrevious failed attempts on this same proof:"
+    lines += "\nUse these only to avoid repeating mutations or failure modes that already failed on this proof."
     lines += "\n" + "\n".join(f"- {item}" for item in guidance)
     return lines
 
@@ -1146,6 +1184,7 @@ def _mutation_quality_guidance(*, maintain_correctness: bool | None) -> str:
 - Avoid cheap symbol-only edits such as merely changing a sign, swapping + and -, changing one constant, or negating a conclusion unless the rationale explains why this creates a genuinely subtle dependency failure.
 - Avoid cosmetic rewording. The new_text should materially change what can be inferred from the block.
 - Prefer mutations that preserve semi-formal parseability and local plausibility, so a shallow judge may accept the mutated block in isolation.
+- Do not put self-incriminating language in new_text or any materialized proof text, such as "incorrectly", "this is false", "invalid", "mistake", "flaw", "omitted", or comments that reveal a term was deliberately dropped. Explain the intended flaw only in the rationale or summary fields.
 - In the rationale and summary, name the intended failure mechanism and the downstream dependency or proof obligation it affects."""
     if maintain_correctness is True:
         return (
@@ -1159,7 +1198,11 @@ def _mutation_quality_guidance(*, maintain_correctness: bool | None) -> str:
             shared
             + "\n- For incorrect-proof mutations, prefer proof-gap mutations: remove a necessary hypothesis, "
             "weaken a lemma below what successors use, change a quantifier/domain, invalidate a case split, or "
-            "alter a referenced construction while leaving dependent blocks unrepaired."
+            "alter a referenced construction."
+            "\n- You may decide whether to propagate a local change to subsequent inferences. If propagation "
+            "makes the false proof more locally coherent and judge-convincing, include companion mutations or "
+            "set propagate_downstream accordingly so notation, references, and later claims stay consistent "
+            "while the core mathematical flaw remains."
         )
     return (
         shared

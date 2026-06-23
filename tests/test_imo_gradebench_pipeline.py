@@ -6,7 +6,9 @@ import unittest
 
 from src.proof_fuzzer import (
     EvolutionConfig,
+    IMOGradeBenchEvolutionRunConfig,
     load_correct_imo_gradebench_examples,
+    run_imo_gradebench_evolution,
     run_imo_gradebench_evolutionary_pipeline,
 )
 
@@ -65,7 +67,12 @@ class IMOGradeBenchPipelineTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir) / "dataset"
             storage = Path(tmp_dir) / "storage"
-            _write_example(root / "000001", correctness="TRUE", response="First step.\n\nSecond step.")
+            _write_example(
+                root / "000001",
+                correctness="TRUE",
+                response="First step.\n\nSecond step.",
+                llm_category="Algebra",
+            )
             _write_example(root / "000002", correctness="FALSE", response="Should not run.")
             llm = FakeLLM([JUDGE_RESPONSE, MUTATION_RESPONSE, JUDGE_RESPONSE])
             config = EvolutionConfig(
@@ -84,6 +91,7 @@ class IMOGradeBenchPipelineTest(unittest.TestCase):
             self.assertEqual(len(attempts), 1)
             self.assertEqual(attempts[0].metadata["dataset"], "imo_gradebench")
             self.assertEqual(attempts[0].metadata["example_id"], "000001")
+            self.assertEqual(attempts[0].metadata["llm_category"], "Algebra")
             self.assertIn("Problem:\n```text\nProve the claim.", llm.prompts[0])
 
     def test_runner_parallelizes_multiple_attempts(self) -> None:
@@ -209,23 +217,56 @@ class IMOGradeBenchPipelineTest(unittest.TestCase):
             targets = {attempt.metadata["correctness_selection"]["selected"] for attempt in attempts}
             self.assertEqual(targets, {True, False})
 
+    def test_complete_run_entrypoint_owns_storage_config_and_summary(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir) / "dataset"
+            storage = Path(tmp_dir) / "storage"
+            _write_example(root / "000001", correctness="TRUE", response="First proof step.")
+            llm = FakeLLM([JUDGE_RESPONSE, MUTATION_RESPONSE, JUDGE_RESPONSE])
 
-def _write_example(path: Path, *, correctness: str, response: str, problem: str = "Prove the claim.") -> None:
+            result = run_imo_gradebench_evolution(
+                IMOGradeBenchEvolutionRunConfig(
+                    root=root,
+                    storage_dir=storage,
+                    run_name="unit_run",
+                    num_attempts=1,
+                    correctness_selection_mode="false_proof",
+                    evolution_threshold=0,
+                    strategy_probability=0.0,
+                ),
+                llm=llm,
+            )
+
+            self.assertEqual(len(result.attempts), 1)
+            self.assertEqual(result.storage_dir, storage)
+            self.assertTrue((result.storage_dir / "run_config.json").is_file())
+            self.assertIn("Ran 1 attempts", result.summary())
+
+
+def _write_example(
+    path: Path,
+    *,
+    correctness: str,
+    response: str,
+    problem: str = "Prove the claim.",
+    llm_category: str = "",
+) -> None:
     path.mkdir(parents=True)
     (path / "correctness.txt").write_text(correctness, encoding="utf-8")
     (path / "prompt.txt").write_text("Grade this proof.", encoding="utf-8")
     (path / "response.txt").write_text(response, encoding="utf-8")
     (path / "ground_truth.txt").write_text("", encoding="utf-8")
+    metadata = {
+        "idx": int(path.name),
+        "original_data": {
+            "Grading ID": f"GB-{path.name}",
+            "Problem": problem,
+        },
+    }
+    if llm_category:
+        metadata["llm_category"] = llm_category
     (path / "metadata.json").write_text(
-        json.dumps(
-            {
-                "idx": int(path.name),
-                "original_data": {
-                    "Grading ID": f"GB-{path.name}",
-                    "Problem": problem,
-                },
-            }
-        ),
+        json.dumps(metadata),
         encoding="utf-8",
     )
 

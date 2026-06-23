@@ -176,7 +176,18 @@ class ProofFuzzerInterfaceTest(unittest.TestCase):
         self.assertIn("incorrect-proof mutation", llm.prompts[0])
         self.assertIn("correctness-preserving mutation", llm.prompts[0])
         self.assertIn("Prefer meaningful mathematical mutations over surface edits", llm.prompts[0])
+        self.assertIn("Do not put self-incriminating language in new_text", llm.prompts[0])
+        self.assertIn("Explain the intended flaw only in the rationale or summary fields", llm.prompts[0])
         self.assertEqual(instructions.mutations[0].kind, "modify")
+
+    def test_natural_language_prompt_warns_against_self_incriminating_proof_text(self) -> None:
+        interface = NaturalLanguageProofFuzzerLLMInterface("First step.\n\nSecond step.", llm=None)
+
+        prompt = interface.false_proof_mutation_instruction_prompt()
+
+        self.assertIn("Do not put self-incriminating language in new_text", prompt)
+        self.assertIn("such as \"incorrectly\"", prompt)
+        self.assertIn("Explain the intended flaw only in the rationale or summary fields", prompt)
 
     def test_request_mutation_instructions_logs_prompt_reasoning_and_response(self) -> None:
         graph = ProofGraph(parse_text(CHAIN_ARTIFACT))
@@ -266,7 +277,8 @@ class ProofFuzzerInterfaceTest(unittest.TestCase):
         self.assertFalse(instructions.maintain_correctness)
         self.assertIn("maintain_correctness must be exactly false", llm.prompts[0])
         self.assertIn("trick an LLM judge into thinking the proof is correct", llm.prompts[0])
-        self.assertIn("do not repair downstream blocks", llm.prompts[0])
+        self.assertIn("decide whether downstream propagation", llm.prompts[0])
+        self.assertIn("more coherent", llm.prompts[0])
         self.assertIn("proof-gap mutations", llm.prompts[0])
 
     def test_fixed_correctness_request_rejects_contradictory_response(self) -> None:

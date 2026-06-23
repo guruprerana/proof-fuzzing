@@ -1,5 +1,6 @@
 import tempfile
 import unittest
+from pathlib import Path
 
 from src.proof_fuzzer import (
     EvolutionConfig,
@@ -7,9 +8,11 @@ from src.proof_fuzzer import (
     FuzzAttempt,
     FuzzStrategy,
     JudgeResult,
+    load_mined_strategies,
     NaturalLanguageProofFuzzerLLMInterface,
     ProofFuzzAttemptStore,
     fuzz_attempt_succeeded,
+    parse_judge_error_detection_result,
     parse_judge_result,
     parse_mutation_instructions,
     parse_strategy_evolution_response,
@@ -107,6 +110,27 @@ JUDGE_INCORRECT_RESPONSE = """{
   "detected_flaw": "missing justification"
 }"""
 
+JUDGE_CORRECT_WITH_REVEALED_FLAW_RESPONSE = """{
+  "verdict": "correct",
+  "confidence": 0.55,
+  "rationale": "Although the proof writes n = 2k + 1, it still seems to establish the parity claim.",
+  "detected_flaw": "the proof changed an even number to an odd representation"
+}"""
+
+JUDGE_ERROR_NOT_REPORTED_RESPONSE = """{
+  "any_judge_reported_correct_error": false,
+  "matching_judge_indices": [],
+  "match_level": "none",
+  "rationale": "The judge reports do not identify the parity representation mutation."
+}"""
+
+JUDGE_ERROR_REPORTED_RESPONSE = """{
+  "any_judge_reported_correct_error": true,
+  "matching_judge_indices": [1],
+  "match_level": "exact",
+  "rationale": "Judge 1 explicitly identifies the even-to-odd representation mutation."
+}"""
+
 
 class EvolutionaryFuzzerTest(unittest.TestCase):
     def test_parse_judge_result_and_success_rules(self) -> None:
@@ -116,6 +140,36 @@ class EvolutionaryFuzzerTest(unittest.TestCase):
         self.assertTrue(fuzz_attempt_succeeded(False, result))
         self.assertFalse(fuzz_attempt_succeeded(True, result))
         self.assertTrue(fuzz_attempt_succeeded(True, JudgeResult(verdict="uncertain")))
+        self.assertFalse(
+            fuzz_attempt_succeeded(
+                False,
+                result,
+                judge_error_detection_result={"any_judge_reported_correct_error": True},
+            )
+        )
+        self.assertFalse(
+            fuzz_attempt_succeeded(
+                False,
+                result,
+                target_judge_results=(result, JudgeResult(verdict="incorrect")),
+                target_judge_success_policy="all",
+            )
+        )
+        self.assertTrue(
+            fuzz_attempt_succeeded(
+                False,
+                result,
+                target_judge_results=(result, JudgeResult(verdict="incorrect")),
+                target_judge_success_policy="any",
+            )
+        )
+
+    def test_parse_judge_error_detection_result(self) -> None:
+        result = parse_judge_error_detection_result(JUDGE_ERROR_REPORTED_RESPONSE)
+
+        self.assertTrue(result["any_judge_reported_correct_error"])
+        self.assertEqual(result["matching_judge_indices"], [1])
+        self.assertEqual(result["match_level"], "exact")
 
     def test_jsonl_store_persists_attempts_and_separate_strategy_banks(self) -> None:
         instructions = parse_mutation_instructions(MUTATION_RESPONSE)
@@ -186,6 +240,114 @@ class EvolutionaryFuzzerTest(unittest.TestCase):
             self.assertIn("Original proof:", llm.prompts[3])
             self.assertIn("Mutation instructions:", llm.prompts[3])
             self.assertEqual(len(evolutionary.store.load_attempts(fuzzer_kind="natural_language")), 1)
+
+    def test_multiple_target_judges_and_reveal_check_can_accept_attempt(self) -> None:
+        proof = "Let n be even.\n\nThen n = 2k for some integer k.\n\nTherefore n^2 is even."
+        llm = FakeLLM(
+            [
+                JUDGE_CORRECT_RESPONSE,
+                MUTATION_RESPONSE,
+                JUDGE_CORRECT_RESPONSE,
+                JUDGE_CORRECT_RESPONSE,
+                JUDGE_CORRECT_RESPONSE,
+                JUDGE_ERROR_NOT_REPORTED_RESPONSE,
+                JUDGE_INCORRECT_RESPONSE,
+            ]
+        )
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            config = EvolutionConfig(
+                storage_dir=tmp_dir,
+                strategy_injection_probability=0.0,
+                evolution_threshold=0,
+                target_judge_samples=3,
+                target_judge_success_policy="all",
+                judge_error_detection_check=True,
+            )
+            fuzzer = NaturalLanguageProofFuzzerLLMInterface(proof, llm)
+            evolutionary = EvolutionaryProofFuzzer(fuzzer, config=config)
+
+            attempt = evolutionary.run_false_proof_attempt(objective="fool the judge")
+
+            self.assertTrue(attempt.success)
+            self.assertEqual(len(attempt.metadata["target_judge_results"]), 3)
+            self.assertFalse(attempt.metadata["judge_error_detection_check"]["any_judge_reported_correct_error"])
+            self.assertIn("Blind judge reports:", llm.prompts[5])
+            trace_dir = attempt.metadata["trace_dir"]
+            self.assertTrue((Path(trace_dir) / "target_judge_results.json").is_file())
+            self.assertTrue((Path(trace_dir) / "judge_error_detection_check.json").is_file())
+
+    def test_mutation_prompt_includes_previous_failed_attempts_on_same_proof(self) -> None:
+        proof = "Let n be even.\n\nThen n = 2k for some integer k.\n\nTherefore n^2 is even."
+        llm = FakeLLM(
+            [
+                JUDGE_CORRECT_RESPONSE,
+                MUTATION_RESPONSE,
+                JUDGE_INCORRECT_RESPONSE,
+                JUDGE_INCORRECT_RESPONSE,
+                JUDGE_CORRECT_RESPONSE,
+                MUTATION_RESPONSE,
+                JUDGE_CORRECT_RESPONSE,
+                JUDGE_INCORRECT_RESPONSE,
+            ]
+        )
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            config = EvolutionConfig(
+                storage_dir=tmp_dir,
+                strategy_injection_probability=0.0,
+                evolution_threshold=0,
+            )
+            fuzzer = NaturalLanguageProofFuzzerLLMInterface(proof, llm)
+            evolutionary = EvolutionaryProofFuzzer(fuzzer, config=config)
+
+            first_attempt = evolutionary.run_false_proof_attempt(
+                objective="fool the judge",
+                metadata={"dataset": "unit", "example_id": "same-proof"},
+            )
+            second_attempt = evolutionary.run_false_proof_attempt(
+                objective="fool the judge",
+                metadata={"dataset": "unit", "example_id": "same-proof"},
+            )
+
+            self.assertFalse(first_attempt.success)
+            self.assertTrue(second_attempt.success)
+            self.assertEqual(second_attempt.metadata["previous_failed_attempts_in_prompt"], [first_attempt.attempt_id])
+            self.assertEqual(second_attempt.metadata["proof_identity"], "unit:example_id:same-proof")
+            self.assertIn("Previous failed attempts on this same proof:", llm.prompts[5])
+            self.assertIn("target judge verdicts: incorrect", llm.prompts[5])
+            self.assertIn("Switch even to odd representation", llm.prompts[5])
+
+    def test_reveal_check_rejects_attempt_when_judge_report_identifies_mutation(self) -> None:
+        proof = "Let n be even.\n\nThen n = 2k for some integer k.\n\nTherefore n^2 is even."
+        llm = FakeLLM(
+            [
+                JUDGE_CORRECT_RESPONSE,
+                MUTATION_RESPONSE,
+                JUDGE_CORRECT_RESPONSE,
+                JUDGE_CORRECT_WITH_REVEALED_FLAW_RESPONSE,
+                JUDGE_ERROR_REPORTED_RESPONSE,
+                JUDGE_INCORRECT_RESPONSE,
+            ]
+        )
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            config = EvolutionConfig(
+                storage_dir=tmp_dir,
+                strategy_injection_probability=0.0,
+                evolution_threshold=0,
+                target_judge_samples=2,
+                target_judge_success_policy="all",
+                judge_error_detection_check=True,
+            )
+            fuzzer = NaturalLanguageProofFuzzerLLMInterface(proof, llm)
+            evolutionary = EvolutionaryProofFuzzer(fuzzer, config=config)
+
+            attempt = evolutionary.run_false_proof_attempt(objective="fool the judge")
+
+            self.assertFalse(attempt.success)
+            self.assertTrue(attempt.metadata["judge_error_detection_check"]["any_judge_reported_correct_error"])
+            self.assertEqual(attempt.metadata["judge_error_detection_check"]["matching_judge_indices"], [1])
 
     def test_generic_attempt_algorithmically_selects_false_proof_on_cold_start(self) -> None:
         proof = "Let n be even.\n\nThen n = 2k for some integer k.\n\nTherefore n^2 is even."
@@ -340,8 +502,162 @@ class EvolutionaryFuzzerTest(unittest.TestCase):
             attempt = evolutionary.run_false_proof_attempt()
 
             self.assertEqual(attempt.strategy_ids, ("strategy_1",))
-            self.assertIn("Evolved strategy guidance", llm.prompts[1])
+            self.assertIn("Strategy guidance", llm.prompts[1])
             self.assertIn("Representation slip", llm.prompts[1])
+
+    def test_mined_strategy_seeding_is_idempotent(self) -> None:
+        proof = "A proof about polynomial identities."
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            config = EvolutionConfig(
+                storage_dir=tmp_dir,
+                seed_mined_strategies=True,
+                evolution_threshold=0,
+            )
+
+            EvolutionaryProofFuzzer(NaturalLanguageProofFuzzerLLMInterface(proof, FakeLLM([])), config=config)
+            EvolutionaryProofFuzzer(NaturalLanguageProofFuzzerLLMInterface(proof, FakeLLM([])), config=config)
+
+            store = ProofFuzzAttemptStore(tmp_dir)
+            strategies = store.load_strategies("natural_language")
+            strategy_ids = [strategy.strategy_id for strategy in strategies]
+
+            self.assertGreaterEqual(len(strategies), 10)
+            self.assertEqual(len(strategy_ids), len(set(strategy_ids)))
+            self.assertTrue(all(strategy.metadata.get("source") == "mined" for strategy in strategies))
+            self.assertTrue(all(strategy.metadata.get("pinned") for strategy in strategies))
+            self.assertTrue(all(strategy.math_topic for strategy in strategies))
+
+    def test_retrieval_selects_topic_relevant_strategy_from_common_bank(self) -> None:
+        proof = "We prove two triangles are similar, then use cyclic angle chasing in the circle."
+        llm = FakeLLM([JUDGE_CORRECT_RESPONSE, MUTATION_RESPONSE, JUDGE_CORRECT_RESPONSE])
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            store = ProofFuzzAttemptStore(tmp_dir)
+            store.save_strategies("natural_language", load_mined_strategies())
+            config = EvolutionConfig(
+                storage_dir=tmp_dir,
+                strategy_injection_probability=1.0,
+                strategy_selection_mode="retrieval",
+                max_strategies_injected=1,
+                evolution_threshold=0,
+                random_seed=1,
+            )
+            fuzzer = NaturalLanguageProofFuzzerLLMInterface(proof, llm)
+            evolutionary = EvolutionaryProofFuzzer(fuzzer, store=store, config=config)
+
+            attempt = evolutionary.run_false_proof_attempt(metadata={"llm_category": "Geometry"})
+
+            self.assertEqual(len(attempt.strategy_ids), 1)
+            self.assertTrue(attempt.strategy_ids[0].startswith("mined_geometry_"))
+            self.assertIn("Strategy guidance", llm.prompts[1])
+            self.assertIn("geometry", attempt.metadata["strategy_selection"]["selected_strategy_topics"])
+
+    def test_retrieval_uses_mined_and_evolved_strategies_from_common_bank(self) -> None:
+        proof = "Compare polynomial coefficients after expanding an identity."
+        llm = FakeLLM([JUDGE_CORRECT_RESPONSE, MUTATION_RESPONSE, JUDGE_CORRECT_RESPONSE])
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            store = ProofFuzzAttemptStore(tmp_dir)
+            store.save_strategies(
+                "natural_language",
+                [
+                    FuzzStrategy(
+                        strategy_id="mined_test_algebra",
+                        fuzzer_kind="natural_language",
+                        title="Mined coefficient mistake",
+                        guidance="Miscompare polynomial coefficients in a plausible identity.",
+                        target_correctness=False,
+                        metadata={
+                            "source": "mined",
+                            "topic": "algebra",
+                            "keywords": ["polynomial", "coefficient", "identity"],
+                            "pinned": True,
+                        },
+                    ),
+                    FuzzStrategy(
+                        strategy_id="evolved_test_algebra",
+                        fuzzer_kind="natural_language",
+                        title="Learned algebra slip",
+                        guidance="Use a coefficient comparison that nearly matches the target identity.",
+                        target_correctness=False,
+                        successes=3,
+                        metadata={
+                            "source": "evolved",
+                            "topic": "algebra",
+                            "keywords": ["polynomial", "coefficient"],
+                        },
+                    ),
+                ],
+            )
+            config = EvolutionConfig(
+                storage_dir=tmp_dir,
+                strategy_injection_probability=1.0,
+                strategy_selection_mode="retrieval",
+                max_strategies_injected=2,
+                evolution_threshold=0,
+                random_seed=1,
+            )
+            fuzzer = NaturalLanguageProofFuzzerLLMInterface(proof, llm)
+            evolutionary = EvolutionaryProofFuzzer(fuzzer, store=store, config=config)
+
+            attempt = evolutionary.run_false_proof_attempt(metadata={"llm_category": "Algebra"})
+
+            self.assertEqual(set(attempt.strategy_ids), {"mined_test_algebra", "evolved_test_algebra"})
+            self.assertEqual(
+                set(attempt.metadata["strategy_selection"]["selected_strategy_sources"]),
+                {"mined", "evolved"},
+            )
+
+    def test_random_strategy_selection_only_uses_matching_math_topic(self) -> None:
+        proof = "Compare polynomial coefficients in an algebraic identity."
+        llm = FakeLLM([JUDGE_CORRECT_RESPONSE, MUTATION_RESPONSE, JUDGE_CORRECT_RESPONSE])
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            store = ProofFuzzAttemptStore(tmp_dir)
+            store.save_strategies(
+                "natural_language",
+                [
+                    FuzzStrategy(
+                        strategy_id="algebra_strategy",
+                        fuzzer_kind="natural_language",
+                        title="Algebra strategy",
+                        guidance="Mutate a coefficient comparison.",
+                        math_topic="algebra",
+                        target_correctness=False,
+                    ),
+                    FuzzStrategy(
+                        strategy_id="geometry_strategy",
+                        fuzzer_kind="natural_language",
+                        title="Geometry strategy",
+                        guidance="Mutate an angle chase.",
+                        math_topic="geometry",
+                        target_correctness=False,
+                    ),
+                    FuzzStrategy(
+                        strategy_id="untagged_strategy",
+                        fuzzer_kind="natural_language",
+                        title="Untagged strategy",
+                        guidance="This legacy strategy has no topic.",
+                        target_correctness=False,
+                    ),
+                ],
+            )
+            config = EvolutionConfig(
+                storage_dir=tmp_dir,
+                strategy_injection_probability=1.0,
+                strategy_selection_mode="random",
+                max_strategies_injected=3,
+                evolution_threshold=0,
+                random_seed=1,
+            )
+            fuzzer = NaturalLanguageProofFuzzerLLMInterface(proof, llm)
+            evolutionary = EvolutionaryProofFuzzer(fuzzer, store=store, config=config)
+
+            attempt = evolutionary.run_false_proof_attempt(metadata={"llm_category": "Algebra"})
+
+            self.assertEqual(attempt.strategy_ids, ("algebra_strategy",))
+            self.assertEqual(attempt.metadata["strategy_selection"]["selected_strategy_topics"], ["algebra"])
 
     def test_evolution_runs_after_threshold_and_saves_strategy_bank(self) -> None:
         proof = "Let n be even.\n\nThen n = 2k for some integer k.\n\nTherefore n^2 is even."
@@ -356,13 +672,87 @@ class EvolutionaryFuzzerTest(unittest.TestCase):
             fuzzer = NaturalLanguageProofFuzzerLLMInterface(proof, llm)
             evolutionary = EvolutionaryProofFuzzer(fuzzer, config=config)
 
-            evolutionary.run_false_proof_attempt()
+            evolutionary.run_false_proof_attempt(metadata={"llm_category": "Algebra"})
             strategies = evolutionary.store.load_strategies("natural_language")
 
             self.assertEqual(len(strategies), 1)
             self.assertEqual(strategies[0].title, "Plausible representation slip")
+            self.assertEqual(strategies[0].math_topic, "algebra")
             self.assertIn("Recent judged attempts", llm.prompts[4])
-            self.assertEqual(evolutionary.store.last_evolved_attempt_count("natural_language"), 1)
+            self.assertEqual(evolutionary.store.last_evolved_attempt_count_for_topic("natural_language", "algebra"), 1)
+
+    def test_pinned_mined_strategies_survive_evolution_replacement(self) -> None:
+        proof = "Let n be even.\n\nThen n = 2k for some integer k.\n\nTherefore n^2 is even."
+        llm = FakeLLM([JUDGE_CORRECT_RESPONSE, MUTATION_RESPONSE, JUDGE_CORRECT_RESPONSE, JUDGE_INCORRECT_RESPONSE, EVOLUTION_RESPONSE])
+
+        pinned_strategy = FuzzStrategy(
+            strategy_id="mined_test_pinned",
+            fuzzer_kind="natural_language",
+            title="Pinned mined strategy",
+            guidance="Keep this mined prior in the bank.",
+            target_correctness=False,
+            metadata={"source": "mined", "topic": "algebra", "pinned": True},
+        )
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            store = ProofFuzzAttemptStore(tmp_dir)
+            store.save_strategies("natural_language", [pinned_strategy])
+            config = EvolutionConfig(
+                storage_dir=tmp_dir,
+                strategy_injection_probability=0.0,
+                evolution_threshold=1,
+            )
+            fuzzer = NaturalLanguageProofFuzzerLLMInterface(proof, llm)
+            evolutionary = EvolutionaryProofFuzzer(fuzzer, store=store, config=config)
+
+            evolutionary.run_false_proof_attempt(metadata={"llm_category": "Algebra"})
+            strategies = evolutionary.store.load_strategies("natural_language")
+            strategy_ids = {strategy.strategy_id for strategy in strategies}
+
+            self.assertIn("mined_test_pinned", strategy_ids)
+            self.assertTrue(any(strategy.title == "Plausible representation slip" for strategy in strategies))
+
+    def test_evolution_replaces_only_matching_topic_slice(self) -> None:
+        proof = "Let n be even.\n\nThen n = 2k for some integer k.\n\nTherefore n^2 is even."
+        llm = FakeLLM([JUDGE_CORRECT_RESPONSE, MUTATION_RESPONSE, JUDGE_CORRECT_RESPONSE, JUDGE_INCORRECT_RESPONSE, EVOLUTION_RESPONSE])
+
+        geometry_strategy = FuzzStrategy(
+            strategy_id="geometry_keep",
+            fuzzer_kind="natural_language",
+            title="Geometry keep",
+            guidance="Keep this geometry strategy untouched.",
+            math_topic="geometry",
+            target_correctness=False,
+        )
+        algebra_old_strategy = FuzzStrategy(
+            strategy_id="algebra_replace",
+            fuzzer_kind="natural_language",
+            title="Old algebra",
+            guidance="This algebra strategy can be replaced.",
+            math_topic="algebra",
+            target_correctness=False,
+        )
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            store = ProofFuzzAttemptStore(tmp_dir)
+            store.save_strategies("natural_language", [geometry_strategy, algebra_old_strategy])
+            config = EvolutionConfig(
+                storage_dir=tmp_dir,
+                strategy_injection_probability=0.0,
+                evolution_threshold=1,
+            )
+            fuzzer = NaturalLanguageProofFuzzerLLMInterface(proof, llm)
+            evolutionary = EvolutionaryProofFuzzer(fuzzer, store=store, config=config)
+
+            evolutionary.run_false_proof_attempt(metadata={"llm_category": "Algebra"})
+            strategies = evolutionary.store.load_strategies("natural_language")
+            strategies_by_id = {strategy.strategy_id: strategy for strategy in strategies}
+
+            self.assertIn("geometry_keep", strategies_by_id)
+            self.assertEqual(strategies_by_id["geometry_keep"].title, "Geometry keep")
+            self.assertNotIn("algebra_replace", strategies_by_id)
+            self.assertTrue(any(strategy.title == "Plausible representation slip" for strategy in strategies))
+            self.assertTrue(all(strategy.math_topic in {"algebra", "geometry"} for strategy in strategies))
 
     def test_truncated_completion_is_retried_before_parsing(self) -> None:
         proof = "Let n be even.\n\nThen n = 2k for some integer k.\n\nTherefore n^2 is even."

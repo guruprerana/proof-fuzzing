@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import datetime, timezone
+import hashlib
 import json
 import math
 from pathlib import Path
@@ -17,6 +18,7 @@ from typing import Iterable
 from src.proof_fuzzer.llm_interface import (
     FuzzerMutationInstructions,
     LLMClient,
+    LLMTraceLogger,
     NaturalLanguageProofFuzzerLLMInterface,
     ProofFuzzerLLMInterfaceBase,
     SemiFormalProofFuzzerLLMInterface,
@@ -37,6 +39,8 @@ CORRECTNESS_SELECTION_MODES = {
     "false_proof",
     "correctness_preserving",
 }
+STRATEGY_SELECTION_MODES = {"random", "retrieval"}
+TARGET_JUDGE_SUCCESS_POLICIES = {"any", "majority", "all"}
 
 
 @dataclass(frozen=True)
@@ -58,6 +62,16 @@ class EvolutionConfig:
     retry_backoff_seconds: float = 1.0
     context_fallbacks: int = 0
     continue_on_error: bool = True
+    seed_mined_strategies: bool = False
+    strategy_selection_mode: str = "random"
+    mined_strategy_path: str | Path | None = None
+    target_judge_samples: int = 1
+    target_judge_success_policy: str = "all"
+    judge_error_detection_check: bool = False
+    max_previous_failed_attempts_in_prompt: int = 3
+    max_previous_failed_attempt_chars: int = 4_000
+    trace_llm_calls: bool = True
+    trace_dir: str | Path | None = None
 
     def __post_init__(self) -> None:
         if self.correctness_selection_mode not in CORRECTNESS_SELECTION_MODES:
@@ -66,6 +80,24 @@ class EvolutionConfig:
                 "Unknown correctness selection mode "
                 f"{self.correctness_selection_mode!r}; expected one of: {allowed}"
             )
+        if self.strategy_selection_mode not in STRATEGY_SELECTION_MODES:
+            allowed = ", ".join(sorted(STRATEGY_SELECTION_MODES))
+            raise ValueError(
+                "Unknown strategy selection mode "
+                f"{self.strategy_selection_mode!r}; expected one of: {allowed}"
+            )
+        if self.target_judge_success_policy not in TARGET_JUDGE_SUCCESS_POLICIES:
+            allowed = ", ".join(sorted(TARGET_JUDGE_SUCCESS_POLICIES))
+            raise ValueError(
+                "Unknown target judge success policy "
+                f"{self.target_judge_success_policy!r}; expected one of: {allowed}"
+            )
+        if not 0.0 <= self.strategy_injection_probability <= 1.0:
+            raise ValueError("strategy_injection_probability must be between 0 and 1.")
+        if self.max_strategies_injected < 0:
+            raise ValueError("max_strategies_injected must be non-negative.")
+        if self.max_bank_size < 1:
+            raise ValueError("max_bank_size must be at least 1.")
         if not 0.0 <= self.false_proof_probability <= 1.0:
             raise ValueError("false_proof_probability must be between 0 and 1.")
         if self.max_proof_chars < 1:
@@ -78,6 +110,12 @@ class EvolutionConfig:
             raise ValueError("retry_backoff_seconds must be non-negative.")
         if self.context_fallbacks < 0:
             raise ValueError("context_fallbacks must be non-negative.")
+        if self.target_judge_samples < 1:
+            raise ValueError("target_judge_samples must be at least 1.")
+        if self.max_previous_failed_attempts_in_prompt < 0:
+            raise ValueError("max_previous_failed_attempts_in_prompt must be non-negative.")
+        if self.max_previous_failed_attempt_chars < 0:
+            raise ValueError("max_previous_failed_attempt_chars must be non-negative.")
 
 
 @dataclass(frozen=True)
@@ -135,6 +173,7 @@ class FuzzStrategy:
     fuzzer_kind: str
     title: str
     guidance: str
+    math_topic: str = ""
     target_correctness: bool | None = None
     successes: int = 0
     failures: int = 0
@@ -146,6 +185,17 @@ class FuzzStrategy:
     def __post_init__(self) -> None:
         object.__setattr__(self, "fuzzer_kind", _normalize_fuzzer_kind(self.fuzzer_kind))
         object.__setattr__(self, "provenance_attempt_ids", tuple(self.provenance_attempt_ids))
+        topic = _normalize_topic(
+            self.math_topic
+            or self.metadata.get("math_topic")
+            or self.metadata.get("topic")
+        )
+        metadata = dict(self.metadata)
+        if topic:
+            metadata["math_topic"] = topic
+            metadata["topic"] = topic
+        object.__setattr__(self, "math_topic", topic)
+        object.__setattr__(self, "metadata", metadata)
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -153,6 +203,7 @@ class FuzzStrategy:
             "fuzzer_kind": self.fuzzer_kind,
             "title": self.title,
             "guidance": self.guidance,
+            "math_topic": self.math_topic,
             "target_correctness": self.target_correctness,
             "successes": self.successes,
             "failures": self.failures,
@@ -164,18 +215,20 @@ class FuzzStrategy:
 
     @classmethod
     def from_dict(cls, data: dict[str, object]) -> "FuzzStrategy":
+        metadata = dict(data.get("metadata", {}) if isinstance(data.get("metadata"), dict) else {})
         return cls(
             strategy_id=str(data.get("strategy_id") or data.get("id") or _new_id("strategy")),
             fuzzer_kind=str(data.get("fuzzer_kind", FUZZER_KIND_SEMIFORMAL)),
             title=str(data.get("title", "")),
             guidance=str(data.get("guidance", "")),
+            math_topic=str(data.get("math_topic") or data.get("topic") or metadata.get("math_topic") or metadata.get("topic") or ""),
             target_correctness=_parse_optional_bool(data.get("target_correctness")),
             successes=int(data.get("successes", 0) or 0),
             failures=int(data.get("failures", 0) or 0),
             provenance_attempt_ids=_string_tuple(data.get("provenance_attempt_ids", ())),
             created_at=str(data.get("created_at") or _utc_now()),
             updated_at=str(data.get("updated_at") or _utc_now()),
-            metadata=dict(data.get("metadata", {}) if isinstance(data.get("metadata"), dict) else {}),
+            metadata=metadata,
         )
 
 
@@ -331,6 +384,23 @@ class ProofFuzzAttemptStore:
                     handle.write(json.dumps(strategy.to_dict(), sort_keys=True) + "\n")
             tmp_path.replace(path)
 
+    def seed_strategies(self, fuzzer_kind: str, strategies: Iterable[FuzzStrategy]) -> tuple[FuzzStrategy, ...]:
+        """Insert strategies with new ids into the existing bank."""
+
+        normalized_kind = _normalize_fuzzer_kind(fuzzer_kind)
+        with self.lock:
+            existing = list(self.load_strategies(normalized_kind))
+            existing_ids = {strategy.strategy_id for strategy in existing}
+            seeded = [
+                strategy
+                for strategy in strategies
+                if _normalize_fuzzer_kind(strategy.fuzzer_kind) == normalized_kind
+                and strategy.strategy_id not in existing_ids
+            ]
+            if seeded:
+                self.save_strategies(normalized_kind, [*existing, *seeded])
+            return tuple(seeded)
+
     def last_evolved_attempt_count(self, fuzzer_kind: str) -> int:
         with self.lock:
             state = self._load_state()
@@ -340,6 +410,18 @@ class ProofFuzzAttemptStore:
         with self.lock:
             state = self._load_state()
             state[_normalize_fuzzer_kind(fuzzer_kind)] = int(count)
+            self.state_path.write_text(json.dumps(state, indent=2, sort_keys=True), encoding="utf-8")
+
+    def last_evolved_attempt_count_for_topic(self, fuzzer_kind: str, math_topic: str) -> int:
+        with self.lock:
+            state = self._load_state()
+            key = _topic_state_key(fuzzer_kind=fuzzer_kind, math_topic=math_topic)
+            return int(state.get(key, 0) or 0)
+
+    def set_last_evolved_attempt_count_for_topic(self, fuzzer_kind: str, math_topic: str, count: int) -> None:
+        with self.lock:
+            state = self._load_state()
+            state[_topic_state_key(fuzzer_kind=fuzzer_kind, math_topic=math_topic)] = int(count)
             self.state_path.write_text(json.dumps(state, indent=2, sort_keys=True), encoding="utf-8")
 
     def _strategy_path(self, fuzzer_kind: str) -> Path:
@@ -478,6 +560,80 @@ Schema:
 """
 
 
+class JudgeErrorDetectionChecker:
+    """Checks whether blind judge reports revealed the planted mutation."""
+
+    def __init__(self, llm: LLMClient):
+        self.llm = llm
+
+    def prompt(
+        self,
+        *,
+        mutation_instructions: FuzzerMutationInstructions,
+        judge_results: Iterable[JudgeResult],
+        original_proof_text: str = "",
+        mutated_proof_text: str = "",
+    ) -> str:
+        judge_payload = [result.to_dict() for result in judge_results]
+        return f"""You are auditing blind proof-judge reports for a proof-fuzzing run.
+
+The blind judges did not see the original proof or mutation instructions. You can see them now.
+Decide whether any blind judge report identified the actual planted mutation/error, even if its final verdict was "correct".
+
+Original proof:
+```text
+{original_proof_text}
+```
+
+Mutation instructions:
+```json
+{json.dumps(mutation_instructions.to_dict(), indent=2, sort_keys=True)}
+```
+
+Mutated proof:
+```text
+{mutated_proof_text}
+```
+
+Blind judge reports:
+```json
+{json.dumps(judge_payload, indent=2, sort_keys=True)}
+```
+
+Count a report as matching only if it points to the same substantive mathematical error or downstream inconsistency introduced by the mutation. Do not count generic caution, unrelated doubts, or a wrong diagnosis.
+Return exactly one JSON object with no prose outside JSON.
+Schema:
+```json
+{{
+  "any_judge_reported_correct_error": false,
+  "matching_judge_indices": [0],
+  "match_level": "none | partial | exact",
+  "rationale": "brief justification"
+}}
+```
+"""
+
+    def check(
+        self,
+        *,
+        mutation_instructions: FuzzerMutationInstructions,
+        judge_results: Iterable[JudgeResult],
+        original_proof_text: str = "",
+        mutated_proof_text: str = "",
+    ) -> dict[str, object]:
+        response = self.llm.complete(
+            self.prompt(
+                mutation_instructions=mutation_instructions,
+                judge_results=judge_results,
+                original_proof_text=original_proof_text,
+                mutated_proof_text=mutated_proof_text,
+            )
+        )
+        result = parse_judge_error_detection_result(response)
+        result["raw_response"] = response
+        return result
+
+
 class StrategyEvolver:
     """Distills successful and unsuccessful attempts into strategy guidance."""
 
@@ -543,15 +699,18 @@ Schema:
       "strategy_id": "reuse an existing id when revising, otherwise leave empty",
       "title": "short name",
       "guidance": "actionable instruction to include in a future fuzzer prompt",
+      "math_topic": "algebra | number_theory | geometry | combinatorics | analysis",
       "target_correctness": true,
       "successes": 0,
       "failures": 0,
-      "provenance_attempt_ids": ["attempt ids that support this strategy"]
+      "provenance_attempt_ids": ["attempt ids that support this strategy"],
+      "metadata": {{"source": "evolved", "keywords": ["compact retrieval keyword"]}}
     }}
   ]
 }}
 ```
 Use null for target_correctness when a strategy applies to both correctness targets.
+Every strategy must include a math_topic matching the topic of the attempts it applies to.
 """
 
 
@@ -565,6 +724,7 @@ class EvolutionaryProofFuzzer:
         store: ProofFuzzAttemptStore | None = None,
         judge: BlindProofCorrectnessJudge | None = None,
         mutation_checker: ProofFuzzJudge | None = None,
+        judge_error_checker: JudgeErrorDetectionChecker | None = None,
         evolver: StrategyEvolver | None = None,
         config: EvolutionConfig | None = None,
     ):
@@ -579,15 +739,30 @@ class EvolutionaryProofFuzzer:
             if fuzzer.llm is None:
                 raise ValueError("A mutation checker or fuzzer LLM client is required for evolutionary fuzzing.")
             mutation_checker = ProofFuzzJudge(fuzzer.llm)
+        if judge_error_checker is None:
+            if fuzzer.llm is None:
+                raise ValueError("A judge-error checker or fuzzer LLM client is required for evolutionary fuzzing.")
+            judge_error_checker = JudgeErrorDetectionChecker(fuzzer.llm)
         if evolver is None:
             if fuzzer.llm is None:
                 raise ValueError("An evolver or fuzzer LLM client is required for evolutionary fuzzing.")
             evolver = StrategyEvolver(fuzzer.llm)
         self.judge = judge
         self.mutation_checker = mutation_checker
+        self.judge_error_checker = judge_error_checker
         self.evolver = evolver
         self.rng = random.Random(self.config.random_seed)
         self.fuzzer_kind = infer_fuzzer_kind(fuzzer)
+        if self.config.seed_mined_strategies:
+            self.seed_mined_strategies()
+
+    def seed_mined_strategies(self) -> tuple[FuzzStrategy, ...]:
+        """Seed the common strategy bank with mined proof-mistake strategies."""
+
+        return self.store.seed_strategies(
+            self.fuzzer_kind,
+            load_mined_strategies(self.config.mined_strategy_path),
+        )
 
     def run_mutation_attempt(
         self,
@@ -621,20 +796,46 @@ class EvolutionaryProofFuzzer:
         metadata: dict[str, object] | None = None,
     ) -> FuzzAttempt:
         selected_correctness, selection_metadata = self._resolve_correctness_target(maintain_correctness)
-        strategies = self._sample_strategies(maintain_correctness=selected_correctness)
-        strategy_guidance = tuple(f"{strategy.title}: {strategy.guidance}" for strategy in strategies)
         original_text = proof_text_for_fuzzer(self.fuzzer)
         base_metadata = {
             **dict(metadata or {}),
             "correctness_selection": selection_metadata,
         }
+        base_metadata["original_proof_sha256"] = _sha256_text(original_text)
+        base_metadata["proof_identity"] = _proof_identity(base_metadata, original_text)
+        trace_dir = self._prepare_attempt_trace_dir(base_metadata)
+        strategies = self._sample_strategies(
+            maintain_correctness=selected_correctness,
+            objective=objective,
+            proof_text=original_text,
+            metadata=base_metadata,
+        )
+        base_metadata["strategy_selection"] = _strategy_selection_metadata(
+            mode=self.config.strategy_selection_mode,
+            strategies=strategies,
+        )
+        strategy_guidance = tuple(f"{strategy.title}: {strategy.guidance}" for strategy in strategies)
+        previous_failed_attempts = self._previous_failed_attempts_for_proof(
+            metadata=base_metadata,
+            original_proof_text=original_text,
+            maintain_correctness=selected_correctness,
+        )
+        prior_attempt_guidance = _format_previous_failed_attempt_guidance(
+            previous_failed_attempts,
+            max_chars=self.config.max_previous_failed_attempt_chars,
+        )
+        base_metadata["previous_failed_attempts_in_prompt"] = [
+            attempt.attempt_id for attempt in previous_failed_attempts
+        ]
         problem_text = _problem_text_from_attempt(objective=objective, metadata=base_metadata)
         try:
             pre_mutation_judge_result = self._with_retries(
-                lambda: self.judge.judge(
+                lambda: self._run_blind_judge(
+                    call_kind="pre_mutation_judge",
                     problem_text=problem_text,
                     proof_text=original_text,
                     fuzzer_kind=self.fuzzer_kind,
+                    metadata={"attempt_stage": "pre_mutation_judge"},
                 ),
                 stage="pre_mutation_judge",
                 check_truncation=True,
@@ -645,6 +846,7 @@ class EvolutionaryProofFuzzer:
                     objective=objective,
                     maintain_correctness=selected_correctness,
                     strategy_guidance=strategy_guidance,
+                    prior_attempt_guidance=prior_attempt_guidance,
                 )
                 try:
                     response = self._with_retries(
@@ -653,7 +855,10 @@ class EvolutionaryProofFuzzer:
                             call_kind="evolutionary_mutation_instructions",
                             metadata={
                                 "strategy_ids": [strategy.strategy_id for strategy in strategies],
+                                "strategy_sources": [_strategy_source(strategy) for strategy in strategies],
+                                "strategy_topics": [_strategy_topic(strategy) for strategy in strategies],
                                 "context_fallback_index": fallback_index,
+                                "attempt_stage": "mutation_llm",
                             },
                         ),
                         stage="mutation_llm",
@@ -678,15 +883,43 @@ class EvolutionaryProofFuzzer:
             self.fuzzer._raise_for_invalid_mutation_instructions(instructions)
 
             mutated_text = materialize_mutated_proof(self.fuzzer, instructions)
-            judge_result = self._with_retries(
-                lambda: self.judge.judge(
-                    problem_text=problem_text,
-                    proof_text=mutated_text,
-                    fuzzer_kind=self.fuzzer_kind,
-                ),
-                stage="target_judge",
-                check_truncation=True,
+            target_judge_results: list[JudgeResult] = []
+            for sample_index in range(self.config.target_judge_samples):
+                call_kind = (
+                    "target_judge"
+                    if self.config.target_judge_samples == 1
+                    else f"target_judge_{sample_index + 1}"
+                )
+                judge_result_sample = self._with_retries(
+                    lambda call_kind=call_kind, sample_index=sample_index: self._run_blind_judge(
+                        call_kind=call_kind,
+                        problem_text=problem_text,
+                        proof_text=mutated_text,
+                        fuzzer_kind=self.fuzzer_kind,
+                        metadata={
+                            "attempt_stage": "target_judge",
+                            "target_judge_sample_index": sample_index,
+                            "target_judge_samples": self.config.target_judge_samples,
+                        },
+                    ),
+                    stage=call_kind,
+                    check_truncation=True,
+                )
+                target_judge_results.append(judge_result_sample)
+            judge_result = target_judge_results[0]
+            base_metadata["target_judge_results"] = [
+                result.to_dict() for result in target_judge_results
+            ]
+            base_metadata["target_judge_success_policy"] = self.config.target_judge_success_policy
+            judge_error_detection_result = self._run_judge_error_detection_check(
+                original_proof_text=original_text,
+                mutation_instructions=instructions,
+                mutated_proof_text=mutated_text,
+                judge_results=tuple(target_judge_results),
+                metadata=base_metadata,
             )
+            if judge_error_detection_result is not None:
+                base_metadata["judge_error_detection_check"] = judge_error_detection_result
             mutation_check_result = self._run_mutation_check(
                 original_proof_text=original_text,
                 mutation_instructions=instructions,
@@ -706,6 +939,7 @@ class EvolutionaryProofFuzzer:
                 error=repr(exc),
             )
             self.store.append_attempt(attempt)
+            self._write_attempt_trace_artifacts(trace_dir, attempt)
             if self.config.continue_on_error:
                 return attempt
             raise
@@ -714,6 +948,9 @@ class EvolutionaryProofFuzzer:
             instructions.maintain_correctness,
             judge_result,
             pre_mutation_judge_result=pre_mutation_judge_result,
+            target_judge_results=tuple(target_judge_results),
+            target_judge_success_policy=self.config.target_judge_success_policy,
+            judge_error_detection_result=judge_error_detection_result,
         )
         attempt = FuzzAttempt(
             attempt_id=_new_id("attempt"),
@@ -732,8 +969,159 @@ class EvolutionaryProofFuzzer:
             metadata=base_metadata,
         )
         self.store.append_attempt(attempt)
+        self._write_attempt_trace_artifacts(trace_dir, attempt)
         self._maybe_evolve()
         return attempt
+
+    def _prepare_attempt_trace_dir(self, metadata: dict[str, object]) -> Path | None:
+        if not self.config.trace_llm_calls:
+            return None
+        root = Path(self.config.trace_dir) if self.config.trace_dir is not None else self.store.root_dir / "source_attempt_traces"
+        trace_dir = _unique_trace_dir(root, _trace_directory_name(metadata))
+        trace_dir.mkdir(parents=True, exist_ok=True)
+        metadata["trace_dir"] = str(trace_dir)
+        metadata["trace_dir_name"] = trace_dir.name
+        self.fuzzer.trace_logger = LLMTraceLogger(trace_dir / "llm_calls")
+        _write_text_file(
+            trace_dir / "00_trace_note.txt",
+            "Raw LLM prompts, responses, and reasoning are recorded under llm_calls/ during the run.\n",
+        )
+        return trace_dir
+
+    def _run_blind_judge(
+        self,
+        *,
+        call_kind: str,
+        problem_text: str,
+        proof_text: str,
+        fuzzer_kind: str,
+        metadata: dict[str, object] | None = None,
+    ) -> JudgeResult:
+        prompt = self.judge.judge_prompt(
+            problem_text=problem_text,
+            proof_text=proof_text,
+            fuzzer_kind=fuzzer_kind,
+        )
+        response = self.fuzzer._complete_with_logging(
+            prompt,
+            call_kind=call_kind,
+            metadata=metadata,
+        )
+        return parse_judge_result(response)
+
+    def _run_proof_mutation_check(
+        self,
+        *,
+        original_proof_text: str,
+        mutation_instructions: FuzzerMutationInstructions,
+        mutated_proof_text: str,
+        fuzzer_kind: str,
+        objective: str,
+        metadata: dict[str, object] | None = None,
+    ) -> JudgeResult:
+        prompt = self.mutation_checker.judge_prompt(
+            original_proof_text=original_proof_text,
+            mutation_instructions=mutation_instructions,
+            mutated_proof_text=mutated_proof_text,
+            fuzzer_kind=fuzzer_kind,
+            objective=objective,
+        )
+        response = self.fuzzer._complete_with_logging(
+            prompt,
+            call_kind="mutation_check",
+            metadata=metadata,
+        )
+        return parse_judge_result(response)
+
+    def _run_judge_error_detection_check(
+        self,
+        *,
+        original_proof_text: str,
+        mutation_instructions: FuzzerMutationInstructions,
+        mutated_proof_text: str,
+        judge_results: tuple[JudgeResult, ...],
+        metadata: dict[str, object],
+    ) -> dict[str, object] | None:
+        if not self.config.judge_error_detection_check:
+            return None
+        if mutation_instructions.maintain_correctness:
+            return None
+        try:
+            return self._with_retries(
+                lambda: self._run_judge_error_detection_check_once(
+                    original_proof_text=original_proof_text,
+                    mutation_instructions=mutation_instructions,
+                    mutated_proof_text=mutated_proof_text,
+                    judge_results=judge_results,
+                ),
+                stage="judge_error_detection_check",
+                check_truncation=True,
+            )
+        except Exception as exc:
+            metadata["judge_error_detection_check_error"] = repr(exc)
+            return {
+                "any_judge_reported_correct_error": False,
+                "matching_judge_indices": [],
+                "match_level": "unknown",
+                "rationale": f"judge-error detection check failed: {exc!r}",
+                "check_failed": True,
+            }
+
+    def _run_judge_error_detection_check_once(
+        self,
+        *,
+        original_proof_text: str,
+        mutation_instructions: FuzzerMutationInstructions,
+        mutated_proof_text: str,
+        judge_results: tuple[JudgeResult, ...],
+    ) -> dict[str, object]:
+        prompt = self.judge_error_checker.prompt(
+            original_proof_text=original_proof_text,
+            mutation_instructions=mutation_instructions,
+            mutated_proof_text=mutated_proof_text,
+            judge_results=judge_results,
+        )
+        response = self.fuzzer._complete_with_logging(
+            prompt,
+            call_kind="judge_error_detection_check",
+            metadata={"attempt_stage": "judge_error_detection_check"},
+        )
+        result = parse_judge_error_detection_result(response)
+        result["raw_response"] = response
+        return result
+
+    def _write_attempt_trace_artifacts(self, trace_dir: Path | None, attempt: FuzzAttempt) -> None:
+        if trace_dir is None:
+            return
+        _write_json_file(trace_dir / "attempt.json", attempt.to_dict())
+        _write_json_file(trace_dir / "mutation_instructions.json", attempt.mutation_instructions.to_dict())
+        target_judge_results = attempt.metadata.get("target_judge_results")
+        if isinstance(target_judge_results, list):
+            _write_json_file(trace_dir / "target_judge_results.json", target_judge_results)
+        judge_error_detection_check = attempt.metadata.get("judge_error_detection_check")
+        if isinstance(judge_error_detection_check, dict):
+            _write_json_file(trace_dir / "judge_error_detection_check.json", judge_error_detection_check)
+        _write_text_file(trace_dir / "mutations_produced.txt", _format_mutations_text(attempt.mutation_instructions))
+        _write_text_file(trace_dir / "original_proof.txt", attempt.original_proof_text)
+        _write_text_file(trace_dir / "mutated_proof.txt", attempt.mutated_proof_text)
+        _write_json_file(
+            trace_dir / "trace_metadata.json",
+            {
+                "attempt_id": attempt.attempt_id,
+                "status": attempt.status,
+                "success": attempt.success,
+                "fuzzer_kind": attempt.fuzzer_kind,
+                "maintain_correctness": attempt.maintain_correctness,
+                "created_at": attempt.created_at,
+                "trace_dir": str(trace_dir),
+                "trace_dir_name": trace_dir.name,
+                "strategy_ids": list(attempt.strategy_ids),
+                "example_id": attempt.metadata.get("example_id"),
+                "sample_index": attempt.metadata.get("sample_index"),
+                "problem_id": attempt.metadata.get("problem_id"),
+                "math_topic": attempt.metadata.get("math_topic") or attempt.metadata.get("llm_category"),
+            },
+        )
 
     def _run_mutation_check(
         self,
@@ -747,12 +1135,13 @@ class EvolutionaryProofFuzzer:
     ) -> JudgeResult | None:
         try:
             return self._with_retries(
-                lambda: self.mutation_checker.judge(
+                lambda: self._run_proof_mutation_check(
                     original_proof_text=original_proof_text,
                     mutation_instructions=mutation_instructions,
                     mutated_proof_text=mutated_proof_text,
                     fuzzer_kind=fuzzer_kind,
                     objective=objective,
+                    metadata={"attempt_stage": "mutation_check"},
                 ),
                 stage="mutation_check",
                 check_truncation=True,
@@ -874,23 +1263,55 @@ class EvolutionaryProofFuzzer:
         objective: str,
         maintain_correctness: bool | None,
         strategy_guidance: tuple[str, ...],
+        prior_attempt_guidance: tuple[str, ...],
     ) -> str:
         if maintain_correctness is True:
             return self.fuzzer.correctness_preserving_mutation_instruction_prompt(
                 objective=objective,
                 strategy_guidance=strategy_guidance,
+                prior_attempt_guidance=prior_attempt_guidance,
             )
         if maintain_correctness is False:
             return self.fuzzer.false_proof_mutation_instruction_prompt(
                 objective=objective,
                 strategy_guidance=strategy_guidance,
+                prior_attempt_guidance=prior_attempt_guidance,
             )
         return self.fuzzer.mutation_instruction_prompt(
             objective=objective,
             strategy_guidance=strategy_guidance,
+            prior_attempt_guidance=prior_attempt_guidance,
         )
 
-    def _sample_strategies(self, *, maintain_correctness: bool | None) -> tuple[FuzzStrategy, ...]:
+    def _previous_failed_attempts_for_proof(
+        self,
+        *,
+        metadata: dict[str, object],
+        original_proof_text: str,
+        maintain_correctness: bool | None,
+    ) -> tuple[FuzzAttempt, ...]:
+        limit = self.config.max_previous_failed_attempts_in_prompt
+        if limit <= 0:
+            return ()
+        attempts = self.store.load_attempts(fuzzer_kind=self.fuzzer_kind)
+        matching = [
+            attempt
+            for attempt in attempts
+            if not attempt.success
+            and attempt.status == "success"
+            and (maintain_correctness is None or attempt.maintain_correctness == maintain_correctness)
+            and _same_proof_attempt(attempt, metadata, original_proof_text)
+        ]
+        return tuple(matching[-limit:])
+
+    def _sample_strategies(
+        self,
+        *,
+        maintain_correctness: bool | None,
+        objective: str = "",
+        proof_text: str = "",
+        metadata: dict[str, object] | None = None,
+    ) -> tuple[FuzzStrategy, ...]:
         if self.config.strategy_injection_probability <= 0:
             return ()
         if self.rng.random() > self.config.strategy_injection_probability:
@@ -901,42 +1322,120 @@ class EvolutionaryProofFuzzer:
             for strategy in self.store.load_strategies(self.fuzzer_kind)
             if strategy.target_correctness is None or maintain_correctness is None or strategy.target_correctness == maintain_correctness
         ]
+        strategies = _filter_strategies_by_attempt_topic(strategies, metadata or {})
+        if self.config.strategy_selection_mode == "retrieval":
+            return self._retrieve_strategies(
+                strategies,
+                objective=objective,
+                proof_text=proof_text,
+                metadata=metadata or {},
+            )
         self.rng.shuffle(strategies)
         return tuple(strategies[: self.config.max_strategies_injected])
+
+    def _retrieve_strategies(
+        self,
+        strategies: list[FuzzStrategy],
+        *,
+        objective: str,
+        proof_text: str,
+        metadata: dict[str, object],
+    ) -> tuple[FuzzStrategy, ...]:
+        if self.config.max_strategies_injected <= 0:
+            return ()
+        query_tokens = _strategy_query_tokens(
+            objective=objective,
+            proof_text=proof_text,
+            metadata=metadata,
+        )
+        query_topic = _topic_from_metadata(metadata)
+        scored = [
+            (
+                _strategy_retrieval_score(
+                    strategy,
+                    query_tokens=query_tokens,
+                    query_topic=query_topic,
+                ),
+                self.rng.random(),
+                strategy,
+            )
+            for strategy in strategies
+        ]
+        scored.sort(key=lambda item: (item[0], item[1]), reverse=True)
+        return tuple(strategy for _, _, strategy in scored[: self.config.max_strategies_injected])
 
     def _maybe_evolve(self) -> None:
         threshold = self.config.evolution_threshold
         if threshold <= 0:
             return
         with self.store.lock:
-            attempt_count = self.store.count_attempts(self.fuzzer_kind)
-            last_evolved = self.store.last_evolved_attempt_count(self.fuzzer_kind)
-            if attempt_count - last_evolved < threshold:
-                return
-
-            attempts = tuple(
+            successful_attempts = tuple(
                 attempt
-                for attempt in self.store.load_attempts(fuzzer_kind=self.fuzzer_kind, limit=max(threshold * 3, threshold))
+                for attempt in self.store.load_attempts(fuzzer_kind=self.fuzzer_kind)
                 if attempt.status == "success"
             )
-            if not attempts:
+            attempts_by_topic = _attempts_by_topic(successful_attempts)
+            if not attempts_by_topic:
                 return
-            existing = self.store.load_strategies(self.fuzzer_kind)
-            try:
-                strategies = self._with_retries(
-                    lambda: self.evolver.evolve(
-                        fuzzer_kind=self.fuzzer_kind,
-                        attempts=attempts,
-                        existing_strategies=existing,
-                        max_bank_size=self.config.max_bank_size,
-                    ),
-                    stage="strategy_evolution",
-                    check_truncation=True,
+
+            bank = self.store.load_strategies(self.fuzzer_kind)
+            updated_bank = list(bank)
+            evolved_any = False
+            evolved_counts: dict[str, int] = {}
+
+            for topic in sorted(attempts_by_topic):
+                topic_attempt_count = len(attempts_by_topic[topic])
+                last_evolved = self.store.last_evolved_attempt_count_for_topic(self.fuzzer_kind, topic)
+                if topic_attempt_count - last_evolved < threshold:
+                    continue
+
+                topic_attempts = attempts_by_topic[topic][-max(threshold * 3, threshold):]
+                topic_bank = tuple(strategy for strategy in updated_bank if _strategy_topic(strategy) == topic)
+                pinned = tuple(strategy for strategy in topic_bank if _strategy_is_pinned(strategy))
+                try:
+                    strategies = self._with_retries(
+                        lambda topic_attempts=topic_attempts, topic_bank=topic_bank: self.evolver.evolve(
+                            fuzzer_kind=self.fuzzer_kind,
+                            attempts=topic_attempts,
+                            existing_strategies=topic_bank,
+                            max_bank_size=self.config.max_bank_size,
+                        ),
+                        stage=f"strategy_evolution_{topic}",
+                        check_truncation=True,
+                    )
+                except Exception:
+                    continue
+                strategies = _force_strategy_topic(
+                    _fill_missing_strategy_topics(strategies, topic_attempts),
+                    topic,
                 )
-            except Exception:
+                topic_replacement = _merge_pinned_strategies(strategies, pinned)
+                updated_bank = [
+                    strategy
+                    for strategy in updated_bank
+                    if _strategy_topic(strategy) != topic
+                ] + list(topic_replacement)
+                evolved_any = True
+                evolved_counts[topic] = topic_attempt_count
+
+            if not evolved_any:
                 return
-            self.store.save_strategies(self.fuzzer_kind, strategies)
-            self.store.set_last_evolved_attempt_count(self.fuzzer_kind, attempt_count)
+            self.store.save_strategies(self.fuzzer_kind, updated_bank)
+            for topic, count in evolved_counts.items():
+                self.store.set_last_evolved_attempt_count_for_topic(self.fuzzer_kind, topic, count)
+
+
+def load_mined_strategies(path: str | Path | None = None) -> tuple[FuzzStrategy, ...]:
+    """Load mined proof-mistake strategies from JSONL seed data."""
+
+    strategy_path = Path(path) if path is not None else Path(__file__).with_name("data") / "mined_strategies.jsonl"
+    if not strategy_path.is_file():
+        raise FileNotFoundError(f"Mined strategy seed file does not exist: {strategy_path}")
+    strategies: list[FuzzStrategy] = []
+    for line in strategy_path.read_text(encoding="utf-8").splitlines():
+        if line.strip():
+            strategies.append(FuzzStrategy.from_dict(json.loads(line)))
+    return tuple(strategies)
 
 
 def parse_judge_result(text: str) -> JudgeResult:
@@ -948,6 +1447,27 @@ def parse_judge_result(text: str) -> JudgeResult:
         detected_flaw=str(data.get("detected_flaw", "")),
         raw_response=text,
     )
+
+
+def parse_judge_error_detection_result(text: str) -> dict[str, object]:
+    data = _load_json_object(text)
+    raw_indices = data.get("matching_judge_indices", ())
+    matching_indices: list[int] = []
+    if isinstance(raw_indices, list):
+        for index in raw_indices:
+            try:
+                matching_indices.append(int(index))
+            except (TypeError, ValueError):
+                continue
+    match_level = str(data.get("match_level", "none")).strip().lower()
+    if match_level not in {"none", "partial", "exact"}:
+        match_level = "partial" if bool(data.get("any_judge_reported_correct_error")) else "none"
+    return {
+        "any_judge_reported_correct_error": bool(data.get("any_judge_reported_correct_error", False)),
+        "matching_judge_indices": matching_indices,
+        "match_level": match_level,
+        "rationale": str(data.get("rationale", "")),
+    }
 
 
 def parse_strategy_evolution_response(
@@ -973,6 +1493,7 @@ def parse_strategy_evolution_response(
                 fuzzer_kind=fuzzer_kind,
                 title=str(raw_strategy.get("title", "")).strip(),
                 guidance=str(raw_strategy.get("guidance", "")).strip(),
+                math_topic=str(raw_strategy.get("math_topic") or raw_strategy.get("topic") or ""),
                 target_correctness=_parse_optional_bool(raw_strategy.get("target_correctness")),
                 successes=int(raw_strategy.get("successes", 0) or 0),
                 failures=int(raw_strategy.get("failures", 0) or 0),
@@ -990,9 +1511,46 @@ def fuzz_attempt_succeeded(
     judge_result: JudgeResult,
     *,
     pre_mutation_judge_result: JudgeResult | None = None,
+    target_judge_results: Iterable[JudgeResult] | None = None,
+    target_judge_success_policy: str = "all",
+    judge_error_detection_result: dict[str, object] | None = None,
 ) -> bool:
     if pre_mutation_judge_result is not None and pre_mutation_judge_result.verdict != "correct":
         return False
+    if target_judge_success_policy not in TARGET_JUDGE_SUCCESS_POLICIES:
+        allowed = ", ".join(sorted(TARGET_JUDGE_SUCCESS_POLICIES))
+        raise ValueError(
+            "Unknown target judge success policy "
+            f"{target_judge_success_policy!r}; expected one of: {allowed}"
+        )
+    judge_results = tuple(target_judge_results or (judge_result,))
+    if not judge_results:
+        judge_results = (judge_result,)
+    per_judge_success = tuple(
+        _single_judge_success(maintain_correctness, result)
+        for result in judge_results
+    )
+    if target_judge_success_policy == "all":
+        accepted_by_target = all(per_judge_success)
+    elif target_judge_success_policy == "majority":
+        accepted_by_target = sum(1 for value in per_judge_success if value) > len(per_judge_success) / 2
+    else:
+        accepted_by_target = any(per_judge_success)
+    if not accepted_by_target:
+        return False
+    if (
+        not maintain_correctness
+        and judge_error_detection_result is not None
+        and (
+            bool(judge_error_detection_result.get("check_failed"))
+            or bool(judge_error_detection_result.get("any_judge_reported_correct_error"))
+        )
+    ):
+        return False
+    return True
+
+
+def _single_judge_success(maintain_correctness: bool, judge_result: JudgeResult) -> bool:
     if maintain_correctness:
         return judge_result.verdict in {"incorrect", "uncertain"}
     return judge_result.verdict == "correct"
@@ -1024,11 +1582,198 @@ def materialize_mutated_proof(
     return ""
 
 
+def _strategy_selection_metadata(*, mode: str, strategies: tuple[FuzzStrategy, ...]) -> dict[str, object]:
+    return {
+        "mode": mode,
+        "selected_strategy_ids": [strategy.strategy_id for strategy in strategies],
+        "selected_strategy_sources": [_strategy_source(strategy) for strategy in strategies],
+        "selected_strategy_topics": [_strategy_topic(strategy) for strategy in strategies],
+    }
+
+
+def _strategy_source(strategy: FuzzStrategy) -> str:
+    source = strategy.metadata.get("source")
+    return str(source) if source is not None else "evolved"
+
+
+def _strategy_topic(strategy: FuzzStrategy) -> str:
+    return _normalize_topic(strategy.math_topic or strategy.metadata.get("math_topic") or strategy.metadata.get("topic"))
+
+
+def _strategy_is_pinned(strategy: FuzzStrategy) -> bool:
+    return bool(strategy.metadata.get("pinned"))
+
+
+def _merge_pinned_strategies(
+    strategies: Iterable[FuzzStrategy],
+    pinned_strategies: Iterable[FuzzStrategy],
+) -> tuple[FuzzStrategy, ...]:
+    pinned_by_id = {strategy.strategy_id: strategy for strategy in pinned_strategies}
+    merged: list[FuzzStrategy] = []
+    seen: set[str] = set()
+    for strategy in strategies:
+        replacement = pinned_by_id.get(strategy.strategy_id, strategy)
+        if replacement.strategy_id in seen:
+            continue
+        merged.append(replacement)
+        seen.add(replacement.strategy_id)
+    for strategy in pinned_by_id.values():
+        if strategy.strategy_id not in seen:
+            merged.append(strategy)
+            seen.add(strategy.strategy_id)
+    return tuple(merged)
+
+
+def _filter_strategies_by_attempt_topic(
+    strategies: Iterable[FuzzStrategy],
+    metadata: dict[str, object],
+) -> list[FuzzStrategy]:
+    topic = _topic_from_metadata(metadata)
+    if not topic:
+        return list(strategies)
+    return [strategy for strategy in strategies if _strategy_topic(strategy) == topic]
+
+
+def _attempts_by_topic(attempts: Iterable[FuzzAttempt]) -> dict[str, list[FuzzAttempt]]:
+    attempts_by_topic: dict[str, list[FuzzAttempt]] = {}
+    for attempt in attempts:
+        topic = _topic_from_metadata(attempt.metadata)
+        if not topic:
+            continue
+        attempts_by_topic.setdefault(topic, []).append(attempt)
+    return attempts_by_topic
+
+
+def _fill_missing_strategy_topics(
+    strategies: Iterable[FuzzStrategy],
+    attempts: Iterable[FuzzAttempt],
+) -> tuple[FuzzStrategy, ...]:
+    default_topic = _common_attempt_topic(attempts)
+    filled: list[FuzzStrategy] = []
+    for strategy in strategies:
+        if _strategy_topic(strategy) or not default_topic:
+            filled.append(strategy)
+            continue
+        metadata = dict(strategy.metadata)
+        metadata["source"] = metadata.get("source", "evolved")
+        metadata["math_topic"] = default_topic
+        metadata["topic"] = default_topic
+        filled.append(replace(strategy, math_topic=default_topic, metadata=metadata))
+    return tuple(filled)
+
+
+def _force_strategy_topic(
+    strategies: Iterable[FuzzStrategy],
+    topic: str,
+) -> tuple[FuzzStrategy, ...]:
+    normalized_topic = _normalize_topic(topic)
+    forced: list[FuzzStrategy] = []
+    for strategy in strategies:
+        metadata = dict(strategy.metadata)
+        metadata["math_topic"] = normalized_topic
+        metadata["topic"] = normalized_topic
+        metadata["source"] = metadata.get("source", "evolved")
+        forced.append(replace(strategy, math_topic=normalized_topic, metadata=metadata))
+    return tuple(forced)
+
+
+def _common_attempt_topic(attempts: Iterable[FuzzAttempt]) -> str:
+    topics = {
+        topic
+        for topic in (_topic_from_metadata(attempt.metadata) for attempt in attempts)
+        if topic
+    }
+    return next(iter(topics)) if len(topics) == 1 else ""
+
+
+def _strategy_query_tokens(
+    *,
+    objective: str,
+    proof_text: str,
+    metadata: dict[str, object],
+) -> set[str]:
+    pieces = [objective, proof_text]
+    for key in ("problem", "grading_id", "llm_category", "category", "topic"):
+        value = metadata.get(key)
+        if value is not None:
+            pieces.append(str(value))
+    return set(_tokenize("\n".join(pieces)))
+
+
+def _strategy_retrieval_score(
+    strategy: FuzzStrategy,
+    *,
+    query_tokens: set[str],
+    query_topic: str,
+) -> float:
+    metadata = strategy.metadata
+    score = 0.0
+    if query_topic and _strategy_topic(strategy) == query_topic:
+        score += 6.0
+
+    keyword_tokens = set()
+    for keyword in _string_tuple(metadata.get("keywords", ())):
+        keyword_tokens.update(_tokenize(keyword))
+    precondition_tokens = set()
+    for precondition in _string_tuple(metadata.get("preconditions", ())):
+        precondition_tokens.update(_tokenize(precondition))
+    strategy_tokens = set(_tokenize(f"{strategy.title} {strategy.guidance}"))
+
+    score += 2.0 * len(query_tokens & keyword_tokens)
+    score += 0.5 * len(query_tokens & precondition_tokens)
+    score += 0.15 * len(query_tokens & strategy_tokens)
+
+    attempts = strategy.successes + strategy.failures
+    if attempts:
+        score += (strategy.successes + 1.0) / (attempts + 2.0)
+    return score
+
+
+def _topic_from_metadata(metadata: dict[str, object]) -> str:
+    for key in ("topic", "llm_category", "category"):
+        topic = _normalize_topic(metadata.get(key))
+        if topic:
+            return topic
+    original_data = metadata.get("original_data")
+    if isinstance(original_data, dict):
+        for key in ("llm_category", "category", "Category", "Problem Source"):
+            topic = _normalize_topic(original_data.get(key))
+            if topic:
+                return topic
+    return ""
+
+
+def _normalize_topic(value: object) -> str:
+    topic = str(value or "").strip().lower()
+    if not topic:
+        return ""
+    topic = re.sub(r"[^a-z0-9]+", "_", topic).strip("_")
+    aliases = {
+        "number_theory": "number_theory",
+        "nt": "number_theory",
+        "combinatorics": "combinatorics",
+        "combinatorial": "combinatorics",
+        "geometry": "geometry",
+        "algebra": "algebra",
+        "analysis": "analysis",
+    }
+    return aliases.get(topic, topic)
+
+
+def _tokenize(text: str) -> tuple[str, ...]:
+    return tuple(token for token in re.findall(r"[a-zA-Z][a-zA-Z0-9_]{2,}", text.lower()))
+
+
+def _topic_state_key(*, fuzzer_kind: str, math_topic: str) -> str:
+    return f"{_normalize_fuzzer_kind(fuzzer_kind)}::{_normalize_topic(math_topic)}"
+
+
 def _summarize_attempt(attempt: FuzzAttempt) -> dict[str, object]:
     if attempt.status == "failed":
         return {
             "attempt_id": attempt.attempt_id,
             "objective": attempt.objective,
+            "math_topic": _topic_from_metadata(attempt.metadata),
             "maintain_correctness": attempt.maintain_correctness,
             "success": False,
             "status": attempt.status,
@@ -1040,6 +1785,7 @@ def _summarize_attempt(attempt: FuzzAttempt) -> dict[str, object]:
     return {
         "attempt_id": attempt.attempt_id,
         "objective": attempt.objective,
+        "math_topic": _topic_from_metadata(attempt.metadata),
         "maintain_correctness": attempt.maintain_correctness,
         "success": attempt.success,
         "status": attempt.status,
@@ -1101,6 +1847,186 @@ def _problem_text_from_attempt(*, objective: str, metadata: dict[str, object]) -
     if marker in objective:
         return objective.split(marker, 1)[1].strip()
     return ""
+
+
+def _format_previous_failed_attempt_guidance(
+    attempts: tuple[FuzzAttempt, ...],
+    *,
+    max_chars: int,
+) -> tuple[str, ...]:
+    if max_chars <= 0:
+        return ()
+    guidance: list[str] = []
+    remaining = max_chars
+    for index, attempt in enumerate(attempts, start=1):
+        if remaining <= 0:
+            break
+        item = truncate_text_head_tail(
+            _summarize_failed_attempt_for_prompt(attempt, index=index),
+            remaining,
+        )
+        guidance.append(item)
+        remaining -= len(item)
+    return tuple(guidance)
+
+
+def _summarize_failed_attempt_for_prompt(attempt: FuzzAttempt, *, index: int) -> str:
+    target = "preserve correctness" if attempt.maintain_correctness else "make a false proof look correct"
+    mutations = "; ".join(
+        truncate_text_head_tail(
+            f"{mutation.kind} {mutation.target}: {mutation.summary or mutation.new_text}",
+            320,
+        )
+        for mutation in attempt.mutation_instructions.mutations[:3]
+    )
+    if len(attempt.mutation_instructions.mutations) > 3:
+        mutations += f"; ... ({len(attempt.mutation_instructions.mutations)} mutations total)"
+    if not mutations:
+        mutations = "no concrete mutation was recorded"
+
+    judge_parts = []
+    target_judge_results = attempt.metadata.get("target_judge_results")
+    if isinstance(target_judge_results, list) and target_judge_results:
+        verdicts = [
+            str(_dict_value(result).get("verdict", "")).strip()
+            for result in target_judge_results
+        ]
+        verdicts_text = ", ".join(verdict for verdict in verdicts if verdict)
+        if verdicts_text:
+            judge_parts.append(f"target judge verdicts: {verdicts_text}")
+    elif attempt.judge_result is not None:
+        judge_parts.append(f"target judge verdict: {attempt.judge_result.verdict}")
+    if attempt.judge_result is not None and attempt.judge_result.detected_flaw:
+        judge_parts.append(f"target judge detected flaw: {attempt.judge_result.detected_flaw}")
+
+    mutation_check = attempt.mutation_check_result
+    if mutation_check is not None:
+        judge_parts.append(f"mutation-check verdict: {mutation_check.verdict}")
+        if mutation_check.detected_flaw:
+            judge_parts.append(f"mutation-check flaw: {mutation_check.detected_flaw}")
+
+    reveal_check = attempt.metadata.get("judge_error_detection_check")
+    if isinstance(reveal_check, dict):
+        if reveal_check.get("any_judge_reported_correct_error"):
+            judge_parts.append("failure reason: a blind judge report identified the planted error")
+        elif reveal_check.get("check_failed"):
+            judge_parts.append("failure reason: judge-error reveal check failed")
+    if not judge_parts:
+        judge_parts.append("failure reason: did not satisfy the fuzzing success criteria")
+
+    strategy_ids = ", ".join(attempt.strategy_ids)
+    strategy_part = f"; strategies: {strategy_ids}" if strategy_ids else ""
+    return (
+        f"Attempt {index} ({attempt.attempt_id}): target={target}{strategy_part}. "
+        f"Tried mutation(s): {mutations}. "
+        f"Outcome: {'; '.join(judge_parts)}. "
+        "Prefer a materially different mutation route unless there is a clear reason to revisit it."
+    )
+
+
+def _same_proof_attempt(
+    attempt: FuzzAttempt,
+    metadata: dict[str, object],
+    original_proof_text: str,
+) -> bool:
+    expected_identity = _proof_identity(metadata, original_proof_text)
+    attempt_identity = str(attempt.metadata.get("proof_identity", "")).strip()
+    if attempt_identity and attempt_identity == expected_identity:
+        return True
+
+    expected_dataset = str(metadata.get("dataset", "")).strip()
+    attempt_dataset = str(attempt.metadata.get("dataset", "")).strip()
+    if expected_dataset and expected_dataset == attempt_dataset:
+        for key in ("example_id", "example_path", "problem_id"):
+            expected = str(metadata.get(key, "")).strip()
+            actual = str(attempt.metadata.get(key, "")).strip()
+            if expected and actual and expected == actual:
+                return True
+
+    expected_hash = str(metadata.get("original_proof_sha256") or _sha256_text(original_proof_text))
+    attempt_hash = str(attempt.metadata.get("original_proof_sha256", "")).strip()
+    if attempt_hash and attempt_hash == expected_hash:
+        return True
+    if attempt.original_proof_text and _sha256_text(attempt.original_proof_text) == expected_hash:
+        return True
+    return False
+
+
+def _proof_identity(metadata: dict[str, object], original_proof_text: str) -> str:
+    dataset = str(metadata.get("dataset", "")).strip()
+    for key in ("example_id", "example_path", "problem_id"):
+        value = str(metadata.get(key, "")).strip()
+        if dataset and value:
+            return f"{dataset}:{key}:{value}"
+    return f"proof_sha256:{_sha256_text(original_proof_text)}"
+
+
+def _sha256_text(text: str) -> str:
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def _trace_directory_name(metadata: dict[str, object]) -> str:
+    sample_index = metadata.get("sample_index")
+    if isinstance(sample_index, int) or (isinstance(sample_index, str) and sample_index.isdigit()):
+        return str(sample_index)
+    example_id = str(metadata.get("example_id", "")).strip()
+    attempt_index = metadata.get("example_attempt_index", "")
+    if example_id:
+        suffix = f"_{attempt_index}" if attempt_index != "" else ""
+        return f"{_safe_filename(example_id)}{suffix}"
+    return _new_id("attempt_trace")
+
+
+def _unique_trace_dir(root: Path, name: str) -> Path:
+    root.mkdir(parents=True, exist_ok=True)
+    base = _safe_filename(name)
+    candidate = root / base
+    if not candidate.exists():
+        return candidate
+    index = 1
+    while True:
+        candidate = root / f"{base}_{index}"
+        if not candidate.exists():
+            return candidate
+        index += 1
+
+
+def _safe_filename(value: object) -> str:
+    slug = re.sub(r"[^A-Za-z0-9_.-]+", "_", str(value).strip())
+    return slug.strip("_") or "trace"
+
+
+def _write_json_file(path: Path, data: object) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def _write_text_file(path: Path, text: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text if text.endswith("\n") else text + "\n", encoding="utf-8")
+
+
+def _format_mutations_text(instructions: FuzzerMutationInstructions) -> str:
+    lines = [
+        f"maintain_correctness: {instructions.maintain_correctness}",
+        f"rationale: {instructions.rationale}",
+        "",
+        "mutations:",
+    ]
+    for index, mutation in enumerate(instructions.mutations, start=1):
+        lines.extend(
+            [
+                f"{index}. kind: {mutation.kind}",
+                f"   target: {mutation.target}",
+                f"   summary: {mutation.summary}",
+                f"   affected_blocks: {list(mutation.affected_blocks)}",
+                f"   propagate_downstream: {mutation.propagate_downstream}",
+                "   new_text:",
+                "   " + mutation.new_text.replace("\n", "\n   "),
+                "",
+            ]
+        )
+    return "\n".join(lines)
 
 
 def _empty_mutation_instructions(*, maintain_correctness: bool) -> FuzzerMutationInstructions:
