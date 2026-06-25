@@ -147,6 +147,30 @@ class ProofFuzzerInterfaceTest(unittest.TestCase):
         self.assertIn("\nconclusion:", instructions.mutations[0].new_text)
         self.assertEqual(instructions.mutations[0].affected_blocks, ("C2",))
 
+    def test_parse_mutation_instructions_repairs_raw_latex_json_escapes(self) -> None:
+        response = r"""```json
+{
+  "maintain_correctness": false,
+  "rationale": "Change \theta using \frac{x}{y}.",
+  "mutations": [
+    {
+      "kind": "modify",
+      "target": "C1",
+      "summary": "Use a raw LaTeX string.",
+      "new_text": "Replace \(x\) by \left(\frac{x}{y}\right).\\nThen use \theta.",
+      "affected_blocks": [],
+      "propagate_downstream": false
+    }
+  ]
+}
+```"""
+
+        instructions = parse_mutation_instructions(response)
+
+        self.assertIn(r"\frac{x}{y}", instructions.mutations[0].new_text)
+        self.assertIn("\nThen use", instructions.mutations[0].new_text)
+        self.assertIn(r"\theta", instructions.rationale)
+
     def test_request_mutation_instructions_queries_llm(self) -> None:
         graph = ProofGraph(parse_text(CHAIN_ARTIFACT))
         llm = FakeLLM(

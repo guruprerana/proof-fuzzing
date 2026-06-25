@@ -60,6 +60,7 @@ class ProofBenchJudgeEvolutionRunConfig:
     judge_error_detection_check: bool = False
     max_previous_failed_attempts_in_prompt: int = 3
     max_previous_failed_attempt_chars: int = 4_000
+    run_pre_mutation_judge: bool = True
     evolution_threshold: int = 20
     correctness_selection_mode: str = "adaptive"
     false_proof_probability: float = 0.7
@@ -189,6 +190,7 @@ def run_proof_bench_judge_evolution(
         judge_error_detection_check=active_run_config.judge_error_detection_check,
         max_previous_failed_attempts_in_prompt=active_run_config.max_previous_failed_attempts_in_prompt,
         max_previous_failed_attempt_chars=active_run_config.max_previous_failed_attempt_chars,
+        run_pre_mutation_judge=active_run_config.run_pre_mutation_judge,
     )
     write_proof_bench_judge_evolution_run_config(storage_dir, active_run_config)
     attempts = run_proof_bench_judge_evolutionary_pipeline(

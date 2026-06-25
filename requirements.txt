@@ -3,6 +3,7 @@
 vllm @ https://github.com/vllm-project/vllm/releases/download/v0.21.0/vllm-0.21.0%2Bcu129-cp38-abi3-manylinux_2_34_x86_64.whl
 openai>=2.0.0
 openai-harmony>=0.0.8
+google-genai>=1.0.0
 huggingface-hub
 transformers>=4.56.0
 accelerate

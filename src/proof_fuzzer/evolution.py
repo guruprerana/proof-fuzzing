@@ -22,6 +22,7 @@ from src.proof_fuzzer.llm_interface import (
     NaturalLanguageProofFuzzerLLMInterface,
     ProofFuzzerLLMInterfaceBase,
     SemiFormalProofFuzzerLLMInterface,
+    _load_json_object as _load_llm_json_object,
     parse_mutation_instructions,
     split_natural_language_proof,
 )
@@ -70,6 +71,7 @@ class EvolutionConfig:
     judge_error_detection_check: bool = False
     max_previous_failed_attempts_in_prompt: int = 3
     max_previous_failed_attempt_chars: int = 4_000
+    run_pre_mutation_judge: bool = True
     trace_llm_calls: bool = True
     trace_dir: str | Path | None = None
 
@@ -829,17 +831,21 @@ class EvolutionaryProofFuzzer:
         ]
         problem_text = _problem_text_from_attempt(objective=objective, metadata=base_metadata)
         try:
-            pre_mutation_judge_result = self._with_retries(
-                lambda: self._run_blind_judge(
-                    call_kind="pre_mutation_judge",
-                    problem_text=problem_text,
-                    proof_text=original_text,
-                    fuzzer_kind=self.fuzzer_kind,
-                    metadata={"attempt_stage": "pre_mutation_judge"},
-                ),
-                stage="pre_mutation_judge",
-                check_truncation=True,
-            )
+            pre_mutation_judge_result = None
+            if self.config.run_pre_mutation_judge:
+                pre_mutation_judge_result = self._with_retries(
+                    lambda: self._run_blind_judge(
+                        call_kind="pre_mutation_judge",
+                        problem_text=problem_text,
+                        proof_text=original_text,
+                        fuzzer_kind=self.fuzzer_kind,
+                        metadata={"attempt_stage": "pre_mutation_judge"},
+                    ),
+                    stage="pre_mutation_judge",
+                    check_truncation=True,
+                )
+            else:
+                base_metadata["pre_mutation_judge_skipped"] = True
             instructions: FuzzerMutationInstructions | None = None
             for fallback_index in range(self.config.context_fallbacks + 1):
                 prompt = self._mutation_prompt(
@@ -2136,11 +2142,7 @@ def _normalize_fuzzer_kind(fuzzer_kind: str | None) -> str:
 
 
 def _load_json_object(text: str) -> dict[str, object]:
-    candidate = _extract_json_candidate(text)
-    data = json.loads(candidate)
-    if not isinstance(data, dict):
-        raise ValueError("Expected a JSON object.")
-    return data
+    return _load_llm_json_object(text)
 
 
 def _extract_json_candidate(text: str) -> str:

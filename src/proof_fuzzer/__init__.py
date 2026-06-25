@@ -61,6 +61,12 @@ from .llm_interface import (
     parse_mutation_instructions,
     split_natural_language_proof,
 )
+from .gemini_client import (
+    DEFAULT_GEMINI_MODEL,
+    DEFAULT_GEMINI_THINKING_LEVEL,
+    GeminiChatResult,
+    GeminiProofFuzzerClient,
+)
 from .mutation_detection import (
     MutationDetectionExperimentConfig,
     MutationDetectionExperimentResult,
@@ -82,6 +88,8 @@ __all__ = [
     "BlockUpdateResult",
     "BlindProofCorrectnessJudge",
     "DEFAULT_BASE_URL",
+    "DEFAULT_GEMINI_MODEL",
+    "DEFAULT_GEMINI_THINKING_LEVEL",
     "DEFAULT_IMO_GRADEBENCH_ROOT",
     "DEFAULT_PROOF_BENCH_JUDGE_ROOT",
     "EvolutionConfig",
@@ -91,6 +99,8 @@ __all__ = [
     "FuzzAttempt",
     "FuzzStrategy",
     "FuzzerMutationInstructions",
+    "GeminiChatResult",
+    "GeminiProofFuzzerClient",
     "LLMCompletionTrace",
     "GPT_OSS_120B",
     "LLMClient",

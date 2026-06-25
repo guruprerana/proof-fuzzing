@@ -171,6 +171,21 @@ class EvolutionaryFuzzerTest(unittest.TestCase):
         self.assertEqual(result["matching_judge_indices"], [1])
         self.assertEqual(result["match_level"], "exact")
 
+    def test_parse_judge_result_repairs_raw_latex_json_escapes(self) -> None:
+        result = parse_judge_result(
+            r"""{
+  "verdict": "incorrect",
+  "confidence": 0.8,
+  "rationale": "The step using \frac{x}{y} and \theta is invalid.",
+  "detected_flaw": "Wrong inference from \(s n\equiv 1\)."
+}"""
+        )
+
+        self.assertEqual(result.verdict, "incorrect")
+        self.assertIn(r"\frac{x}{y}", result.rationale)
+        self.assertIn(r"\theta", result.rationale)
+        self.assertIn(r"\(", result.detected_flaw)
+
     def test_jsonl_store_persists_attempts_and_separate_strategy_banks(self) -> None:
         instructions = parse_mutation_instructions(MUTATION_RESPONSE)
         attempt = FuzzAttempt(
@@ -240,6 +255,29 @@ class EvolutionaryFuzzerTest(unittest.TestCase):
             self.assertIn("Original proof:", llm.prompts[3])
             self.assertIn("Mutation instructions:", llm.prompts[3])
             self.assertEqual(len(evolutionary.store.load_attempts(fuzzer_kind="natural_language")), 1)
+
+    def test_evolutionary_fuzzer_can_skip_pre_mutation_judge(self) -> None:
+        proof = "Let n be even.\n\nThen n = 2k for some integer k.\n\nTherefore n^2 is even."
+        llm = FakeLLM([MUTATION_RESPONSE, JUDGE_CORRECT_RESPONSE, JUDGE_INCORRECT_RESPONSE])
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            config = EvolutionConfig(
+                storage_dir=tmp_dir,
+                strategy_injection_probability=0.0,
+                evolution_threshold=0,
+                run_pre_mutation_judge=False,
+            )
+            fuzzer = NaturalLanguageProofFuzzerLLMInterface(proof, llm)
+            evolutionary = EvolutionaryProofFuzzer(fuzzer, config=config)
+
+            attempt = evolutionary.run_false_proof_attempt(objective="fool the judge")
+
+            self.assertTrue(attempt.success)
+            self.assertIsNone(attempt.pre_mutation_judge_result)
+            self.assertTrue(attempt.metadata["pre_mutation_judge_skipped"])
+            self.assertIn("Targetable proof segments:", llm.prompts[0])
+            self.assertIn("Submitted proof:", llm.prompts[1])
+            self.assertIn("Mutation instructions:", llm.prompts[2])
 
     def test_multiple_target_judges_and_reveal_check_can_accept_attempt(self) -> None:
         proof = "Let n be even.\n\nThen n = 2k for some integer k.\n\nTherefore n^2 is even."

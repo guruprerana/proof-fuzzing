@@ -1331,7 +1331,10 @@ def _parse_mutation(data: object) -> ProofMutation:
 
 def _load_json_object(text: str) -> dict[str, object]:
     candidate = _extract_json_candidate(text)
-    data = json.loads(candidate)
+    try:
+        data = json.loads(candidate)
+    except json.JSONDecodeError:
+        data = json.loads(_repair_llm_json_backslashes(candidate))
     if not isinstance(data, dict):
         raise ValueError("Expected a JSON object.")
     return data
@@ -1347,6 +1350,75 @@ def _extract_json_candidate(text: str) -> str:
     if start == -1 or end == -1 or end < start:
         raise ValueError("No JSON object was found in the LLM response.")
     return text[start : end + 1]
+
+
+_COMMON_LATEX_COMMANDS = (
+    "begin",
+    "boxed",
+    "cdot",
+    "cos",
+    "delta",
+    "Delta",
+    "displaystyle",
+    "end",
+    "epsilon",
+    "frac",
+    "gamma",
+    "Gamma",
+    "ge",
+    "geq",
+    "infty",
+    "lambda",
+    "Lambda",
+    "left",
+    "le",
+    "leq",
+    "log",
+    "mathbb",
+    "mathbf",
+    "mathrm",
+    "neq",
+    "not",
+    "omega",
+    "Omega",
+    "overline",
+    "phi",
+    "Phi",
+    "pi",
+    "Pi",
+    "prod",
+    "right",
+    "sin",
+    "sqrt",
+    "sum",
+    "tau",
+    "text",
+    "theta",
+    "Theta",
+    "times",
+    "to",
+    "varepsilon",
+    "varphi",
+)
+
+
+def _repair_llm_json_backslashes(candidate: str) -> str:
+    """Escape common raw-LaTeX backslashes that make LLM JSON invalid.
+
+    Models often emit JSON strings containing LaTeX such as ``\frac`` or
+    ``\theta``. JSON treats several of these as invalid escapes, and a few
+    others as valid-but-wrong escapes like form feed or tab. This repair keeps
+    ordinary JSON escapes intact while turning common LaTeX commands into
+    literal backslashes before parsing.
+    """
+
+    command_pattern = re.compile(
+        r"(?<!\\)\\("
+        + "|".join(re.escape(command) for command in sorted(_COMMON_LATEX_COMMANDS, key=len, reverse=True))
+        + r")(?=\b|[^A-Za-z])"
+    )
+    repaired = command_pattern.sub(lambda match: "\\\\" + match.group(1), candidate)
+    return re.sub(r'(?<!\\)\\(?!["\\/bfnrtu])', r"\\\\", repaired)
 
 
 def _parse_bool(value: object, *, field_name: str) -> bool:
