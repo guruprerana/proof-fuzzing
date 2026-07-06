@@ -1012,7 +1012,7 @@ class NaturalLanguageProofFuzzerLLMInterface(ProofFuzzerLLMInterfaceBase):
             else (
                 "The resulting proof must remain mathematically correct."
                 if maintain_correctness
-                else "The resulting proof should become mathematically false or invalid for fuzzing."
+                else "The resulting proof must become mathematically incorrect as written."
             )
         )
         correctness_schema = "true | false" if maintain_correctness is None else ("true" if maintain_correctness else "false")
@@ -1029,7 +1029,7 @@ class NaturalLanguageProofFuzzerLLMInterface(ProofFuzzerLLMInterfaceBase):
             else (
                 "Generate a correctness-preserving mutation that could plausibly trick an LLM judge into thinking the proof is incorrect."
                 if maintain_correctness
-                else "Generate an incorrect-proof mutation that could plausibly trick an LLM judge into thinking the proof is correct."
+                else "Generate an actually incorrect-proof mutation that could plausibly trick an LLM judge into thinking the proof is correct."
             )
         )
 
@@ -1057,7 +1057,7 @@ Schema:
 ```json
 {{
   "maintain_correctness": {correctness_schema},
-  "rationale": "short reason for the chosen fuzzing direction",
+  "rationale": "short reason for the chosen fuzzing direction; for maintain_correctness=false, name the first indispensable broken step and why the mutated proof does not repair it",
   "mutations": [
     {{
       "kind": "modify | remove | add | global_context",
@@ -1146,6 +1146,13 @@ def _natural_language_mutation_quality_guidance(*, maintain_correctness: bool | 
             shared
             + "\n- For incorrect-proof mutations, prefer subtle proof gaps: omit a necessary case, weaken a "
             "premise, overgeneralize a claim, or make an inference that is locally plausible but invalid."
+            "\n- The mutated proof must be mathematically incorrect as written. It is not enough to introduce "
+            "awkward wording, remove nonessential detail, make a harmless local false claim, or create a gap "
+            "that an earlier/later argument repairs."
+            "\n- Before returning, audit your own mutation: identify the first indispensable proof step that "
+            "becomes invalid, verify that no alternate route in the mutated proof still proves the conclusion, "
+            "and explain this in the rationale or mutation summaries. If you cannot find such an unrepairable "
+            "broken step, choose a different mutation."
             "\n- You may decide to propagate a local change into later sentences when doing so makes the "
             "mutated proof more coherent and convincing to a judge. Use additional downstream mutations to "
             "keep notation, references, and claimed conclusions consistent, while preserving the underlying "
@@ -1171,8 +1178,11 @@ def _format_prior_attempt_guidance(prior_attempt_guidance: tuple[str, ...]) -> s
     guidance = tuple(item.strip() for item in prior_attempt_guidance if item.strip())
     if not guidance:
         return ""
-    lines = "\nPrevious failed attempts on this same proof:"
-    lines += "\nUse these only to avoid repeating mutations or failure modes that already failed on this proof."
+    lines = "\nPrevious attempts on this same proof:"
+    lines += (
+        "\nUse failed attempts to avoid repeating failure modes. Use successful attempts marked AVOID to choose "
+        "a genuinely different target line, proof dependency, or error mechanism."
+    )
     lines += "\n" + "\n".join(f"- {item}" for item in guidance)
     return lines
 
@@ -1199,6 +1209,13 @@ def _mutation_quality_guidance(*, maintain_correctness: bool | None) -> str:
             + "\n- For incorrect-proof mutations, prefer proof-gap mutations: remove a necessary hypothesis, "
             "weaken a lemma below what successors use, change a quantifier/domain, invalidate a case split, or "
             "alter a referenced construction."
+            "\n- The mutated proof must be mathematically incorrect as written. It is not enough to introduce "
+            "awkward wording, remove nonessential detail, make a harmless local false claim, or create a gap "
+            "that an earlier/later argument repairs."
+            "\n- Before returning, audit your own mutation: identify the first indispensable proof step that "
+            "becomes invalid, verify that no alternate route in the mutated proof still proves the conclusion, "
+            "and explain this in the rationale or mutation summaries. If you cannot find such an unrepairable "
+            "broken step, choose a different mutation."
             "\n- You may decide whether to propagate a local change to subsequent inferences. If propagation "
             "makes the false proof more locally coherent and judge-convincing, include companion mutations or "
             "set propagate_downstream accordingly so notation, references, and later claims stay consistent "

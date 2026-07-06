@@ -3,6 +3,7 @@ import unittest
 from pathlib import Path
 
 from src.proof_fuzzer import (
+    BlindProofCorrectnessJudge,
     EvolutionConfig,
     EvolutionaryProofFuzzer,
     FuzzAttempt,
@@ -11,10 +12,12 @@ from src.proof_fuzzer import (
     load_mined_strategies,
     NaturalLanguageProofFuzzerLLMInterface,
     ProofFuzzAttemptStore,
+    ProofFuzzJudge,
     fuzz_attempt_succeeded,
     parse_judge_error_detection_result,
     parse_judge_result,
     parse_mutation_instructions,
+    parse_successful_mutation_novelty_result,
     parse_strategy_evolution_response,
 )
 
@@ -67,11 +70,40 @@ MUTATION_RESPONSE = """{
   ]
 }"""
 
+DIFFERENT_MUTATION_RESPONSE = """{
+  "maintain_correctness": false,
+  "rationale": "Attack a different dependency with a missing case split.",
+  "mutations": [
+    {
+      "kind": "modify",
+      "target": "S3",
+      "summary": "Remove the final parity justification by skipping an odd case.",
+      "new_text": "Therefore the conclusion follows for all integers.",
+      "affected_blocks": [],
+      "propagate_downstream": false
+    }
+  ]
+}"""
+
 JUDGE_CORRECT_RESPONSE = """{
   "verdict": "correct",
   "confidence": 0.82,
   "rationale": "The argument appears to preserve the conclusion.",
   "detected_flaw": ""
+}"""
+
+NOVELTY_DUPLICATE_RESPONSE = """{
+  "novelty": "duplicate",
+  "matching_attempt_ids": ["attempt_prior"],
+  "rationale": "The proposed mutation repeats the same even-to-odd representation slip.",
+  "suggested_retry_guidance": "Avoid S2 and try a different proof dependency."
+}"""
+
+NOVELTY_NOVEL_RESPONSE = """{
+  "novelty": "novel",
+  "matching_attempt_ids": [],
+  "rationale": "The proposed mutation targets a different step and mechanism.",
+  "suggested_retry_guidance": ""
 }"""
 
 EVOLUTION_RESPONSE = """{
@@ -133,18 +165,95 @@ JUDGE_ERROR_REPORTED_RESPONSE = """{
 
 
 class EvolutionaryFuzzerTest(unittest.TestCase):
+    def test_target_judge_prompt_uses_competition_grading_format(self) -> None:
+        prompt = BlindProofCorrectnessJudge(FakeLLM([])).judge_prompt(
+            problem_text="Prove that n^2 is even.",
+            proof_text="Let n = 2k. Then n^2 = 4k^2.",
+            fuzzer_kind="natural_language",
+        )
+
+        self.assertIn("olympiad competition coordinator", prompt)
+        self.assertIn("COMPETITION GRADING STANDARDS:", prompt)
+        self.assertIn("GRADING TASK:", prompt)
+        self.assertIn("PROBLEM:", prompt)
+        self.assertIn("PROOF TO GRADE:", prompt)
+        self.assertIn("Score: 5/7", prompt)
+        self.assertNotIn("Fuzzer kind:", prompt)
+        self.assertNotIn("Submitted proof:", prompt)
+
+    def test_mutation_checker_prompt_requires_independent_proof_audit(self) -> None:
+        instructions = parse_mutation_instructions(MUTATION_RESPONSE)
+        prompt = ProofFuzzJudge(FakeLLM([])).judge_prompt(
+            original_proof_text="Original proof proves the theorem.",
+            mutation_instructions=instructions,
+            mutated_proof_text="Mutated proof still has an alternate valid argument.",
+            fuzzer_kind="natural_language",
+        )
+
+        self.assertIn("mathematical proof auditor", prompt)
+        self.assertIn("Problem:", prompt)
+        self.assertIn("Reference original proof:", prompt)
+        self.assertIn("Mutation record:", prompt)
+        self.assertIn("Submitted mutated proof:", prompt)
+        self.assertIn("untrusted context", prompt)
+        self.assertIn("Do not treat the mutation record as evidence", prompt)
+        self.assertIn("valid route to the conclusion", prompt)
+        self.assertIn("omitted case is impossible", prompt)
+        self.assertIn("proves only a congruence/residue/average", prompt)
+        self.assertIn("distance, parallelism, radical-axis", prompt)
+        self.assertIn("recurrence, induction, periodicity, or case split", prompt)
+        self.assertIn("truncated for context", prompt)
+        self.assertIn("do not infer what the omitted portion says", prompt)
+        self.assertIn("not mark a proof incorrect merely because the mutation record claims a flaw", prompt)
+        self.assertNotIn("Fuzzer kind:", prompt)
+        self.assertNotIn("Fuzz this", prompt)
+
+    def test_false_proof_generation_prompt_requires_actual_incorrectness(self) -> None:
+        proof = "Let n be even.\n\nThen n = 2k for some integer k.\n\nTherefore n^2 is even."
+        fuzzer = NaturalLanguageProofFuzzerLLMInterface(proof, FakeLLM([]))
+
+        prompt = fuzzer.false_proof_mutation_instruction_prompt(
+            objective="fool the judge",
+        )
+
+        self.assertIn("must become mathematically incorrect as written", prompt)
+        self.assertIn("not enough to introduce awkward wording", prompt)
+        self.assertIn("first indispensable proof step", prompt)
+        self.assertIn("no alternate route in the mutated proof", prompt)
+        self.assertIn("choose a different mutation", prompt)
+
     def test_parse_judge_result_and_success_rules(self) -> None:
         result = parse_judge_result(JUDGE_CORRECT_RESPONSE)
 
         self.assertEqual(result.verdict, "correct")
-        self.assertTrue(fuzz_attempt_succeeded(False, result))
+        self.assertTrue(
+            fuzz_attempt_succeeded(
+                False,
+                result,
+                mutation_check_result=JudgeResult(verdict="incorrect"),
+            )
+        )
+        self.assertFalse(
+            fuzz_attempt_succeeded(
+                False,
+                result,
+                mutation_check_result=JudgeResult(verdict="correct"),
+            )
+        )
         self.assertFalse(fuzz_attempt_succeeded(True, result))
-        self.assertTrue(fuzz_attempt_succeeded(True, JudgeResult(verdict="uncertain")))
+        self.assertTrue(
+            fuzz_attempt_succeeded(
+                True,
+                JudgeResult(verdict="uncertain"),
+                mutation_check_result=JudgeResult(verdict="correct"),
+            )
+        )
         self.assertFalse(
             fuzz_attempt_succeeded(
                 False,
                 result,
                 judge_error_detection_result={"any_judge_reported_correct_error": True},
+                mutation_check_result=JudgeResult(verdict="incorrect"),
             )
         )
         self.assertFalse(
@@ -153,6 +262,7 @@ class EvolutionaryFuzzerTest(unittest.TestCase):
                 result,
                 target_judge_results=(result, JudgeResult(verdict="incorrect")),
                 target_judge_success_policy="all",
+                mutation_check_result=JudgeResult(verdict="incorrect"),
             )
         )
         self.assertTrue(
@@ -161,6 +271,7 @@ class EvolutionaryFuzzerTest(unittest.TestCase):
                 result,
                 target_judge_results=(result, JudgeResult(verdict="incorrect")),
                 target_judge_success_policy="any",
+                mutation_check_result=JudgeResult(verdict="incorrect"),
             )
         )
 
@@ -170,6 +281,13 @@ class EvolutionaryFuzzerTest(unittest.TestCase):
         self.assertTrue(result["any_judge_reported_correct_error"])
         self.assertEqual(result["matching_judge_indices"], [1])
         self.assertEqual(result["match_level"], "exact")
+
+    def test_parse_successful_mutation_novelty_result(self) -> None:
+        result = parse_successful_mutation_novelty_result(NOVELTY_DUPLICATE_RESPONSE)
+
+        self.assertEqual(result["novelty"], "duplicate")
+        self.assertEqual(result["matching_attempt_ids"], ["attempt_prior"])
+        self.assertIn("Avoid S2", result["suggested_retry_guidance"])
 
     def test_parse_judge_result_repairs_raw_latex_json_escapes(self) -> None:
         result = parse_judge_result(
@@ -229,7 +347,7 @@ class EvolutionaryFuzzerTest(unittest.TestCase):
 
     def test_evolutionary_fuzzer_records_judged_natural_language_attempt(self) -> None:
         proof = "Let n be even.\n\nThen n = 2k for some integer k.\n\nTherefore n^2 is even."
-        llm = FakeLLM([JUDGE_CORRECT_RESPONSE, MUTATION_RESPONSE, JUDGE_CORRECT_RESPONSE, JUDGE_INCORRECT_RESPONSE])
+        llm = FakeLLM([JUDGE_CORRECT_RESPONSE, MUTATION_RESPONSE, JUDGE_INCORRECT_RESPONSE, JUDGE_CORRECT_RESPONSE])
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             config = EvolutionConfig(
@@ -247,18 +365,18 @@ class EvolutionaryFuzzerTest(unittest.TestCase):
             self.assertIn("2k + 1", attempt.mutated_proof_text)
             self.assertEqual(attempt.judge_result.verdict, "correct")
             self.assertEqual(attempt.mutation_check_result.verdict, "incorrect")
-            self.assertIn("Submitted proof:", llm.prompts[0])
-            self.assertIn("Submitted proof:", llm.prompts[2])
-            self.assertNotIn("Fuzzer kind:", llm.prompts[2])
-            self.assertNotIn("Original proof:", llm.prompts[2])
-            self.assertNotIn("Mutation instructions:", llm.prompts[2])
-            self.assertIn("Original proof:", llm.prompts[3])
-            self.assertIn("Mutation instructions:", llm.prompts[3])
+            self.assertIn("PROOF TO GRADE:", llm.prompts[0])
+            self.assertIn("Reference original proof:", llm.prompts[2])
+            self.assertIn("Mutation record:", llm.prompts[2])
+            self.assertIn("PROOF TO GRADE:", llm.prompts[3])
+            self.assertNotIn("Fuzzer kind:", llm.prompts[3])
+            self.assertNotIn("Original proof:", llm.prompts[3])
+            self.assertNotIn("Mutation instructions:", llm.prompts[3])
             self.assertEqual(len(evolutionary.store.load_attempts(fuzzer_kind="natural_language")), 1)
 
     def test_evolutionary_fuzzer_can_skip_pre_mutation_judge(self) -> None:
         proof = "Let n be even.\n\nThen n = 2k for some integer k.\n\nTherefore n^2 is even."
-        llm = FakeLLM([MUTATION_RESPONSE, JUDGE_CORRECT_RESPONSE, JUDGE_INCORRECT_RESPONSE])
+        llm = FakeLLM([MUTATION_RESPONSE, JUDGE_INCORRECT_RESPONSE, JUDGE_CORRECT_RESPONSE])
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             config = EvolutionConfig(
@@ -276,8 +394,30 @@ class EvolutionaryFuzzerTest(unittest.TestCase):
             self.assertIsNone(attempt.pre_mutation_judge_result)
             self.assertTrue(attempt.metadata["pre_mutation_judge_skipped"])
             self.assertIn("Targetable proof segments:", llm.prompts[0])
-            self.assertIn("Submitted proof:", llm.prompts[1])
-            self.assertIn("Mutation instructions:", llm.prompts[2])
+            self.assertIn("Mutation record:", llm.prompts[1])
+            self.assertIn("PROOF TO GRADE:", llm.prompts[2])
+
+    def test_false_proof_attempt_skips_target_judge_when_mutation_checker_says_correct(self) -> None:
+        proof = "Let n be even.\n\nThen n = 2k for some integer k.\n\nTherefore n^2 is even."
+        llm = FakeLLM([JUDGE_CORRECT_RESPONSE, MUTATION_RESPONSE, JUDGE_CORRECT_RESPONSE])
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            config = EvolutionConfig(
+                storage_dir=tmp_dir,
+                strategy_injection_probability=0.0,
+                evolution_threshold=0,
+            )
+            fuzzer = NaturalLanguageProofFuzzerLLMInterface(proof, llm)
+            evolutionary = EvolutionaryProofFuzzer(fuzzer, config=config)
+
+            attempt = evolutionary.run_false_proof_attempt(objective="fool the judge")
+
+            self.assertFalse(attempt.success)
+            self.assertEqual(attempt.mutation_check_result.verdict, "correct")
+            self.assertTrue(attempt.metadata["target_judge_skipped"])
+            self.assertEqual(attempt.metadata["target_judge_results"], [])
+            self.assertEqual(attempt.judge_result.verdict, "uncertain")
+            self.assertEqual(len(llm.prompts), 3)
 
     def test_multiple_target_judges_and_reveal_check_can_accept_attempt(self) -> None:
         proof = "Let n be even.\n\nThen n = 2k for some integer k.\n\nTherefore n^2 is even."
@@ -285,11 +425,11 @@ class EvolutionaryFuzzerTest(unittest.TestCase):
             [
                 JUDGE_CORRECT_RESPONSE,
                 MUTATION_RESPONSE,
+                JUDGE_INCORRECT_RESPONSE,
                 JUDGE_CORRECT_RESPONSE,
                 JUDGE_CORRECT_RESPONSE,
                 JUDGE_CORRECT_RESPONSE,
                 JUDGE_ERROR_NOT_REPORTED_RESPONSE,
-                JUDGE_INCORRECT_RESPONSE,
             ]
         )
 
@@ -310,7 +450,7 @@ class EvolutionaryFuzzerTest(unittest.TestCase):
             self.assertTrue(attempt.success)
             self.assertEqual(len(attempt.metadata["target_judge_results"]), 3)
             self.assertFalse(attempt.metadata["judge_error_detection_check"]["any_judge_reported_correct_error"])
-            self.assertIn("Blind judge reports:", llm.prompts[5])
+            self.assertIn("Blind judge reports:", llm.prompts[6])
             trace_dir = attempt.metadata["trace_dir"]
             self.assertTrue((Path(trace_dir) / "target_judge_results.json").is_file())
             self.assertTrue((Path(trace_dir) / "judge_error_detection_check.json").is_file())
@@ -325,8 +465,8 @@ class EvolutionaryFuzzerTest(unittest.TestCase):
                 JUDGE_INCORRECT_RESPONSE,
                 JUDGE_CORRECT_RESPONSE,
                 MUTATION_RESPONSE,
-                JUDGE_CORRECT_RESPONSE,
                 JUDGE_INCORRECT_RESPONSE,
+                JUDGE_CORRECT_RESPONSE,
             ]
         )
 
@@ -352,9 +492,97 @@ class EvolutionaryFuzzerTest(unittest.TestCase):
             self.assertTrue(second_attempt.success)
             self.assertEqual(second_attempt.metadata["previous_failed_attempts_in_prompt"], [first_attempt.attempt_id])
             self.assertEqual(second_attempt.metadata["proof_identity"], "unit:example_id:same-proof")
-            self.assertIn("Previous failed attempts on this same proof:", llm.prompts[5])
+            self.assertIn("Previous attempts on this same proof:", llm.prompts[5])
             self.assertIn("target judge verdicts: incorrect", llm.prompts[5])
             self.assertIn("Switch even to odd representation", llm.prompts[5])
+
+    def test_mutation_prompt_includes_previous_successful_attempts_on_same_proof(self) -> None:
+        proof = "Let n be even.\n\nThen n = 2k for some integer k.\n\nTherefore n^2 is even."
+        llm = FakeLLM(
+            [
+                JUDGE_CORRECT_RESPONSE,
+                MUTATION_RESPONSE,
+                JUDGE_INCORRECT_RESPONSE,
+                JUDGE_CORRECT_RESPONSE,
+                JUDGE_CORRECT_RESPONSE,
+                DIFFERENT_MUTATION_RESPONSE,
+                JUDGE_INCORRECT_RESPONSE,
+                JUDGE_CORRECT_RESPONSE,
+            ]
+        )
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            config = EvolutionConfig(
+                storage_dir=tmp_dir,
+                strategy_injection_probability=0.0,
+                evolution_threshold=0,
+                max_previous_successful_attempts_in_prompt=2,
+            )
+            fuzzer = NaturalLanguageProofFuzzerLLMInterface(proof, llm)
+            evolutionary = EvolutionaryProofFuzzer(fuzzer, config=config)
+
+            first_attempt = evolutionary.run_false_proof_attempt(
+                objective="fool the judge",
+                metadata={"dataset": "unit", "example_id": "same-proof"},
+            )
+            second_attempt = evolutionary.run_false_proof_attempt(
+                objective="fool the judge",
+                metadata={"dataset": "unit", "example_id": "same-proof"},
+            )
+
+            self.assertTrue(first_attempt.success)
+            self.assertTrue(second_attempt.success)
+            self.assertEqual(second_attempt.metadata["previous_successful_attempts_in_prompt"], [first_attempt.attempt_id])
+            self.assertIn("Previous attempts on this same proof:", llm.prompts[5])
+            self.assertIn("AVOID repeating successful attempt", llm.prompts[5])
+            self.assertIn("Switch even to odd representation", llm.prompts[5])
+            self.assertIn("different proof step", llm.prompts[5])
+
+    def test_duplicate_successful_mutation_gate_retries_before_judging(self) -> None:
+        proof = "Let n be even.\n\nThen n = 2k for some integer k.\n\nTherefore n^2 is even."
+        llm = FakeLLM(
+            [
+                JUDGE_CORRECT_RESPONSE,
+                MUTATION_RESPONSE,
+                JUDGE_INCORRECT_RESPONSE,
+                JUDGE_CORRECT_RESPONSE,
+                JUDGE_CORRECT_RESPONSE,
+                MUTATION_RESPONSE,
+                NOVELTY_DUPLICATE_RESPONSE,
+                DIFFERENT_MUTATION_RESPONSE,
+                NOVELTY_NOVEL_RESPONSE,
+                JUDGE_INCORRECT_RESPONSE,
+                JUDGE_CORRECT_RESPONSE,
+            ]
+        )
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            config = EvolutionConfig(
+                storage_dir=tmp_dir,
+                strategy_injection_probability=0.0,
+                evolution_threshold=0,
+                reject_duplicate_successful_mutations=True,
+                duplicate_successful_mutation_retries=1,
+            )
+            fuzzer = NaturalLanguageProofFuzzerLLMInterface(proof, llm)
+            evolutionary = EvolutionaryProofFuzzer(fuzzer, config=config)
+
+            first_attempt = evolutionary.run_false_proof_attempt(
+                objective="fool the judge",
+                metadata={"dataset": "unit", "example_id": "same-proof"},
+            )
+            second_attempt = evolutionary.run_false_proof_attempt(
+                objective="fool the judge",
+                metadata={"dataset": "unit", "example_id": "same-proof"},
+            )
+
+            self.assertTrue(first_attempt.success)
+            self.assertTrue(second_attempt.success)
+            self.assertEqual(second_attempt.mutation_instructions.mutations[0].target, "S3")
+            novelty_checks = second_attempt.metadata["successful_mutation_novelty_checks"]
+            self.assertEqual([check["novelty"] for check in novelty_checks], ["duplicate", "novel"])
+            self.assertIn("checking novelty for a proof-fuzzing mutation", llm.prompts[6])
+            self.assertIn("rejected as too similar", llm.prompts[7])
 
     def test_reveal_check_rejects_attempt_when_judge_report_identifies_mutation(self) -> None:
         proof = "Let n be even.\n\nThen n = 2k for some integer k.\n\nTherefore n^2 is even."
@@ -362,10 +590,10 @@ class EvolutionaryFuzzerTest(unittest.TestCase):
             [
                 JUDGE_CORRECT_RESPONSE,
                 MUTATION_RESPONSE,
+                JUDGE_INCORRECT_RESPONSE,
                 JUDGE_CORRECT_RESPONSE,
                 JUDGE_CORRECT_WITH_REVEALED_FLAW_RESPONSE,
                 JUDGE_ERROR_REPORTED_RESPONSE,
-                JUDGE_INCORRECT_RESPONSE,
             ]
         )
 
@@ -389,7 +617,7 @@ class EvolutionaryFuzzerTest(unittest.TestCase):
 
     def test_generic_attempt_algorithmically_selects_false_proof_on_cold_start(self) -> None:
         proof = "Let n be even.\n\nThen n = 2k for some integer k.\n\nTherefore n^2 is even."
-        llm = FakeLLM([JUDGE_CORRECT_RESPONSE, MUTATION_RESPONSE, JUDGE_CORRECT_RESPONSE])
+        llm = FakeLLM([JUDGE_CORRECT_RESPONSE, MUTATION_RESPONSE, JUDGE_INCORRECT_RESPONSE, JUDGE_CORRECT_RESPONSE])
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             config = EvolutionConfig(
@@ -410,7 +638,7 @@ class EvolutionaryFuzzerTest(unittest.TestCase):
 
     def test_success_requires_pre_mutation_proof_to_be_judged_correct(self) -> None:
         proof = "Let n be even.\n\nThen n = 2k for some integer k.\n\nTherefore n^2 is even."
-        llm = FakeLLM([JUDGE_INCORRECT_RESPONSE, MUTATION_RESPONSE, JUDGE_CORRECT_RESPONSE])
+        llm = FakeLLM([JUDGE_INCORRECT_RESPONSE, MUTATION_RESPONSE, JUDGE_INCORRECT_RESPONSE, JUDGE_CORRECT_RESPONSE])
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             config = EvolutionConfig(
@@ -432,7 +660,7 @@ class EvolutionaryFuzzerTest(unittest.TestCase):
         proof = "Let n be even.\n\nThen n = 2k for some integer k.\n\nTherefore n^2 is even."
 
         with tempfile.TemporaryDirectory() as tmp_dir:
-            false_llm = FakeLLM([JUDGE_CORRECT_RESPONSE, MUTATION_RESPONSE, JUDGE_CORRECT_RESPONSE])
+            false_llm = FakeLLM([JUDGE_CORRECT_RESPONSE, MUTATION_RESPONSE, JUDGE_INCORRECT_RESPONSE, JUDGE_CORRECT_RESPONSE])
             false_config = EvolutionConfig(
                 storage_dir=tmp_dir,
                 strategy_injection_probability=0.0,
@@ -444,7 +672,7 @@ class EvolutionaryFuzzerTest(unittest.TestCase):
             false_fuzzer = NaturalLanguageProofFuzzerLLMInterface(proof, false_llm)
             false_attempt = EvolutionaryProofFuzzer(false_fuzzer, config=false_config).run_mutation_attempt()
 
-            true_llm = FakeLLM([JUDGE_CORRECT_RESPONSE, CORRECTNESS_PRESERVING_MUTATION_RESPONSE, JUDGE_INCORRECT_RESPONSE])
+            true_llm = FakeLLM([JUDGE_CORRECT_RESPONSE, CORRECTNESS_PRESERVING_MUTATION_RESPONSE, JUDGE_CORRECT_RESPONSE, JUDGE_INCORRECT_RESPONSE])
             true_config = EvolutionConfig(
                 storage_dir=tmp_dir,
                 strategy_injection_probability=0.0,
@@ -462,7 +690,7 @@ class EvolutionaryFuzzerTest(unittest.TestCase):
 
     def test_generic_attempt_adaptive_selection_uses_success_history(self) -> None:
         proof = "Let n be even.\n\nThen n = 2k for some integer k.\n\nTherefore n^2 is even."
-        llm = FakeLLM([JUDGE_CORRECT_RESPONSE, CORRECTNESS_PRESERVING_MUTATION_RESPONSE, JUDGE_INCORRECT_RESPONSE])
+        llm = FakeLLM([JUDGE_CORRECT_RESPONSE, CORRECTNESS_PRESERVING_MUTATION_RESPONSE, JUDGE_CORRECT_RESPONSE, JUDGE_INCORRECT_RESPONSE])
         false_instructions = parse_mutation_instructions(MUTATION_RESPONSE)
         true_instructions = parse_mutation_instructions(CORRECTNESS_PRESERVING_MUTATION_RESPONSE)
 
@@ -512,7 +740,7 @@ class EvolutionaryFuzzerTest(unittest.TestCase):
 
     def test_strategy_injection_adds_guidance_to_future_prompt(self) -> None:
         proof = "Let n be even.\n\nThen n = 2k for some integer k.\n\nTherefore n^2 is even."
-        llm = FakeLLM([JUDGE_CORRECT_RESPONSE, MUTATION_RESPONSE, JUDGE_CORRECT_RESPONSE])
+        llm = FakeLLM([JUDGE_CORRECT_RESPONSE, MUTATION_RESPONSE, JUDGE_INCORRECT_RESPONSE, JUDGE_CORRECT_RESPONSE])
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             store = ProofFuzzAttemptStore(tmp_dir)
@@ -568,7 +796,7 @@ class EvolutionaryFuzzerTest(unittest.TestCase):
 
     def test_retrieval_selects_topic_relevant_strategy_from_common_bank(self) -> None:
         proof = "We prove two triangles are similar, then use cyclic angle chasing in the circle."
-        llm = FakeLLM([JUDGE_CORRECT_RESPONSE, MUTATION_RESPONSE, JUDGE_CORRECT_RESPONSE])
+        llm = FakeLLM([JUDGE_CORRECT_RESPONSE, MUTATION_RESPONSE, JUDGE_INCORRECT_RESPONSE, JUDGE_CORRECT_RESPONSE])
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             store = ProofFuzzAttemptStore(tmp_dir)
@@ -593,7 +821,7 @@ class EvolutionaryFuzzerTest(unittest.TestCase):
 
     def test_retrieval_uses_mined_and_evolved_strategies_from_common_bank(self) -> None:
         proof = "Compare polynomial coefficients after expanding an identity."
-        llm = FakeLLM([JUDGE_CORRECT_RESPONSE, MUTATION_RESPONSE, JUDGE_CORRECT_RESPONSE])
+        llm = FakeLLM([JUDGE_CORRECT_RESPONSE, MUTATION_RESPONSE, JUDGE_INCORRECT_RESPONSE, JUDGE_CORRECT_RESPONSE])
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             store = ProofFuzzAttemptStore(tmp_dir)
@@ -649,7 +877,7 @@ class EvolutionaryFuzzerTest(unittest.TestCase):
 
     def test_random_strategy_selection_only_uses_matching_math_topic(self) -> None:
         proof = "Compare polynomial coefficients in an algebraic identity."
-        llm = FakeLLM([JUDGE_CORRECT_RESPONSE, MUTATION_RESPONSE, JUDGE_CORRECT_RESPONSE])
+        llm = FakeLLM([JUDGE_CORRECT_RESPONSE, MUTATION_RESPONSE, JUDGE_INCORRECT_RESPONSE, JUDGE_CORRECT_RESPONSE])
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             store = ProofFuzzAttemptStore(tmp_dir)
@@ -699,7 +927,7 @@ class EvolutionaryFuzzerTest(unittest.TestCase):
 
     def test_evolution_runs_after_threshold_and_saves_strategy_bank(self) -> None:
         proof = "Let n be even.\n\nThen n = 2k for some integer k.\n\nTherefore n^2 is even."
-        llm = FakeLLM([JUDGE_CORRECT_RESPONSE, MUTATION_RESPONSE, JUDGE_CORRECT_RESPONSE, JUDGE_INCORRECT_RESPONSE, EVOLUTION_RESPONSE])
+        llm = FakeLLM([JUDGE_CORRECT_RESPONSE, MUTATION_RESPONSE, JUDGE_INCORRECT_RESPONSE, JUDGE_CORRECT_RESPONSE, EVOLUTION_RESPONSE])
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             config = EvolutionConfig(
@@ -721,7 +949,7 @@ class EvolutionaryFuzzerTest(unittest.TestCase):
 
     def test_pinned_mined_strategies_survive_evolution_replacement(self) -> None:
         proof = "Let n be even.\n\nThen n = 2k for some integer k.\n\nTherefore n^2 is even."
-        llm = FakeLLM([JUDGE_CORRECT_RESPONSE, MUTATION_RESPONSE, JUDGE_CORRECT_RESPONSE, JUDGE_INCORRECT_RESPONSE, EVOLUTION_RESPONSE])
+        llm = FakeLLM([JUDGE_CORRECT_RESPONSE, MUTATION_RESPONSE, JUDGE_INCORRECT_RESPONSE, JUDGE_CORRECT_RESPONSE, EVOLUTION_RESPONSE])
 
         pinned_strategy = FuzzStrategy(
             strategy_id="mined_test_pinned",
@@ -752,7 +980,7 @@ class EvolutionaryFuzzerTest(unittest.TestCase):
 
     def test_evolution_replaces_only_matching_topic_slice(self) -> None:
         proof = "Let n be even.\n\nThen n = 2k for some integer k.\n\nTherefore n^2 is even."
-        llm = FakeLLM([JUDGE_CORRECT_RESPONSE, MUTATION_RESPONSE, JUDGE_CORRECT_RESPONSE, JUDGE_INCORRECT_RESPONSE, EVOLUTION_RESPONSE])
+        llm = FakeLLM([JUDGE_CORRECT_RESPONSE, MUTATION_RESPONSE, JUDGE_INCORRECT_RESPONSE, JUDGE_CORRECT_RESPONSE, EVOLUTION_RESPONSE])
 
         geometry_strategy = FuzzStrategy(
             strategy_id="geometry_keep",
@@ -795,7 +1023,7 @@ class EvolutionaryFuzzerTest(unittest.TestCase):
     def test_truncated_completion_is_retried_before_parsing(self) -> None:
         proof = "Let n be even.\n\nThen n = 2k for some integer k.\n\nTherefore n^2 is even."
         llm = FinishReasonLLM(
-            [JUDGE_CORRECT_RESPONSE, MUTATION_RESPONSE, MUTATION_RESPONSE, JUDGE_CORRECT_RESPONSE],
+            [JUDGE_CORRECT_RESPONSE, MUTATION_RESPONSE, MUTATION_RESPONSE, JUDGE_INCORRECT_RESPONSE, JUDGE_CORRECT_RESPONSE],
             ["stop", "length", "stop", "stop"],
         )
 
@@ -811,11 +1039,11 @@ class EvolutionaryFuzzerTest(unittest.TestCase):
             attempt = EvolutionaryProofFuzzer(fuzzer, config=config).run_mutation_attempt()
 
             self.assertEqual(attempt.status, "success")
-            self.assertEqual(len(llm.prompts), 6)
+            self.assertEqual(len(llm.prompts), 5)
 
     def test_context_failure_shrinks_natural_language_prompt_and_retries(self) -> None:
         proof = "\n\n".join(f"Step {index}: this is a long proof paragraph." for index in range(80))
-        llm = FakeLLM([JUDGE_CORRECT_RESPONSE, RuntimeError("context length exceeded"), MUTATION_RESPONSE, JUDGE_CORRECT_RESPONSE])
+        llm = FakeLLM([JUDGE_CORRECT_RESPONSE, RuntimeError("context length exceeded"), MUTATION_RESPONSE, JUDGE_INCORRECT_RESPONSE, JUDGE_CORRECT_RESPONSE])
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             config = EvolutionConfig(

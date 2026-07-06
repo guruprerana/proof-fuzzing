@@ -45,6 +45,15 @@ def main() -> None:
     parser.add_argument("--judge-error-detection-check", action="store_true")
     parser.add_argument("--max-previous-failed-attempts-in-prompt", type=int, default=3)
     parser.add_argument("--max-previous-failed-attempt-chars", type=int, default=4_000)
+    parser.add_argument("--max-previous-successful-attempts-in-prompt", type=int, default=3)
+    parser.add_argument("--max-previous-successful-attempt-chars", type=int, default=4_000)
+    parser.add_argument("--reject-duplicate-successful-mutations", action="store_true")
+    parser.add_argument("--duplicate-successful-mutation-retries", type=int, default=1)
+    parser.add_argument(
+        "--duplicate-successful-mutation-reject-policy",
+        choices=("duplicate", "duplicate_or_variant"),
+        default="duplicate_or_variant",
+    )
     parser.add_argument("--evolution-threshold", type=int, default=20)
     parser.add_argument(
         "--correctness-selection-mode",
@@ -86,6 +95,11 @@ def main() -> None:
             judge_error_detection_check=args.judge_error_detection_check,
             max_previous_failed_attempts_in_prompt=args.max_previous_failed_attempts_in_prompt,
             max_previous_failed_attempt_chars=args.max_previous_failed_attempt_chars,
+            max_previous_successful_attempts_in_prompt=args.max_previous_successful_attempts_in_prompt,
+            max_previous_successful_attempt_chars=args.max_previous_successful_attempt_chars,
+            reject_duplicate_successful_mutations=args.reject_duplicate_successful_mutations,
+            duplicate_successful_mutation_retries=args.duplicate_successful_mutation_retries,
+            duplicate_successful_mutation_reject_policy=args.duplicate_successful_mutation_reject_policy,
             evolution_threshold=args.evolution_threshold,
             correctness_selection_mode=args.correctness_selection_mode,
             false_proof_probability=args.false_proof_probability,

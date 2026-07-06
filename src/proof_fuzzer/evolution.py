@@ -42,6 +42,7 @@ CORRECTNESS_SELECTION_MODES = {
 }
 STRATEGY_SELECTION_MODES = {"random", "retrieval"}
 TARGET_JUDGE_SUCCESS_POLICIES = {"any", "majority", "all"}
+DUPLICATE_SUCCESSFUL_MUTATION_REJECT_POLICIES = {"duplicate", "duplicate_or_variant"}
 
 
 @dataclass(frozen=True)
@@ -71,6 +72,11 @@ class EvolutionConfig:
     judge_error_detection_check: bool = False
     max_previous_failed_attempts_in_prompt: int = 3
     max_previous_failed_attempt_chars: int = 4_000
+    max_previous_successful_attempts_in_prompt: int = 3
+    max_previous_successful_attempt_chars: int = 4_000
+    reject_duplicate_successful_mutations: bool = False
+    duplicate_successful_mutation_retries: int = 1
+    duplicate_successful_mutation_reject_policy: str = "duplicate_or_variant"
     run_pre_mutation_judge: bool = True
     trace_llm_calls: bool = True
     trace_dir: str | Path | None = None
@@ -118,6 +124,18 @@ class EvolutionConfig:
             raise ValueError("max_previous_failed_attempts_in_prompt must be non-negative.")
         if self.max_previous_failed_attempt_chars < 0:
             raise ValueError("max_previous_failed_attempt_chars must be non-negative.")
+        if self.max_previous_successful_attempts_in_prompt < 0:
+            raise ValueError("max_previous_successful_attempts_in_prompt must be non-negative.")
+        if self.max_previous_successful_attempt_chars < 0:
+            raise ValueError("max_previous_successful_attempt_chars must be non-negative.")
+        if self.duplicate_successful_mutation_retries < 0:
+            raise ValueError("duplicate_successful_mutation_retries must be non-negative.")
+        if self.duplicate_successful_mutation_reject_policy not in DUPLICATE_SUCCESSFUL_MUTATION_REJECT_POLICIES:
+            allowed = ", ".join(sorted(DUPLICATE_SUCCESSFUL_MUTATION_REJECT_POLICIES))
+            raise ValueError(
+                "Unknown duplicate_successful_mutation_reject_policy "
+                f"{self.duplicate_successful_mutation_reject_policy!r}; expected one of: {allowed}"
+            )
 
 
 @dataclass(frozen=True)
@@ -449,6 +467,7 @@ class ProofFuzzJudge:
         mutated_proof_text: str = "",
         fuzzer_kind: str = FUZZER_KIND_SEMIFORMAL,
         objective: str = "",
+        problem_text: str = "",
     ) -> JudgeResult:
         response = self.llm.complete(
             self.judge_prompt(
@@ -457,6 +476,7 @@ class ProofFuzzJudge:
                 mutated_proof_text=mutated_proof_text,
                 fuzzer_kind=fuzzer_kind,
                 objective=objective,
+                problem_text=problem_text,
             )
         )
         return parse_judge_result(response)
@@ -469,30 +489,67 @@ class ProofFuzzJudge:
         mutated_proof_text: str = "",
         fuzzer_kind: str = FUZZER_KIND_SEMIFORMAL,
         objective: str = "",
+        problem_text: str = "",
     ) -> str:
+        del fuzzer_kind
+        problem = problem_text.strip() or _extract_problem_text_from_objective(objective) or "not specified"
         proof_block = (
-            f"Mutated proof:\n```text\n{mutated_proof_text}\n```"
+            mutated_proof_text
             if mutated_proof_text.strip()
-            else "No full mutated proof text is available. Judge the intended mutated proof from the mutation instructions."
+            else "not available; judge only the visible mutation record and return uncertain if correctness cannot be verified"
         )
-        return f"""You are judging a fuzzed mathematical proof.
+        return f"""You are a mathematical proof auditor checking a modified proof.
 
-Fuzzer kind: {_normalize_fuzzer_kind(fuzzer_kind)}
-Objective: {objective.strip() or "not specified"}
+Task: decide whether the submitted mutated proof is mathematically correct for the problem. The
+reference proof is believed to be correct; the mutation record is untrusted context describing an
+intended edit. Do not treat the mutation record as evidence that the proof is wrong.
 
-Original proof:
+Problem:
+```text
+{problem}
+```
+
+Reference original proof:
 ```text
 {original_proof_text}
 ```
 
-Mutation instructions:
+Mutation record:
 ```json
 {json.dumps(mutation_instructions.to_dict(), indent=2, sort_keys=True)}
 ```
 
+Submitted mutated proof:
+```text
 {proof_block}
+```
 
-Decide whether the mutated proof would be accepted as mathematically correct by a careful proof judge.
+Use these verdict rules:
+- Return "incorrect" only when the mutated proof contains an unrepaired mathematical error, missing
+  case, invalid inference, or unsupported dependency that is actually needed for the proof as written.
+- Return "correct" when the mutation rationale describes a suspicious step but the proof still has a
+  valid route to the conclusion, the omitted case is impossible, or a later/earlier argument repairs
+  the gap.
+- Return "correct" when a local statement is stronger, weaker, or oddly phrased but the displayed
+  equations still justify the conclusion.
+- Return "incorrect" when the proof proves only a congruence/residue/average but then treats it as an
+  exact equality or actual value without a bounding/range argument.
+- Return "incorrect" when a geometric argument proves only distance, parallelism, radical-axis
+  membership, or a center/perpendicular fact but then identifies a specific point, midpoint, foot,
+  tangent point, side, or chord membership without proving the required incidence.
+- Return "incorrect" when a recurrence, induction, periodicity, or case split is used outside the
+  range where the hypotheses define it, unless the proof explicitly conditions on that larger range.
+- If the original or mutated proof contains an omitted-text marker such as "[... truncated for context
+  budget ...]", do not infer what the omitted portion says. Return "incorrect" only for a visible
+  local flaw that cannot be repaired by omitted context; return "correct" only when the visible proof
+  is complete enough to verify; otherwise return "uncertain".
+- Do not mark a proof incorrect merely because the original proof used a more detailed argument.
+  The mutated proof may use a different valid shortcut.
+- Do not mark a proof incorrect merely because the mutation record claims a flaw. If the alleged
+  flaw is harmless or impossible under the preceding equations, say so and return "correct".
+
+In the rationale, explicitly state whether the alleged mutation flaw is necessary to the proof or is
+salvaged/irrelevant. If incorrect, name the first indispensable broken step.
 Return exactly one JSON object with no prose outside JSON.
 Schema:
 ```json
@@ -535,21 +592,41 @@ class BlindProofCorrectnessJudge:
         proof_text: str,
         fuzzer_kind: str = FUZZER_KIND_SEMIFORMAL,
     ) -> str:
+        del fuzzer_kind
         problem_block = problem_text.strip() or "not specified"
-        return f"""You are grading a submitted mathematical proof.
+        return f"""You are an olympiad competition coordinator grading this proof.
 
-Problem:
+COMPETITION GRADING STANDARDS:
+A proof receives 7 points (FULL MARKS) if and only if:
+1. The mathematical argument is complete: all essential cases and dependencies are handled.
+2. Every necessary step is mathematically correct: no false claims, invalid inferences, or circular reasoning.
+3. The final answer or conclusion matches exactly what the problem asks.
+
+Common reasons for deductions (score less than 7 means the proof is incorrect):
+- Missing a key case or sub-case.
+- Unjustified leap, hidden assumption, or dependency gap.
+- Algebraic, computational, sign, indexing, or quantifier error that affects the argument.
+- Proving only a weaker statement than requested.
+- Wrong final answer, or a correct answer reached through an invalid indispensable step.
+
+GRADING TASK:
+1. First estimate the score from 0 to 7 and explain the decisive reason.
+2. If the score is 7, return verdict "correct".
+3. If the score is less than 7, return verdict "incorrect".
+4. Use verdict "uncertain" only when the proof text is too incomplete or ambiguous to grade reliably.
+
+PROBLEM:
 ```text
 {problem_block}
 ```
 
-Submitted proof:
+PROOF TO GRADE:
 ```text
 {proof_text}
 ```
 
-Decide whether the submitted proof is mathematically correct for the problem.
-Return exactly one JSON object with no prose outside JSON.
+Return exactly one JSON object with no prose outside JSON. Include the estimated score in the
+rationale, for example "Score: 5/7. ...".
 Schema:
 ```json
 {{
@@ -632,6 +709,78 @@ Schema:
             )
         )
         result = parse_judge_error_detection_result(response)
+        result["raw_response"] = response
+        return result
+
+
+class SuccessfulMutationNoveltyChecker:
+    """Checks whether a proposed mutation repeats prior successes on the same proof."""
+
+    def __init__(self, llm: LLMClient):
+        self.llm = llm
+
+    def prompt(
+        self,
+        *,
+        previous_successful_attempts: Iterable[FuzzAttempt],
+        proposed_mutation_instructions: FuzzerMutationInstructions,
+        original_proof_text: str = "",
+    ) -> str:
+        previous_payload = [
+            _attempt_novelty_payload(attempt)
+            for attempt in previous_successful_attempts
+        ]
+        return f"""You are checking novelty for a proof-fuzzing mutation.
+
+The fuzzer already found successful mutations on this same original proof. Decide whether the new proposed mutation is substantively different.
+
+Original proof:
+```text
+{original_proof_text}
+```
+
+Previous successful mutations on this proof:
+```json
+{json.dumps(previous_payload, indent=2, sort_keys=True)}
+```
+
+New proposed mutation:
+```json
+{json.dumps(proposed_mutation_instructions.to_dict(), indent=2, sort_keys=True)}
+```
+
+Classify the new mutation:
+- "duplicate": same target/dependency and same mathematical error mechanism as a prior success.
+- "variant": minor wording or propagation variation of a prior success; not substantively new.
+- "novel": different target dependency or clearly different mathematical error mechanism.
+
+Return exactly one JSON object with no prose outside JSON.
+Schema:
+```json
+{{
+  "novelty": "duplicate | variant | novel",
+  "matching_attempt_ids": ["prior attempt ids that are repeated or varied"],
+  "rationale": "brief explanation",
+  "suggested_retry_guidance": "one sentence telling the fuzzer what attack surface to avoid next"
+}}
+```
+"""
+
+    def check(
+        self,
+        *,
+        previous_successful_attempts: Iterable[FuzzAttempt],
+        proposed_mutation_instructions: FuzzerMutationInstructions,
+        original_proof_text: str = "",
+    ) -> dict[str, object]:
+        response = self.llm.complete(
+            self.prompt(
+                previous_successful_attempts=previous_successful_attempts,
+                proposed_mutation_instructions=proposed_mutation_instructions,
+                original_proof_text=original_proof_text,
+            )
+        )
+        result = parse_successful_mutation_novelty_result(response)
         result["raw_response"] = response
         return result
 
@@ -727,6 +876,7 @@ class EvolutionaryProofFuzzer:
         judge: BlindProofCorrectnessJudge | None = None,
         mutation_checker: ProofFuzzJudge | None = None,
         judge_error_checker: JudgeErrorDetectionChecker | None = None,
+        successful_mutation_novelty_checker: SuccessfulMutationNoveltyChecker | None = None,
         evolver: StrategyEvolver | None = None,
         config: EvolutionConfig | None = None,
     ):
@@ -745,6 +895,10 @@ class EvolutionaryProofFuzzer:
             if fuzzer.llm is None:
                 raise ValueError("A judge-error checker or fuzzer LLM client is required for evolutionary fuzzing.")
             judge_error_checker = JudgeErrorDetectionChecker(fuzzer.llm)
+        if successful_mutation_novelty_checker is None:
+            if fuzzer.llm is None:
+                raise ValueError("A novelty checker or fuzzer LLM client is required for evolutionary fuzzing.")
+            successful_mutation_novelty_checker = SuccessfulMutationNoveltyChecker(fuzzer.llm)
         if evolver is None:
             if fuzzer.llm is None:
                 raise ValueError("An evolver or fuzzer LLM client is required for evolutionary fuzzing.")
@@ -752,6 +906,7 @@ class EvolutionaryProofFuzzer:
         self.judge = judge
         self.mutation_checker = mutation_checker
         self.judge_error_checker = judge_error_checker
+        self.successful_mutation_novelty_checker = successful_mutation_novelty_checker
         self.evolver = evolver
         self.rng = random.Random(self.config.random_seed)
         self.fuzzer_kind = infer_fuzzer_kind(fuzzer)
@@ -822,12 +977,25 @@ class EvolutionaryProofFuzzer:
             original_proof_text=original_text,
             maintain_correctness=selected_correctness,
         )
-        prior_attempt_guidance = _format_previous_failed_attempt_guidance(
+        previous_successful_attempts = self._previous_successful_attempts_for_proof(
+            metadata=base_metadata,
+            original_proof_text=original_text,
+            maintain_correctness=selected_correctness,
+        )
+        failed_attempt_guidance = _format_previous_failed_attempt_guidance(
             previous_failed_attempts,
             max_chars=self.config.max_previous_failed_attempt_chars,
         )
+        successful_attempt_guidance = _format_previous_successful_attempt_guidance(
+            previous_successful_attempts,
+            max_chars=self.config.max_previous_successful_attempt_chars,
+        )
+        prior_attempt_guidance = (*failed_attempt_guidance, *successful_attempt_guidance)
         base_metadata["previous_failed_attempts_in_prompt"] = [
             attempt.attempt_id for attempt in previous_failed_attempts
+        ]
+        base_metadata["previous_successful_attempts_in_prompt"] = [
+            attempt.attempt_id for attempt in previous_successful_attempts
         ]
         problem_text = _problem_text_from_attempt(objective=objective, metadata=base_metadata)
         try:
@@ -847,85 +1015,93 @@ class EvolutionaryProofFuzzer:
             else:
                 base_metadata["pre_mutation_judge_skipped"] = True
             instructions: FuzzerMutationInstructions | None = None
-            for fallback_index in range(self.config.context_fallbacks + 1):
-                prompt = self._mutation_prompt(
-                    objective=objective,
-                    maintain_correctness=selected_correctness,
-                    strategy_guidance=strategy_guidance,
-                    prior_attempt_guidance=prior_attempt_guidance,
+            duplicate_retry_guidance: tuple[str, ...] = ()
+            novelty_checks: list[dict[str, object]] = []
+            duplicate_retry_limit = (
+                self.config.duplicate_successful_mutation_retries
+                if self.config.reject_duplicate_successful_mutations
+                else 0
+            )
+            for duplicate_retry_index in range(duplicate_retry_limit + 1):
+                active_prior_attempt_guidance = (
+                    *prior_attempt_guidance,
+                    *duplicate_retry_guidance,
                 )
-                try:
-                    response = self._with_retries(
-                        lambda: self.fuzzer._complete_with_logging(
-                            prompt,
-                            call_kind="evolutionary_mutation_instructions",
-                            metadata={
-                                "strategy_ids": [strategy.strategy_id for strategy in strategies],
-                                "strategy_sources": [_strategy_source(strategy) for strategy in strategies],
-                                "strategy_topics": [_strategy_topic(strategy) for strategy in strategies],
-                                "context_fallback_index": fallback_index,
-                                "attempt_stage": "mutation_llm",
-                            },
-                        ),
-                        stage="mutation_llm",
-                        check_truncation=True,
+                instructions = None
+                for fallback_index in range(self.config.context_fallbacks + 1):
+                    prompt = self._mutation_prompt(
+                        objective=objective,
+                        maintain_correctness=selected_correctness,
+                        strategy_guidance=strategy_guidance,
+                        prior_attempt_guidance=active_prior_attempt_guidance,
                     )
-                    instructions = self._with_retries(
-                        lambda: parse_mutation_instructions(response),
-                        stage="mutation_parse",
-                    )
+                    try:
+                        response = self._with_retries(
+                            lambda: self.fuzzer._complete_with_logging(
+                                prompt,
+                                call_kind="evolutionary_mutation_instructions",
+                                metadata={
+                                    "strategy_ids": [strategy.strategy_id for strategy in strategies],
+                                    "strategy_sources": [_strategy_source(strategy) for strategy in strategies],
+                                    "strategy_topics": [_strategy_topic(strategy) for strategy in strategies],
+                                    "context_fallback_index": fallback_index,
+                                    "duplicate_retry_index": duplicate_retry_index,
+                                    "attempt_stage": "mutation_llm",
+                                },
+                            ),
+                            stage="mutation_llm",
+                            check_truncation=True,
+                        )
+                        instructions = self._with_retries(
+                            lambda: parse_mutation_instructions(response),
+                            stage="mutation_parse",
+                        )
+                        break
+                    except Exception as exc:
+                        if fallback_index >= self.config.context_fallbacks or not _likely_context_or_truncation_failure(exc):
+                            raise
+                        if not _shrink_natural_language_fuzzer(self.fuzzer):
+                            raise
+                if instructions is None:
+                    raise RuntimeError("No mutation instructions were produced.")
+                if selected_correctness is not None and instructions.maintain_correctness != selected_correctness:
+                    expected = "true" if selected_correctness else "false"
+                    actual = "true" if instructions.maintain_correctness else "false"
+                    raise ValueError(f"Mutation response contradicted the requested target: expected {expected}, got {actual}.")
+                self.fuzzer._raise_for_invalid_mutation_instructions(instructions)
+
+                novelty_check = self._run_successful_mutation_novelty_check(
+                    previous_successful_attempts=previous_successful_attempts,
+                    original_proof_text=original_text,
+                    proposed_mutation_instructions=instructions,
+                    metadata=base_metadata,
+                )
+                if novelty_check is None:
                     break
-                except Exception as exc:
-                    if fallback_index >= self.config.context_fallbacks or not _likely_context_or_truncation_failure(exc):
-                        raise
-                    if not _shrink_natural_language_fuzzer(self.fuzzer):
-                        raise
-            if instructions is None:
-                raise RuntimeError("No mutation instructions were produced.")
-            if selected_correctness is not None and instructions.maintain_correctness != selected_correctness:
-                expected = "true" if selected_correctness else "false"
-                actual = "true" if instructions.maintain_correctness else "false"
-                raise ValueError(f"Mutation response contradicted the requested target: expected {expected}, got {actual}.")
-            self.fuzzer._raise_for_invalid_mutation_instructions(instructions)
+                novelty_check = {
+                    **novelty_check,
+                    "duplicate_retry_index": duplicate_retry_index,
+                }
+                novelty_checks.append(novelty_check)
+                if not _successful_mutation_novelty_rejected(
+                    novelty_check,
+                    policy=self.config.duplicate_successful_mutation_reject_policy,
+                ):
+                    break
+                if duplicate_retry_index >= duplicate_retry_limit:
+                    if novelty_checks:
+                        base_metadata["successful_mutation_novelty_checks"] = novelty_checks
+                    raise ValueError(
+                        "Proposed mutation repeated a previous successful mutation on this proof: "
+                        f"{novelty_check.get('novelty', 'unknown')}"
+                    )
+                duplicate_retry_guidance = (
+                    _format_duplicate_success_retry_guidance(novelty_check),
+                )
+            if novelty_checks:
+                base_metadata["successful_mutation_novelty_checks"] = novelty_checks
 
             mutated_text = materialize_mutated_proof(self.fuzzer, instructions)
-            target_judge_results: list[JudgeResult] = []
-            for sample_index in range(self.config.target_judge_samples):
-                call_kind = (
-                    "target_judge"
-                    if self.config.target_judge_samples == 1
-                    else f"target_judge_{sample_index + 1}"
-                )
-                judge_result_sample = self._with_retries(
-                    lambda call_kind=call_kind, sample_index=sample_index: self._run_blind_judge(
-                        call_kind=call_kind,
-                        problem_text=problem_text,
-                        proof_text=mutated_text,
-                        fuzzer_kind=self.fuzzer_kind,
-                        metadata={
-                            "attempt_stage": "target_judge",
-                            "target_judge_sample_index": sample_index,
-                            "target_judge_samples": self.config.target_judge_samples,
-                        },
-                    ),
-                    stage=call_kind,
-                    check_truncation=True,
-                )
-                target_judge_results.append(judge_result_sample)
-            judge_result = target_judge_results[0]
-            base_metadata["target_judge_results"] = [
-                result.to_dict() for result in target_judge_results
-            ]
-            base_metadata["target_judge_success_policy"] = self.config.target_judge_success_policy
-            judge_error_detection_result = self._run_judge_error_detection_check(
-                original_proof_text=original_text,
-                mutation_instructions=instructions,
-                mutated_proof_text=mutated_text,
-                judge_results=tuple(target_judge_results),
-                metadata=base_metadata,
-            )
-            if judge_error_detection_result is not None:
-                base_metadata["judge_error_detection_check"] = judge_error_detection_result
             mutation_check_result = self._run_mutation_check(
                 original_proof_text=original_text,
                 mutation_instructions=instructions,
@@ -934,6 +1110,75 @@ class EvolutionaryProofFuzzer:
                 objective=objective,
                 metadata=base_metadata,
             )
+            target_judge_results: list[JudgeResult] = []
+            judge_error_detection_result: dict[str, object] | None = None
+            if mutation_check_result is not None and _mutation_check_allows_target_judge(
+                instructions.maintain_correctness,
+                mutation_check_result,
+            ):
+                for sample_index in range(self.config.target_judge_samples):
+                    call_kind = (
+                        "target_judge"
+                        if self.config.target_judge_samples == 1
+                        else f"target_judge_{sample_index + 1}"
+                    )
+                    judge_result_sample = self._with_retries(
+                        lambda call_kind=call_kind, sample_index=sample_index: self._run_blind_judge(
+                            call_kind=call_kind,
+                            problem_text=problem_text,
+                            proof_text=mutated_text,
+                            fuzzer_kind=self.fuzzer_kind,
+                            metadata={
+                                "attempt_stage": "target_judge",
+                                "target_judge_sample_index": sample_index,
+                                "target_judge_samples": self.config.target_judge_samples,
+                            },
+                        ),
+                        stage=call_kind,
+                        check_truncation=True,
+                    )
+                    target_judge_results.append(judge_result_sample)
+                judge_result = target_judge_results[0]
+                base_metadata["target_judge_results"] = [
+                    result.to_dict() for result in target_judge_results
+                ]
+                base_metadata["target_judge_success_policy"] = self.config.target_judge_success_policy
+                judge_error_detection_result = self._run_judge_error_detection_check(
+                    original_proof_text=original_text,
+                    mutation_instructions=instructions,
+                    mutated_proof_text=mutated_text,
+                    judge_results=tuple(target_judge_results),
+                    metadata=base_metadata,
+                )
+                if judge_error_detection_result is not None:
+                    base_metadata["judge_error_detection_check"] = judge_error_detection_result
+            else:
+                expected_verdict = "correct" if instructions.maintain_correctness else "incorrect"
+                actual_verdict = (
+                    mutation_check_result.verdict
+                    if mutation_check_result is not None
+                    else "missing"
+                )
+                base_metadata["target_judge_skipped"] = True
+                base_metadata["target_judge_skip_reason"] = (
+                    "mutation_check_verdict_"
+                    f"{actual_verdict}_expected_{expected_verdict}"
+                )
+                base_metadata["target_judge_results"] = []
+                base_metadata["target_judge_success_policy"] = self.config.target_judge_success_policy
+                judge_result = JudgeResult(
+                    verdict="uncertain",
+                    confidence=1.0,
+                    rationale=(
+                        "Target judge skipped because the mutation checker did not "
+                        f"confirm the required {expected_verdict} proof status."
+                    ),
+                    detected_flaw=(
+                        mutation_check_result.detected_flaw
+                        if mutation_check_result is not None
+                        else ""
+                    ),
+                )
         except Exception as exc:
             attempt = self._failed_attempt(
                 objective=objective,
@@ -957,6 +1202,7 @@ class EvolutionaryProofFuzzer:
             target_judge_results=tuple(target_judge_results),
             target_judge_success_policy=self.config.target_judge_success_policy,
             judge_error_detection_result=judge_error_detection_result,
+            mutation_check_result=mutation_check_result,
         )
         attempt = FuzzAttempt(
             attempt_id=_new_id("attempt"),
@@ -1025,12 +1271,18 @@ class EvolutionaryProofFuzzer:
         objective: str,
         metadata: dict[str, object] | None = None,
     ) -> JudgeResult:
+        problem_text = ""
+        if metadata is not None:
+            problem = metadata.get("problem")
+            if isinstance(problem, str):
+                problem_text = problem
         prompt = self.mutation_checker.judge_prompt(
             original_proof_text=original_proof_text,
             mutation_instructions=mutation_instructions,
             mutated_proof_text=mutated_proof_text,
             fuzzer_kind=fuzzer_kind,
             objective=objective,
+            problem_text=problem_text,
         )
         response = self.fuzzer._complete_with_logging(
             prompt,
@@ -1310,6 +1562,80 @@ class EvolutionaryProofFuzzer:
         ]
         return tuple(matching[-limit:])
 
+    def _previous_successful_attempts_for_proof(
+        self,
+        *,
+        metadata: dict[str, object],
+        original_proof_text: str,
+        maintain_correctness: bool | None,
+    ) -> tuple[FuzzAttempt, ...]:
+        limit = self.config.max_previous_successful_attempts_in_prompt
+        if limit <= 0:
+            return ()
+        attempts = self.store.load_attempts(fuzzer_kind=self.fuzzer_kind)
+        matching = [
+            attempt
+            for attempt in attempts
+            if attempt.success
+            and attempt.status == "success"
+            and (maintain_correctness is None or attempt.maintain_correctness == maintain_correctness)
+            and _same_proof_attempt(attempt, metadata, original_proof_text)
+        ]
+        return tuple(matching[-limit:])
+
+    def _run_successful_mutation_novelty_check(
+        self,
+        *,
+        previous_successful_attempts: tuple[FuzzAttempt, ...],
+        original_proof_text: str,
+        proposed_mutation_instructions: FuzzerMutationInstructions,
+        metadata: dict[str, object],
+    ) -> dict[str, object] | None:
+        if not self.config.reject_duplicate_successful_mutations:
+            return None
+        if not previous_successful_attempts:
+            return None
+        try:
+            return self._with_retries(
+                lambda: self._run_successful_mutation_novelty_check_once(
+                    previous_successful_attempts=previous_successful_attempts,
+                    original_proof_text=original_proof_text,
+                    proposed_mutation_instructions=proposed_mutation_instructions,
+                ),
+                stage="successful_mutation_novelty_check",
+                check_truncation=True,
+            )
+        except Exception as exc:
+            metadata["successful_mutation_novelty_check_error"] = repr(exc)
+            return {
+                "novelty": "unknown",
+                "matching_attempt_ids": [],
+                "rationale": f"novelty check failed: {exc!r}",
+                "suggested_retry_guidance": "",
+                "check_failed": True,
+            }
+
+    def _run_successful_mutation_novelty_check_once(
+        self,
+        *,
+        previous_successful_attempts: tuple[FuzzAttempt, ...],
+        original_proof_text: str,
+        proposed_mutation_instructions: FuzzerMutationInstructions,
+    ) -> dict[str, object]:
+        prompt = self.successful_mutation_novelty_checker.prompt(
+            previous_successful_attempts=previous_successful_attempts,
+            original_proof_text=original_proof_text,
+            proposed_mutation_instructions=proposed_mutation_instructions,
+        )
+        response = self.fuzzer._complete_with_logging(
+            prompt,
+            call_kind="successful_mutation_novelty_check",
+            metadata={"attempt_stage": "successful_mutation_novelty_check"},
+        )
+        result = parse_successful_mutation_novelty_result(response)
+        result["raw_response"] = response
+        return result
+
     def _sample_strategies(
         self,
         *,
@@ -1476,6 +1802,23 @@ def parse_judge_error_detection_result(text: str) -> dict[str, object]:
     }
 
 
+def parse_successful_mutation_novelty_result(text: str) -> dict[str, object]:
+    data = _load_json_object(text)
+    novelty = str(data.get("novelty", "")).strip().lower()
+    if novelty not in {"duplicate", "variant", "novel", "unknown"}:
+        novelty = "unknown"
+    raw_ids = data.get("matching_attempt_ids", ())
+    matching_ids: list[str] = []
+    if isinstance(raw_ids, list):
+        matching_ids = [str(item) for item in raw_ids if str(item).strip()]
+    return {
+        "novelty": novelty,
+        "matching_attempt_ids": matching_ids,
+        "rationale": str(data.get("rationale", "")),
+        "suggested_retry_guidance": str(data.get("suggested_retry_guidance", "")),
+    }
+
+
 def parse_strategy_evolution_response(
     text: str,
     *,
@@ -1520,8 +1863,14 @@ def fuzz_attempt_succeeded(
     target_judge_results: Iterable[JudgeResult] | None = None,
     target_judge_success_policy: str = "all",
     judge_error_detection_result: dict[str, object] | None = None,
+    mutation_check_result: JudgeResult | None = None,
 ) -> bool:
     if pre_mutation_judge_result is not None and pre_mutation_judge_result.verdict != "correct":
+        return False
+    if mutation_check_result is not None and not _mutation_check_allows_target_judge(
+        maintain_correctness,
+        mutation_check_result,
+    ):
         return False
     if target_judge_success_policy not in TARGET_JUDGE_SUCCESS_POLICIES:
         allowed = ", ".join(sorted(TARGET_JUDGE_SUCCESS_POLICIES))
@@ -1554,6 +1903,14 @@ def fuzz_attempt_succeeded(
     ):
         return False
     return True
+
+
+def _mutation_check_allows_target_judge(
+    maintain_correctness: bool,
+    mutation_check_result: JudgeResult,
+) -> bool:
+    expected_verdict = "correct" if maintain_correctness else "incorrect"
+    return mutation_check_result.verdict == expected_verdict
 
 
 def _single_judge_success(maintain_correctness: bool, judge_result: JudgeResult) -> bool:
@@ -1849,10 +2206,19 @@ def _problem_text_from_attempt(*, objective: str, metadata: dict[str, object]) -
     problem = metadata.get("problem")
     if isinstance(problem, str) and problem.strip():
         return problem.strip()
+    return _extract_problem_text_from_objective(objective)
+
+
+def _extract_problem_text_from_objective(objective: str) -> str:
     marker = "Problem:\n"
-    if marker in objective:
-        return objective.split(marker, 1)[1].strip()
-    return ""
+    if marker not in objective:
+        return ""
+    problem = objective.split(marker, 1)[1].strip()
+    for next_marker in ("\n\nRubric:", "\n\nOriginal proof:", "\n\nReference proof:"):
+        if next_marker in problem:
+            problem = problem.split(next_marker, 1)[0].strip()
+            break
+    return problem
 
 
 def _format_previous_failed_attempt_guidance(
@@ -1876,19 +2242,30 @@ def _format_previous_failed_attempt_guidance(
     return tuple(guidance)
 
 
+def _format_previous_successful_attempt_guidance(
+    attempts: tuple[FuzzAttempt, ...],
+    *,
+    max_chars: int,
+) -> tuple[str, ...]:
+    if max_chars <= 0:
+        return ()
+    guidance: list[str] = []
+    remaining = max_chars
+    for index, attempt in enumerate(attempts, start=1):
+        if remaining <= 0:
+            break
+        item = truncate_text_head_tail(
+            _summarize_successful_attempt_for_prompt(attempt, index=index),
+            remaining,
+        )
+        guidance.append(item)
+        remaining -= len(item)
+    return tuple(guidance)
+
+
 def _summarize_failed_attempt_for_prompt(attempt: FuzzAttempt, *, index: int) -> str:
     target = "preserve correctness" if attempt.maintain_correctness else "make a false proof look correct"
-    mutations = "; ".join(
-        truncate_text_head_tail(
-            f"{mutation.kind} {mutation.target}: {mutation.summary or mutation.new_text}",
-            320,
-        )
-        for mutation in attempt.mutation_instructions.mutations[:3]
-    )
-    if len(attempt.mutation_instructions.mutations) > 3:
-        mutations += f"; ... ({len(attempt.mutation_instructions.mutations)} mutations total)"
-    if not mutations:
-        mutations = "no concrete mutation was recorded"
+    mutations = _mutation_summaries_for_prompt(attempt.mutation_instructions, limit=3)
 
     judge_parts = []
     target_judge_results = attempt.metadata.get("target_judge_results")
@@ -1928,6 +2305,80 @@ def _summarize_failed_attempt_for_prompt(attempt: FuzzAttempt, *, index: int) ->
         f"Outcome: {'; '.join(judge_parts)}. "
         "Prefer a materially different mutation route unless there is a clear reason to revisit it."
     )
+
+
+def _summarize_successful_attempt_for_prompt(attempt: FuzzAttempt, *, index: int) -> str:
+    target = "preserved correctness" if attempt.maintain_correctness else "made a false proof look correct"
+    mutations = _mutation_summaries_for_prompt(attempt.mutation_instructions, limit=5)
+    rationale = truncate_text_head_tail(attempt.mutation_instructions.rationale, 700).strip()
+    if not rationale:
+        rationale = "no rationale recorded"
+    trace_name = str(attempt.metadata.get("trace_dir_name") or attempt.metadata.get("trace_dir") or "")
+    trace_part = f"; trace: {trace_name}" if trace_name else ""
+    strategy_ids = ", ".join(attempt.strategy_ids)
+    strategy_part = f"; strategies: {strategy_ids}" if strategy_ids else ""
+    return (
+        f"AVOID repeating successful attempt {index} ({attempt.attempt_id}{trace_part}; "
+        f"target={target}{strategy_part}). "
+        f"Prior mutation mechanism/rationale: {rationale}. "
+        f"Prior mutation targets/summaries: {mutations}. "
+        "Choose a different proof step, mathematical dependency, or error mechanism; do not merely reword or "
+        "minorly vary this attack."
+    )
+
+
+def _mutation_summaries_for_prompt(instructions: FuzzerMutationInstructions, *, limit: int) -> str:
+    mutations = "; ".join(
+        truncate_text_head_tail(
+            f"{mutation.kind} {mutation.target}: {mutation.summary or mutation.new_text}",
+            320,
+        )
+        for mutation in instructions.mutations[:limit]
+    )
+    if len(instructions.mutations) > limit:
+        mutations += f"; ... ({len(instructions.mutations)} mutations total)"
+    return mutations or "no concrete mutation was recorded"
+
+
+def _attempt_novelty_payload(attempt: FuzzAttempt) -> dict[str, object]:
+    return {
+        "attempt_id": attempt.attempt_id,
+        "trace_dir_name": attempt.metadata.get("trace_dir_name", ""),
+        "strategy_ids": list(attempt.strategy_ids),
+        "rationale": attempt.mutation_instructions.rationale,
+        "mutations": [
+            {
+                "kind": mutation.kind,
+                "target": mutation.target,
+                "summary": mutation.summary,
+                "affected_blocks": list(mutation.affected_blocks),
+                "propagate_downstream": mutation.propagate_downstream,
+            }
+            for mutation in attempt.mutation_instructions.mutations
+        ],
+    }
+
+
+def _format_duplicate_success_retry_guidance(novelty_check: dict[str, object]) -> str:
+    matching = ", ".join(str(item) for item in novelty_check.get("matching_attempt_ids", []) or [])
+    matching_part = f" Matching prior attempts: {matching}." if matching else ""
+    retry = str(novelty_check.get("suggested_retry_guidance", "")).strip()
+    rationale = str(novelty_check.get("rationale", "")).strip()
+    detail = retry or rationale or "Choose a different proof step and a different mathematical error mechanism."
+    return (
+        "The previous proposed mutation was rejected as too similar to an earlier successful mutation on this "
+        f"same proof (novelty={novelty_check.get('novelty', 'unknown')}).{matching_part} "
+        f"Retry guidance: {detail}"
+    )
+
+
+def _successful_mutation_novelty_rejected(result: dict[str, object], *, policy: str) -> bool:
+    if bool(result.get("check_failed")):
+        return False
+    novelty = str(result.get("novelty", "")).strip().lower()
+    if policy == "duplicate":
+        return novelty == "duplicate"
+    return novelty in {"duplicate", "variant"}
 
 
 def _same_proof_attempt(
@@ -2048,6 +2499,27 @@ def _failure_stage(exc: Exception) -> str:
     if isinstance(exc, LLMStageError):
         return exc.stage
     return "attempt"
+
+
+def usage_limit_reached(value: object) -> bool:
+    """Return true when a failed attempt/exception is caused by account usage limits."""
+
+    if isinstance(value, FuzzAttempt):
+        return (
+            _text_mentions_usage_limit(value.error)
+            or _text_mentions_usage_limit(value.failure_stage)
+            or _text_mentions_usage_limit(json.dumps(value.metadata, sort_keys=True, default=str))
+        )
+    if isinstance(value, LLMStageError):
+        return usage_limit_reached(value.cause) or _text_mentions_usage_limit(repr(value))
+    if isinstance(value, BaseException):
+        return _text_mentions_usage_limit(repr(value))
+    return _text_mentions_usage_limit(str(value))
+
+
+def _text_mentions_usage_limit(text: str) -> bool:
+    lowered = text.lower()
+    return "usage limit" in lowered or "purchase more credits" in lowered
 
 
 def _likely_context_or_truncation_failure(exc: Exception) -> bool:

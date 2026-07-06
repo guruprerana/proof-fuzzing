@@ -10,6 +10,7 @@ from .evolution import (
     FuzzStrategy,
     JudgeErrorDetectionChecker,
     JudgeResult,
+    SuccessfulMutationNoveltyChecker,
     load_mined_strategies,
     ProofFuzzAttemptStore,
     ProofFuzzJudge,
@@ -17,6 +18,7 @@ from .evolution import (
     fuzz_attempt_succeeded,
     parse_judge_error_detection_result,
     parse_judge_result,
+    parse_successful_mutation_novelty_result,
     parse_strategy_evolution_response,
 )
 from .imo_gradebench import (
@@ -67,6 +69,12 @@ from .gemini_client import (
     GeminiChatResult,
     GeminiProofFuzzerClient,
 )
+from .codex_client import (
+    DEFAULT_CODEX_MODEL,
+    DEFAULT_CODEX_REASONING_EFFORT,
+    CodexChatResult,
+    CodexProofFuzzerClient,
+)
 from .mutation_detection import (
     MutationDetectionExperimentConfig,
     MutationDetectionExperimentResult,
@@ -75,6 +83,22 @@ from .mutation_detection import (
     run_mutation_detection_experiment,
     select_detection_attempts,
     wait_for_attempts,
+)
+from .pre_mutation_baseline import (
+    PreMutationBaselineJudgeConfig,
+    PreMutationBaselineJudgeResult,
+    pre_mutation_blind_judge_prompt,
+    run_pre_mutation_baseline_judge,
+    write_pre_mutation_baseline_summary,
+)
+from .judge_prompt_robustness import (
+    CompetitionJudgeRobustnessConfig,
+    CompetitionJudgeRobustnessResult,
+    competition_grading_prompt,
+    judge_response_error_detection_prompt,
+    parse_competition_judge_response,
+    run_competition_judge_robustness_evaluation,
+    select_successful_false_proof_attempts,
 )
 from .vllm_client import (
     DEFAULT_BASE_URL,
@@ -87,7 +111,13 @@ from .vllm_client import (
 __all__ = [
     "BlockUpdateResult",
     "BlindProofCorrectnessJudge",
+    "CompetitionJudgeRobustnessConfig",
+    "CompetitionJudgeRobustnessResult",
+    "CodexChatResult",
+    "CodexProofFuzzerClient",
     "DEFAULT_BASE_URL",
+    "DEFAULT_CODEX_MODEL",
+    "DEFAULT_CODEX_REASONING_EFFORT",
     "DEFAULT_GEMINI_MODEL",
     "DEFAULT_GEMINI_THINKING_LEVEL",
     "DEFAULT_IMO_GRADEBENCH_ROOT",
@@ -107,6 +137,7 @@ __all__ = [
     "LLMTraceLogger",
     "JudgeResult",
     "JudgeErrorDetectionChecker",
+    "SuccessfulMutationNoveltyChecker",
     "load_mined_strategies",
     "IMOGradeBenchEvolutionRunConfig",
     "IMOGradeBenchEvolutionRunResult",
@@ -114,6 +145,8 @@ __all__ = [
     "ProofBenchJudgeEvolutionRunConfig",
     "ProofBenchJudgeEvolutionRunResult",
     "ProofBenchJudgeExample",
+    "PreMutationBaselineJudgeConfig",
+    "PreMutationBaselineJudgeResult",
     "MutationValidationIssue",
     "MutationDetectionExperimentConfig",
     "MutationDetectionExperimentResult",
@@ -130,6 +163,7 @@ __all__ = [
     "VLLMProofFuzzerClient",
     "build_gpt_oss_reasoning_messages",
     "blind_detection_prompt",
+    "competition_grading_prompt",
     "fuzz_attempt_succeeded",
     "infer_math_topic",
     "load_correct_imo_gradebench_examples",
@@ -137,19 +171,27 @@ __all__ = [
     "load_imo_gradebench_example",
     "load_proof_bench_judge_example",
     "mutation_aware_detection_prompt",
+    "judge_response_error_detection_prompt",
     "parse_judge_result",
     "parse_judge_error_detection_result",
+    "parse_successful_mutation_novelty_result",
+    "parse_competition_judge_response",
     "parse_block_update_response",
     "parse_mutation_instructions",
     "parse_strategy_evolution_response",
+    "pre_mutation_blind_judge_prompt",
     "run_imo_gradebench_evolution",
     "run_imo_gradebench_evolutionary_pipeline",
     "run_mutation_detection_experiment",
+    "run_competition_judge_robustness_evaluation",
+    "run_pre_mutation_baseline_judge",
     "run_proof_bench_judge_evolution",
     "run_proof_bench_judge_evolutionary_pipeline",
     "select_detection_attempts",
+    "select_successful_false_proof_attempts",
     "split_natural_language_proof",
     "wait_for_attempts",
     "write_mutation_detection_examples",
+    "write_pre_mutation_baseline_summary",
     "write_standard_source_reports",
 ]

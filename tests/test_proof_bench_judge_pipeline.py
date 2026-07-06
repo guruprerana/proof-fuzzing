@@ -5,10 +5,12 @@ import threading
 import unittest
 
 from src.proof_fuzzer import (
+    EvolutionConfig,
     ProofBenchJudgeEvolutionRunConfig,
     infer_math_topic,
     load_correct_proof_bench_judge_examples,
     run_proof_bench_judge_evolution,
+    run_proof_bench_judge_evolutionary_pipeline,
 )
 
 
@@ -23,7 +25,10 @@ class FakeLLM:
             self.prompts.append(prompt)
             if not self.responses:
                 raise AssertionError("No fake LLM response is available.")
-            return self.responses.pop(0)
+            response = self.responses.pop(0)
+            if isinstance(response, Exception):
+                raise response
+            return response
 
 
 MUTATION_RESPONSE = """{
@@ -89,6 +94,40 @@ class ProofBenchJudgePipelineTest(unittest.TestCase):
             self.assertEqual(result.attempts[0].metadata["dataset"], "proof_bench_judge")
             self.assertEqual(result.attempts[0].metadata["proof_source"], "metadata.original_data.proof")
             self.assertTrue((storage / "run_config.json").is_file())
+
+    def test_pipeline_stops_after_usage_limit_failure(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir) / "dataset"
+            storage = Path(tmp_dir) / "storage"
+            for index in range(3):
+                _write_example(root / f"{index:06d}", answer="Yes", proof=f"Proof {index}.")
+            llm = FakeLLM([
+                JUDGE_RESPONSE,
+                RuntimeError("You've hit your usage limit. Visit settings to purchase more credits."),
+                JUDGE_RESPONSE,
+                MUTATION_RESPONSE,
+                JUDGE_RESPONSE,
+            ])
+            config = EvolutionConfig(
+                storage_dir=storage,
+                strategy_injection_probability=0.0,
+                evolution_threshold=0,
+                correctness_selection_mode="false_proof",
+                continue_on_error=True,
+            )
+
+            attempts = run_proof_bench_judge_evolutionary_pipeline(
+                llm=llm,
+                root=root,
+                config=config,
+                max_workers=1,
+                num_attempts=3,
+            )
+
+            self.assertEqual(len(attempts), 1)
+            self.assertEqual(attempts[0].status, "failed")
+            self.assertIn("usage limit", attempts[0].error.lower())
+            self.assertEqual(len((storage / "attempts.jsonl").read_text(encoding="utf-8").splitlines()), 1)
 
 
 def _write_example(path: Path, *, answer: str, proof: str, problem: str = "Prove the claim.") -> None:

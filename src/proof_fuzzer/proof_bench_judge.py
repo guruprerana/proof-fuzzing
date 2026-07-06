@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 from dataclasses import asdict, dataclass, replace
 from datetime import datetime
 import hashlib
@@ -19,6 +19,7 @@ from src.proof_fuzzer.evolution import (
     FuzzAttempt,
     ProofFuzzAttemptStore,
     truncate_text_head_tail,
+    usage_limit_reached,
 )
 from src.proof_fuzzer.llm_interface import LLMClient, NaturalLanguageProofFuzzerLLMInterface
 from src.proof_fuzzer.reporting import write_standard_source_reports
@@ -42,6 +43,7 @@ class ProofBenchJudgeEvolutionRunConfig:
     limit: int | None = None
     attempts_per_example: int = 1
     num_attempts: int | None = None
+    sample_offset: int = 0
     sample_without_replacement: bool = False
     max_workers: int = 1
     storage_dir: str | Path | None = None
@@ -60,6 +62,11 @@ class ProofBenchJudgeEvolutionRunConfig:
     judge_error_detection_check: bool = False
     max_previous_failed_attempts_in_prompt: int = 3
     max_previous_failed_attempt_chars: int = 4_000
+    max_previous_successful_attempts_in_prompt: int = 3
+    max_previous_successful_attempt_chars: int = 4_000
+    reject_duplicate_successful_mutations: bool = False
+    duplicate_successful_mutation_retries: int = 1
+    duplicate_successful_mutation_reject_policy: str = "duplicate_or_variant"
     run_pre_mutation_judge: bool = True
     evolution_threshold: int = 20
     correctness_selection_mode: str = "adaptive"
@@ -190,6 +197,11 @@ def run_proof_bench_judge_evolution(
         judge_error_detection_check=active_run_config.judge_error_detection_check,
         max_previous_failed_attempts_in_prompt=active_run_config.max_previous_failed_attempts_in_prompt,
         max_previous_failed_attempt_chars=active_run_config.max_previous_failed_attempt_chars,
+        max_previous_successful_attempts_in_prompt=active_run_config.max_previous_successful_attempts_in_prompt,
+        max_previous_successful_attempt_chars=active_run_config.max_previous_successful_attempt_chars,
+        reject_duplicate_successful_mutations=active_run_config.reject_duplicate_successful_mutations,
+        duplicate_successful_mutation_retries=active_run_config.duplicate_successful_mutation_retries,
+        duplicate_successful_mutation_reject_policy=active_run_config.duplicate_successful_mutation_reject_policy,
         run_pre_mutation_judge=active_run_config.run_pre_mutation_judge,
     )
     write_proof_bench_judge_evolution_run_config(storage_dir, active_run_config)
@@ -202,6 +214,7 @@ def run_proof_bench_judge_evolution(
         max_workers=active_run_config.max_workers,
         attempts_per_example=active_run_config.attempts_per_example,
         num_attempts=active_run_config.num_attempts,
+        sample_offset=active_run_config.sample_offset,
         sample_without_replacement=active_run_config.sample_without_replacement,
     )
     write_standard_source_reports(storage_dir)
@@ -265,6 +278,7 @@ def run_proof_bench_judge_evolutionary_pipeline(
     max_workers: int = 1,
     attempts_per_example: int = 1,
     num_attempts: int | None = None,
+    sample_offset: int = 0,
     sample_without_replacement: bool = False,
 ) -> tuple[FuzzAttempt, ...]:
     """Run natural-language evolutionary fuzzing on correct ProofBenchJudge proofs."""
@@ -275,6 +289,8 @@ def run_proof_bench_judge_evolutionary_pipeline(
         raise ValueError("attempts_per_example must be at least 1.")
     if num_attempts is not None and num_attempts < 1:
         raise ValueError("num_attempts must be at least 1 when provided.")
+    if sample_offset < 0:
+        raise ValueError("sample_offset must be non-negative.")
 
     active_config = config or EvolutionConfig(
         storage_dir="logs/proof_fuzzer_evolution/proof_bench_judge",
@@ -285,12 +301,14 @@ def run_proof_bench_judge_evolutionary_pipeline(
         examples,
         attempts_per_example=attempts_per_example,
         num_attempts=num_attempts,
+        sample_offset=sample_offset,
         sample_without_replacement=sample_without_replacement,
         random_seed=active_config.random_seed,
     )
     if max_workers == 1:
-        return tuple(
-            _run_one_proof_bench_judge_attempt(
+        attempts: list[FuzzAttempt] = []
+        for index, example, attempt_index in work_items:
+            attempt = _run_one_proof_bench_judge_attempt(
                 example,
                 llm=llm,
                 store=active_store,
@@ -299,13 +317,22 @@ def run_proof_bench_judge_evolutionary_pipeline(
                 attempt_index=attempt_index,
                 sample_index=index,
             )
-            for index, example, attempt_index in work_items
-        )
+            attempts.append(attempt)
+            if usage_limit_reached(attempt):
+                break
+        return tuple(attempts)
 
     attempts_by_index: dict[int, FuzzAttempt] = {}
+    work_iter = iter(work_items)
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = {
-            executor.submit(
+        futures = {}
+
+        def submit_next() -> bool:
+            try:
+                index, example, attempt_index = next(work_iter)
+            except StopIteration:
+                return False
+            future = executor.submit(
                 _run_one_proof_bench_judge_attempt,
                 example,
                 llm=llm,
@@ -314,11 +341,35 @@ def run_proof_bench_judge_evolutionary_pipeline(
                 objective_prefix=objective_prefix,
                 attempt_index=attempt_index,
                 sample_index=index,
-            ): index
-            for index, example, attempt_index in work_items
-        }
-        for future in as_completed(futures):
-            attempts_by_index[futures[future]] = future.result()
+            )
+            futures[future] = index
+            return True
+
+        for _ in range(min(max_workers, len(work_items))):
+            submit_next()
+
+        stop_for_usage_limit = False
+        while futures:
+            done, _ = wait(futures, return_when=FIRST_COMPLETED)
+            for future in done:
+                index = futures.pop(future)
+                try:
+                    attempt = future.result()
+                except Exception as exc:
+                    if usage_limit_reached(exc):
+                        stop_for_usage_limit = True
+                    for pending in futures:
+                        pending.cancel()
+                    raise
+                attempts_by_index[index] = attempt
+                if usage_limit_reached(attempt):
+                    stop_for_usage_limit = True
+            if stop_for_usage_limit:
+                for pending in futures:
+                    pending.cancel()
+                break
+            while len(futures) < max_workers and submit_next():
+                pass
     return tuple(attempts_by_index[index] for index in sorted(attempts_by_index))
 
 
@@ -459,6 +510,7 @@ def _sample_work_items(
     *,
     attempts_per_example: int,
     num_attempts: int | None,
+    sample_offset: int,
     sample_without_replacement: bool,
     random_seed: int | None,
 ) -> list[tuple[int, ProofBenchJudgeExample, int]]:
@@ -475,17 +527,20 @@ def _sample_work_items(
         ]
 
     rng = random.Random(random_seed)
+    total_samples = num_attempts + sample_offset
     if sample_without_replacement:
-        if num_attempts > len(examples):
+        if total_samples > len(examples):
             raise ValueError("num_attempts cannot exceed available examples when sampling without replacement.")
-        sampled = rng.sample(list(examples), k=num_attempts)
+        sampled = rng.sample(list(examples), k=total_samples)
     else:
-        sampled = [rng.choice(examples) for _ in range(num_attempts)]
+        sampled = [rng.choice(examples) for _ in range(total_samples)]
     seen: dict[str, int] = {}
     work_items = []
     for sample_index, example in enumerate(sampled):
         attempt_index = seen.get(example.example_id, 0)
         seen[example.example_id] = attempt_index + 1
+        if sample_index < sample_offset:
+            continue
         work_items.append((sample_index, example, attempt_index))
     return work_items
 

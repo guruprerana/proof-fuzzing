@@ -92,7 +92,7 @@ class IMOGradeBenchPipelineTest(unittest.TestCase):
             self.assertEqual(attempts[0].metadata["dataset"], "imo_gradebench")
             self.assertEqual(attempts[0].metadata["example_id"], "000001")
             self.assertEqual(attempts[0].metadata["llm_category"], "Algebra")
-            self.assertIn("Problem:\n```text\nProve the claim.", llm.prompts[0])
+            self.assertIn("PROBLEM:\n```text\nProve the claim.", llm.prompts[0])
 
     def test_runner_parallelizes_multiple_attempts(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
