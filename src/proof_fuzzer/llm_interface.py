@@ -1351,7 +1351,10 @@ def _load_json_object(text: str) -> dict[str, object]:
     try:
         data = json.loads(candidate)
     except json.JSONDecodeError:
-        data = json.loads(_repair_llm_json_backslashes(candidate))
+        data = json.loads(
+            _repair_llm_json_backslashes(candidate),
+            strict=False,
+        )
     if not isinstance(data, dict):
         raise ValueError("Expected a JSON object.")
     return data

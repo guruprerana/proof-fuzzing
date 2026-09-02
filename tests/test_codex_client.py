@@ -92,12 +92,25 @@ class CodexClientTest(unittest.TestCase):
         self.assertEqual(context.thread_start_kwargs["model"], "gpt-5.5")
         self.assertEqual(context.thread_start_kwargs["sandbox"], "read-only")
         self.assertEqual(context.thread_start_kwargs["approval_mode"], "deny_all")
+        self.assertIs(context.thread_start_kwargs["ephemeral"], True)
         self.assertEqual(context.thread.prompt, "Hello")
         self.assertEqual(context.thread.run_kwargs["effort"], "medium")
         self.assertEqual(context.thread.run_kwargs["model"], "gpt-5.5")
         self.assertEqual(result.content, "final answer")
         self.assertEqual(result.finish_reason, "completed")
         self.assertIs(client.last_result, result)
+
+    def test_persistent_threads_can_be_requested_explicitly(self) -> None:
+        client = CodexProofFuzzerClient(
+            ephemeral_threads=False,
+            codex_factory=FakeCodexContext,
+            sdk=FakeSDK,
+        )
+
+        self.assertEqual(client.complete("Keep this thread"), "final answer")
+
+        context = FakeCodexContext.last_instance
+        self.assertIs(context.thread_start_kwargs["ephemeral"], False)
 
     def test_reused_thread_stays_open_until_close(self) -> None:
         client = CodexProofFuzzerClient(

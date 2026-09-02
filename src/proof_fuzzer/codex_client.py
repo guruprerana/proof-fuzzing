@@ -28,7 +28,8 @@ class CodexProofFuzzerClient:
 
     By default, every ``complete`` call creates a fresh Codex thread. That keeps
     mutation, blind judging, mutation checking, and judge-error checking isolated
-    when this client is used by the evolutionary loop.
+    when this client is used by the evolutionary loop. Threads are ephemeral by
+    default so proof-fuzzer calls are not materialized in Codex chat history.
     """
 
     def __init__(
@@ -43,6 +44,7 @@ class CodexProofFuzzerClient:
         base_instructions: str | None = None,
         developer_instructions: str | None = None,
         fresh_thread_per_call: bool = True,
+        ephemeral_threads: bool = True,
         codex_factory: Any | None = None,
         sdk: Any | None = None,
     ):
@@ -62,6 +64,7 @@ class CodexProofFuzzerClient:
         self.base_instructions = base_instructions
         self.developer_instructions = developer_instructions
         self.fresh_thread_per_call = fresh_thread_per_call
+        self.ephemeral_threads = ephemeral_threads
         self.codex_factory = codex_factory
         self.sdk = sdk
         self._codex_context: Any | None = None
@@ -127,6 +130,7 @@ class CodexProofFuzzerClient:
     def _start_thread(self, codex: object, sdk: "_CodexSDK") -> object:
         kwargs: dict[str, object] = {
             "approval_mode": _approval_mode_value(sdk, self.approval_mode),
+            "ephemeral": self.ephemeral_threads,
             "model": self.model,
             "sandbox": _sandbox_value(sdk, self.sandbox),
         }

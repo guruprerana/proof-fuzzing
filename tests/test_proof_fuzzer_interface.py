@@ -147,6 +147,25 @@ class ProofFuzzerInterfaceTest(unittest.TestCase):
         self.assertIn("\nconclusion:", instructions.mutations[0].new_text)
         self.assertEqual(instructions.mutations[0].affected_blocks, ("C2",))
 
+    def test_parse_mutation_instructions_repairs_literal_newlines_in_json_strings(self) -> None:
+        response = """{
+  "maintain_correctness": false,
+  "rationale": "Break the first step.",
+  "mutations": [{
+    "kind": "modify",
+    "target": "S1",
+    "summary": "Change the claim.",
+    "new_text": "First line.
+Second line.",
+    "affected_blocks": [],
+    "propagate_downstream": false
+  }]
+}"""
+
+        instructions = parse_mutation_instructions(response)
+
+        self.assertEqual(instructions.mutations[0].new_text, "First line.\nSecond line.")
+
     def test_parse_mutation_instructions_repairs_raw_latex_json_escapes(self) -> None:
         response = r"""```json
 {

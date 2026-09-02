@@ -42,6 +42,14 @@ from .proof_bench_judge import (
     run_proof_bench_judge_evolution,
     run_proof_bench_judge_evolutionary_pipeline,
 )
+from .openai_ten_advances import (
+    DEFAULT_OPENAI_TEN_ADVANCES_ROOT,
+    OpenAITenAdvancesEvolutionRunConfig,
+    OpenAITenAdvancesEvolutionRunResult,
+    OpenAITenAdvancesProof,
+    load_openai_ten_advances_proofs,
+    run_openai_ten_advances_evolution,
+)
 from .reporting import (
     write_mutation_detection_examples,
     write_standard_source_reports,
@@ -122,6 +130,7 @@ __all__ = [
     "DEFAULT_GEMINI_THINKING_LEVEL",
     "DEFAULT_IMO_GRADEBENCH_ROOT",
     "DEFAULT_PROOF_BENCH_JUDGE_ROOT",
+    "DEFAULT_OPENAI_TEN_ADVANCES_ROOT",
     "EvolutionConfig",
     "EvolutionaryProofFuzzer",
     "FUZZER_KIND_NATURAL_LANGUAGE",
@@ -145,6 +154,9 @@ __all__ = [
     "ProofBenchJudgeEvolutionRunConfig",
     "ProofBenchJudgeEvolutionRunResult",
     "ProofBenchJudgeExample",
+    "OpenAITenAdvancesEvolutionRunConfig",
+    "OpenAITenAdvancesEvolutionRunResult",
+    "OpenAITenAdvancesProof",
     "PreMutationBaselineJudgeConfig",
     "PreMutationBaselineJudgeResult",
     "MutationValidationIssue",
@@ -170,6 +182,7 @@ __all__ = [
     "load_correct_proof_bench_judge_examples",
     "load_imo_gradebench_example",
     "load_proof_bench_judge_example",
+    "load_openai_ten_advances_proofs",
     "mutation_aware_detection_prompt",
     "judge_response_error_detection_prompt",
     "parse_judge_result",
@@ -187,6 +200,7 @@ __all__ = [
     "run_pre_mutation_baseline_judge",
     "run_proof_bench_judge_evolution",
     "run_proof_bench_judge_evolutionary_pipeline",
+    "run_openai_ten_advances_evolution",
     "select_detection_attempts",
     "select_successful_false_proof_attempts",
     "split_natural_language_proof",

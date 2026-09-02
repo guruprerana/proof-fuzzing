@@ -1,3 +1,8 @@
 - Use this to create datasets
 - Try with gpt 5.5 high thinking
 - compare many versions of the same model
+
+- talk to shreya about model errors
+- run on more complex math problems
+- look at prbench (finance) and medical reasoning
+- frame it as a general method for fuzzing/attacking LLM verifiers

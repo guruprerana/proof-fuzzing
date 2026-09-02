@@ -10,7 +10,7 @@ import json
 from pathlib import Path
 import random
 import re
-from typing import Iterable
+from typing import Iterable, Protocol
 
 from src.proof_fuzzer.evolution import (
     EvolutionConfig,
@@ -155,6 +155,20 @@ class ProofBenchJudgeExample:
         return metadata
 
 
+class NaturalLanguageProofExample(Protocol):
+    """Dataset-neutral interface used by the natural-language fuzzing loop."""
+
+    example_id: str
+
+    @property
+    def problem(self) -> str: ...
+
+    @property
+    def proof(self) -> str: ...
+
+    def to_metadata(self) -> dict[str, object]: ...
+
+
 def run_proof_bench_judge_evolution(
     run_config: ProofBenchJudgeEvolutionRunConfig | None = None,
     *,
@@ -283,6 +297,43 @@ def run_proof_bench_judge_evolutionary_pipeline(
 ) -> tuple[FuzzAttempt, ...]:
     """Run natural-language evolutionary fuzzing on correct ProofBenchJudge proofs."""
 
+    examples = load_correct_proof_bench_judge_examples(root, limit=limit)
+    active_config = config or EvolutionConfig(
+        storage_dir="logs/proof_fuzzer_evolution/proof_bench_judge",
+    )
+    return run_natural_language_proof_examples_evolutionary_pipeline(
+        examples=examples,
+        llm=llm,
+        config=active_config,
+        store=store,
+        objective_prefix=objective_prefix,
+        max_workers=max_workers,
+        attempts_per_example=attempts_per_example,
+        num_attempts=num_attempts,
+        sample_offset=sample_offset,
+        sample_without_replacement=sample_without_replacement,
+        dataset_name="ProofBenchJudge",
+        proof_source="metadata.original_data.proof",
+    )
+
+
+def run_natural_language_proof_examples_evolutionary_pipeline(
+    *,
+    examples: tuple[NaturalLanguageProofExample, ...],
+    llm: LLMClient,
+    config: EvolutionConfig | None = None,
+    store: ProofFuzzAttemptStore | None = None,
+    objective_prefix: str = "",
+    max_workers: int = 1,
+    attempts_per_example: int = 1,
+    num_attempts: int | None = None,
+    sample_offset: int = 0,
+    sample_without_replacement: bool = False,
+    dataset_name: str = "natural-language",
+    proof_source: str = "source file",
+) -> tuple[FuzzAttempt, ...]:
+    """Run the evolutionary loop over already-loaded natural-language proofs."""
+
     if max_workers < 1:
         raise ValueError("max_workers must be at least 1.")
     if attempts_per_example < 1:
@@ -293,10 +344,9 @@ def run_proof_bench_judge_evolutionary_pipeline(
         raise ValueError("sample_offset must be non-negative.")
 
     active_config = config or EvolutionConfig(
-        storage_dir="logs/proof_fuzzer_evolution/proof_bench_judge",
+        storage_dir="logs/proof_fuzzer_evolution/natural_language",
     )
     active_store = store or ProofFuzzAttemptStore(active_config.storage_dir)
-    examples = load_correct_proof_bench_judge_examples(root, limit=limit)
     work_items = _sample_work_items(
         examples,
         attempts_per_example=attempts_per_example,
@@ -316,6 +366,8 @@ def run_proof_bench_judge_evolutionary_pipeline(
                 objective_prefix=objective_prefix,
                 attempt_index=attempt_index,
                 sample_index=index,
+                dataset_name=dataset_name,
+                proof_source=proof_source,
             )
             attempts.append(attempt)
             if usage_limit_reached(attempt):
@@ -341,6 +393,8 @@ def run_proof_bench_judge_evolutionary_pipeline(
                 objective_prefix=objective_prefix,
                 attempt_index=attempt_index,
                 sample_index=index,
+                dataset_name=dataset_name,
+                proof_source=proof_source,
             )
             futures[future] = index
             return True
@@ -443,7 +497,7 @@ def write_proof_bench_judge_evolution_run_config(
 
 
 def _run_one_proof_bench_judge_attempt(
-    example: ProofBenchJudgeExample,
+    example: NaturalLanguageProofExample,
     *,
     llm: LLMClient,
     store: ProofFuzzAttemptStore,
@@ -451,6 +505,8 @@ def _run_one_proof_bench_judge_attempt(
     objective_prefix: str = "",
     attempt_index: int = 0,
     sample_index: int = 0,
+    dataset_name: str = "ProofBenchJudge",
+    proof_source: str = "metadata.original_data.proof",
 ) -> FuzzAttempt:
     proof_text = truncate_text_head_tail(example.proof, config.max_proof_chars)
     fuzzer = NaturalLanguageProofFuzzerLLMInterface(proof_text, llm)
@@ -468,7 +524,7 @@ def _run_one_proof_bench_judge_attempt(
         **example.to_metadata(),
         "example_attempt_index": attempt_index,
         "sample_index": sample_index,
-        "proof_source": "metadata.original_data.proof",
+        "proof_source": proof_source,
         "fuzzer_kind": FUZZER_KIND_NATURAL_LANGUAGE,
         "proof_chars_original": len(example.proof),
         "proof_chars_used": len(proof_text),
@@ -479,22 +535,24 @@ def _run_one_proof_bench_judge_attempt(
             example,
             objective_prefix=objective_prefix,
             max_problem_chars=config.max_problem_chars,
+            dataset_name=dataset_name,
         ),
         metadata=metadata,
     )
 
 
 def _format_objective(
-    example: ProofBenchJudgeExample,
+    example: NaturalLanguageProofExample,
     *,
     objective_prefix: str = "",
     max_problem_chars: int | None = None,
+    dataset_name: str = "ProofBenchJudge",
 ) -> str:
     prefix = objective_prefix.strip()
     pieces = []
     if prefix:
         pieces.append(prefix)
-    pieces.append("Fuzz this correct ProofBenchJudge proof.")
+    pieces.append(f"Fuzz this correct {dataset_name} proof.")
     if example.problem:
         problem = (
             truncate_text_head_tail(example.problem, max_problem_chars)
@@ -506,14 +564,14 @@ def _format_objective(
 
 
 def _sample_work_items(
-    examples: tuple[ProofBenchJudgeExample, ...],
+    examples: tuple[NaturalLanguageProofExample, ...],
     *,
     attempts_per_example: int,
     num_attempts: int | None,
     sample_offset: int,
     sample_without_replacement: bool,
     random_seed: int | None,
-) -> list[tuple[int, ProofBenchJudgeExample, int]]:
+) -> list[tuple[int, NaturalLanguageProofExample, int]]:
     if not examples:
         return []
     if num_attempts is None:
