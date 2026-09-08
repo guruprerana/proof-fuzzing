@@ -15,6 +15,9 @@ from src.proof_fuzzer import (
     CodexProofFuzzerClient,
     ProofBenchJudgeEvolutionRunConfig,
 )
+from src.proof_fuzzer.proof_bench_judge import (
+    resolve_proof_bench_judge_evolution_storage_dir,
+)
 
 
 class EvolutionRunResult(Protocol):
@@ -51,16 +54,20 @@ def run_codex_evolution_cli(
 ) -> None:
     args = _parse_args(description, defaults)
     run_name = args.run_name or _default_run_name(args, defaults)
+    resolved_storage_dir = resolve_proof_bench_judge_evolution_storage_dir(
+        args.storage_dir,
+        run_name=run_name,
+    )
     ephemeral_threads = not args.persist_codex_threads
     llm = CodexProofFuzzerClient(
         model=args.model,
         reasoning_effort=args.reasoning_effort,
         sandbox=args.sandbox,
-        cwd=str(Path(__file__).resolve().parents[1]),
+        workspace_root=resolved_storage_dir / "codex_workspace",
         approval_mode=args.approval_mode,
         service_tier=args.service_tier,
         ephemeral_threads=ephemeral_threads,
-        fresh_thread_per_call=not args.reuse_thread,
+        fresh_thread_per_call=True,
     )
     try:
         config_values = vars(args)
@@ -121,16 +128,17 @@ def _parse_args(
     )
     parser.add_argument(
         "--sandbox",
-        choices=("read_only", "workspace_write", "full_access"),
+        choices=("read_only",),
         default="read_only",
+        help="Dedicated Codex workspaces require the read-only sandbox.",
     )
     parser.add_argument(
         "--approval-mode",
-        choices=("deny_all", "auto_review"),
+        choices=("deny_all",),
         default="deny_all",
+        help="Dedicated Codex workspaces deny all approval escalation.",
     )
     parser.add_argument("--service-tier", default=None)
-    parser.add_argument("--reuse-thread", action="store_true")
     parser.add_argument(
         "--persist-codex-threads",
         action="store_true",

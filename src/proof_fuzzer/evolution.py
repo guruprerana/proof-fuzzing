@@ -70,6 +70,7 @@ class EvolutionConfig:
     target_judge_samples: int = 1
     target_judge_success_policy: str = "all"
     judge_error_detection_check: bool = False
+    run_original_error_control: bool = False
     max_previous_failed_attempts_in_prompt: int = 3
     max_previous_failed_attempt_chars: int = 4_000
     max_previous_successful_attempts_in_prompt: int = 3
@@ -146,6 +147,8 @@ class JudgeResult:
     confidence: float = 0.0
     rationale: str = ""
     detected_flaw: str = ""
+    detected_errors: tuple[dict[str, object], ...] = ()
+    response_kind: str = "verdict"
     raw_response: str = ""
 
     def __post_init__(self) -> None:
@@ -155,6 +158,11 @@ class JudgeResult:
             raise ValueError(f"Unknown judge verdict {self.verdict!r}; expected one of: {allowed}")
         object.__setattr__(self, "verdict", normalized)
         object.__setattr__(self, "confidence", float(self.confidence))
+        object.__setattr__(
+            self,
+            "detected_errors",
+            tuple(dict(error) for error in self.detected_errors),
+        )
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -162,6 +170,8 @@ class JudgeResult:
             "confidence": self.confidence,
             "rationale": self.rationale,
             "detected_flaw": self.detected_flaw,
+            "detected_errors": [dict(error) for error in self.detected_errors],
+            "response_kind": self.response_kind,
             "raw_response": self.raw_response,
         }
 
@@ -172,6 +182,8 @@ class JudgeResult:
             confidence=float(data.get("confidence", 0.0) or 0.0),
             rationale=str(data.get("rationale", "")),
             detected_flaw=str(data.get("detected_flaw", "")),
+            detected_errors=_error_inventory(data.get("detected_errors", ())),
+            response_kind=str(data.get("response_kind") or "verdict"),
             raw_response=str(data.get("raw_response", "")),
         )
 
@@ -527,6 +539,12 @@ Submitted mutated proof:
 Use these verdict rules:
 - Return "incorrect" only when the mutated proof contains an unrepaired mathematical error, missing
   case, invalid inference, or unsupported dependency that is actually needed for the proof as written.
+- For an intentionally incorrect mutation, return "incorrect" only when the edit introduces one
+  independent root-cause error and remains minimally exposed. Multiple edits are allowed only when
+  they consistently propagate that one semantic change; do not penalize companion edits needed to
+  keep dependent reasoning natural and internally coherent. Return "uncertain" when the mutation is
+  mathematically wrong but also introduces a second independent defect, an avoidable contradiction,
+  malformed notation, or repeated conspicuous clues that make the planted error non-minimal.
 - Return "correct" when the mutation rationale describes a suspicious step but the proof still has a
   valid route to the conclusion, the omitted case is impossible, or a later/earlier argument repairs
   the gap.
@@ -563,8 +581,8 @@ Schema:
 """
 
 
-class BlindProofCorrectnessJudge:
-    """Uses an LLM as the target judge that only sees the problem and submitted proof."""
+class BlindProofErrorFinder:
+    """Uses an LLM to inventory errors without revealing the planted mutation."""
 
     def __init__(self, llm: LLMClient):
         self.llm = llm
@@ -594,53 +612,62 @@ class BlindProofCorrectnessJudge:
     ) -> str:
         del fuzzer_kind
         problem_block = problem_text.strip() or "not specified"
-        return f"""You are an olympiad competition coordinator grading this proof.
+        return f"""You are reviewing a mathematical reasoning trace for errors.
 
-COMPETITION GRADING STANDARDS:
-A proof receives 7 points (FULL MARKS) if and only if:
-1. The mathematical argument is complete: all essential cases and dependencies are handled.
-2. Every necessary step is mathematically correct: no false claims, invalid inferences, or circular reasoning.
-3. The final answer or conclusion matches exactly what the problem asks.
+ERROR-FINDING TASK:
+Read the entire trace closely and report every independent, consequential root-cause mathematical
+or logical error you can find. Check all essential cases and dependencies, false claims, invalid or
+circular inferences, hidden assumptions, algebraic or computational mistakes,
+sign/indexing/quantifier errors, unsupported changes of scope, and conclusions stronger than the
+reasoning establishes.
 
-Common reasons for deductions (score less than 7 means the proof is incorrect):
-- Missing a key case or sub-case.
-- Unjustified leap, hidden assumption, or dependency gap.
-- Algebraic, computational, sign, indexing, or quantifier error that affects the argument.
-- Proving only a weaker statement than requested.
-- Wrong final answer, or a correct answer reached through an invalid indispensable step.
-
-GRADING TASK:
-1. First estimate the score from 0 to 7 and explain the decisive reason.
-2. If the score is 7, return verdict "correct".
-3. If the score is less than 7, return verdict "incorrect".
-4. Use verdict "uncertain" only when the proof text is too incomplete or ambiguous to grade reliably.
+Do not assign a score and do not return a binary correct/incorrect verdict. Your job is to
+produce an error inventory. Include an item only when you can state a concrete, material concern
+and explain how it breaks or materially weakens the reasoning. Group multiple downstream symptoms,
+repeated occurrences, and consequences of the same root cause into one item. Do not list generic
+requests for more detail, optional improvements, style concerns, extraction/formatting artifacts,
+or broad completeness complaints unless they invalidate a required inference or the stated
+conclusion. If you find no specific consequential error, return an empty list. Do not assume the
+trace contains an error.
 
 PROBLEM:
 ```text
 {problem_block}
 ```
 
-PROOF TO GRADE:
+REASONING TRACE TO REVIEW:
 ```text
 {proof_text}
 ```
 
-Return exactly one JSON object with no prose outside JSON. Include the estimated score in the
-rationale, for example "Score: 5/7. ...".
+Return exactly one JSON object with no prose outside JSON. Preserve genuinely independent root
+causes as distinct items, but do not split one root cause into several symptoms.
 Schema:
 ```json
 {{
-  "verdict": "correct | incorrect | uncertain",
-  "confidence": 0.0,
-  "rationale": "brief justification",
-  "detected_flaw": "empty if no flaw was detected"
+  "errors": [
+    {{
+      "location": "step, equation, quotation, or other precise locator",
+      "root_cause": "one-sentence statement of the independent root error",
+      "description": "specific mathematical or logical error",
+      "consequence": "why this matters downstream",
+      "severity": "major | critical",
+      "confidence": 0.0
+    }}
+  ],
+  "review_summary": "brief description of what was checked"
 }}
 ```
 """
 
 
-class JudgeErrorDetectionChecker:
-    """Checks whether blind judge reports revealed the planted mutation."""
+# Backward-compatible import name for callers created before blind reviews became
+# error inventories. The class no longer asks for a correctness verdict.
+BlindProofCorrectnessJudge = BlindProofErrorFinder
+
+
+class IntroducedErrorMatcher:
+    """Checks whether blind error inventories identified the planted mutation."""
 
     def __init__(self, llm: LLMClient):
         self.llm = llm
@@ -650,14 +677,19 @@ class JudgeErrorDetectionChecker:
         *,
         mutation_instructions: FuzzerMutationInstructions,
         judge_results: Iterable[JudgeResult],
+        original_judge_results: Iterable[JudgeResult] = (),
         original_proof_text: str = "",
         mutated_proof_text: str = "",
     ) -> str:
         judge_payload = [result.to_dict() for result in judge_results]
-        return f"""You are auditing blind proof-judge reports for a proof-fuzzing run.
+        original_judge_payload = [
+            result.to_dict() for result in original_judge_results
+        ]
+        return f"""You are auditing blind error-finder reports for a proof-fuzzing run.
 
-The blind judges did not see the original proof or mutation instructions. You can see them now.
-Decide whether any blind judge report identified the actual planted mutation/error, even if its final verdict was "correct".
+The blind error finders saw only the problem and submitted reasoning trace. They did not see the
+original trace or mutation instructions. You can see them now. Decide whether any reported error
+explicitly or uniquely identified the actual planted mutation.
 
 Original proof:
 ```text
@@ -674,19 +706,34 @@ Mutated proof:
 {mutated_proof_text}
 ```
 
-Blind judge reports:
+Blind error-finder reports:
 ```json
 {json.dumps(judge_payload, indent=2, sort_keys=True)}
 ```
 
-Count a report as matching only if it points to the same substantive mathematical error or downstream inconsistency introduced by the mutation. Do not count generic caution, unrelated doubts, or a wrong diagnosis.
+Control error-finder reports on the unmodified original proof:
+```json
+{json.dumps(original_judge_payload, indent=2, sort_keys=True)}
+```
+
+Evaluate the individual entries in each mutated-proof report's `detected_errors` list. Count the
+introduced error as found only when an entry explicitly identifies the changed premise, fact,
+quantifier, calculation, or inference, or states a logically equivalent and uniquely identifying
+failure with the correct causal connection. A generic downstream complaint, topic overlap,
+generic caution, broad incompleteness claim, unrelated doubt, or wrong diagnosis is not a match.
+Do not count an issue that was already present in the original proof. Use the control reports as
+evidence of pre-existing issues, and verify against the original and mutated text yourself.
+
+There is no partial-credit detection: borderline or merely suggestive overlap is a miss. Set
+`introduced_error_found` to true if and only if `match_level` is `exact`.
 Return exactly one JSON object with no prose outside JSON.
 Schema:
 ```json
 {{
-  "any_judge_reported_correct_error": false,
-  "matching_judge_indices": [0],
-  "match_level": "none | partial | exact",
+  "introduced_error_found": false,
+  "matching_report_indices": [0],
+  "matching_error_indices": [{{"report_index": 0, "error_index": 1}}],
+  "match_level": "none | exact",
   "rationale": "brief justification"
 }}
 ```
@@ -697,6 +744,7 @@ Schema:
         *,
         mutation_instructions: FuzzerMutationInstructions,
         judge_results: Iterable[JudgeResult],
+        original_judge_results: Iterable[JudgeResult] = (),
         original_proof_text: str = "",
         mutated_proof_text: str = "",
     ) -> dict[str, object]:
@@ -704,6 +752,7 @@ Schema:
             self.prompt(
                 mutation_instructions=mutation_instructions,
                 judge_results=judge_results,
+                original_judge_results=original_judge_results,
                 original_proof_text=original_proof_text,
                 mutated_proof_text=mutated_proof_text,
             )
@@ -711,6 +760,10 @@ Schema:
         result = parse_judge_error_detection_result(response)
         result["raw_response"] = response
         return result
+
+
+# Backward-compatible name for existing callers and stored configuration.
+JudgeErrorDetectionChecker = IntroducedErrorMatcher
 
 
 class SuccessfulMutationNoveltyChecker:
@@ -873,12 +926,13 @@ class EvolutionaryProofFuzzer:
         fuzzer: ProofFuzzerLLMInterfaceBase,
         *,
         store: ProofFuzzAttemptStore | None = None,
-        judge: BlindProofCorrectnessJudge | None = None,
+        judge: BlindProofErrorFinder | None = None,
         mutation_checker: ProofFuzzJudge | None = None,
-        judge_error_checker: JudgeErrorDetectionChecker | None = None,
+        judge_error_checker: IntroducedErrorMatcher | None = None,
         successful_mutation_novelty_checker: SuccessfulMutationNoveltyChecker | None = None,
         evolver: StrategyEvolver | None = None,
         config: EvolutionConfig | None = None,
+        fixed_strategies: Iterable[FuzzStrategy] | None = None,
     ):
         self.fuzzer = fuzzer
         self.config = config or EvolutionConfig()
@@ -886,15 +940,15 @@ class EvolutionaryProofFuzzer:
         if judge is None:
             if fuzzer.llm is None:
                 raise ValueError("A judge or fuzzer LLM client is required for evolutionary fuzzing.")
-            judge = BlindProofCorrectnessJudge(fuzzer.llm)
+            judge = BlindProofErrorFinder(fuzzer.llm)
         if mutation_checker is None:
             if fuzzer.llm is None:
                 raise ValueError("A mutation checker or fuzzer LLM client is required for evolutionary fuzzing.")
             mutation_checker = ProofFuzzJudge(fuzzer.llm)
         if judge_error_checker is None:
             if fuzzer.llm is None:
-                raise ValueError("A judge-error checker or fuzzer LLM client is required for evolutionary fuzzing.")
-            judge_error_checker = JudgeErrorDetectionChecker(fuzzer.llm)
+                raise ValueError("An introduced-error matcher or fuzzer LLM client is required for evolutionary fuzzing.")
+            judge_error_checker = IntroducedErrorMatcher(fuzzer.llm)
         if successful_mutation_novelty_checker is None:
             if fuzzer.llm is None:
                 raise ValueError("A novelty checker or fuzzer LLM client is required for evolutionary fuzzing.")
@@ -908,6 +962,9 @@ class EvolutionaryProofFuzzer:
         self.judge_error_checker = judge_error_checker
         self.successful_mutation_novelty_checker = successful_mutation_novelty_checker
         self.evolver = evolver
+        self.fixed_strategies = (
+            tuple(fixed_strategies) if fixed_strategies is not None else None
+        )
         self.rng = random.Random(self.config.random_seed)
         self.fuzzer_kind = infer_fuzzer_kind(fuzzer)
         if self.config.seed_mined_strategies:
@@ -968,7 +1025,11 @@ class EvolutionaryProofFuzzer:
             metadata=base_metadata,
         )
         base_metadata["strategy_selection"] = _strategy_selection_metadata(
-            mode=self.config.strategy_selection_mode,
+            mode=(
+                "fixed"
+                if self.fixed_strategies is not None
+                else self.config.strategy_selection_mode
+            ),
             strategies=strategies,
         )
         strategy_guidance = tuple(f"{strategy.title}: {strategy.guidance}" for strategy in strategies)
@@ -1111,11 +1172,46 @@ class EvolutionaryProofFuzzer:
                 metadata=base_metadata,
             )
             target_judge_results: list[JudgeResult] = []
+            original_control_judge_results: list[JudgeResult] = []
             judge_error_detection_result: dict[str, object] | None = None
             if mutation_check_result is not None and _mutation_check_allows_target_judge(
                 instructions.maintain_correctness,
                 mutation_check_result,
             ):
+                if (
+                    self.config.run_original_error_control
+                    and not instructions.maintain_correctness
+                ):
+                    for sample_index in range(self.config.target_judge_samples):
+                        call_kind = (
+                            "original_error_control"
+                            if self.config.target_judge_samples == 1
+                            else f"original_error_control_{sample_index + 1}"
+                        )
+                        original_control_judge_results.append(
+                            self._with_retries(
+                                lambda call_kind=call_kind, sample_index=sample_index: self._run_blind_judge(
+                                    call_kind=call_kind,
+                                    problem_text=problem_text,
+                                    proof_text=original_text,
+                                    fuzzer_kind=self.fuzzer_kind,
+                                    metadata={
+                                        "attempt_stage": "original_error_control",
+                                        "target_judge_sample_index": sample_index,
+                                        "target_judge_samples": self.config.target_judge_samples,
+                                    },
+                                ),
+                                stage=call_kind,
+                                check_truncation=True,
+                            )
+                        )
+                    base_metadata["original_error_control_reports"] = [
+                        result.to_dict()
+                        for result in original_control_judge_results
+                    ]
+                else:
+                    base_metadata["original_error_control_reports"] = []
+                    base_metadata["original_error_control_skipped"] = True
                 for sample_index in range(self.config.target_judge_samples):
                     call_kind = (
                         "target_judge"
@@ -1139,18 +1235,21 @@ class EvolutionaryProofFuzzer:
                     )
                     target_judge_results.append(judge_result_sample)
                 judge_result = target_judge_results[0]
-                base_metadata["target_judge_results"] = [
-                    result.to_dict() for result in target_judge_results
-                ]
+                target_reports = [result.to_dict() for result in target_judge_results]
+                base_metadata["target_error_reports"] = target_reports
+                # Compatibility alias for older artifact readers.
+                base_metadata["target_judge_results"] = target_reports
                 base_metadata["target_judge_success_policy"] = self.config.target_judge_success_policy
                 judge_error_detection_result = self._run_judge_error_detection_check(
                     original_proof_text=original_text,
                     mutation_instructions=instructions,
                     mutated_proof_text=mutated_text,
                     judge_results=tuple(target_judge_results),
+                    original_judge_results=tuple(original_control_judge_results),
                     metadata=base_metadata,
                 )
                 if judge_error_detection_result is not None:
+                    base_metadata["introduced_error_match"] = judge_error_detection_result
                     base_metadata["judge_error_detection_check"] = judge_error_detection_result
             else:
                 expected_verdict = "correct" if instructions.maintain_correctness else "incorrect"
@@ -1164,8 +1263,11 @@ class EvolutionaryProofFuzzer:
                     "mutation_check_verdict_"
                     f"{actual_verdict}_expected_{expected_verdict}"
                 )
+                base_metadata["target_error_reports"] = []
                 base_metadata["target_judge_results"] = []
                 base_metadata["target_judge_success_policy"] = self.config.target_judge_success_policy
+                base_metadata["original_error_control_reports"] = []
+                base_metadata["original_error_control_skipped"] = True
                 judge_result = JudgeResult(
                     verdict="uncertain",
                     confidence=1.0,
@@ -1298,9 +1400,14 @@ class EvolutionaryProofFuzzer:
         mutation_instructions: FuzzerMutationInstructions,
         mutated_proof_text: str,
         judge_results: tuple[JudgeResult, ...],
+        original_judge_results: tuple[JudgeResult, ...],
         metadata: dict[str, object],
     ) -> dict[str, object] | None:
-        if not self.config.judge_error_detection_check:
+        inventory_response = any(
+            result.response_kind == "error_inventory"
+            for result in judge_results
+        )
+        if not self.config.judge_error_detection_check and not inventory_response:
             return None
         if mutation_instructions.maintain_correctness:
             return None
@@ -1311,6 +1418,7 @@ class EvolutionaryProofFuzzer:
                     mutation_instructions=mutation_instructions,
                     mutated_proof_text=mutated_proof_text,
                     judge_results=judge_results,
+                    original_judge_results=original_judge_results,
                 ),
                 stage="judge_error_detection_check",
                 check_truncation=True,
@@ -1318,8 +1426,11 @@ class EvolutionaryProofFuzzer:
         except Exception as exc:
             metadata["judge_error_detection_check_error"] = repr(exc)
             return {
+                "introduced_error_found": False,
                 "any_judge_reported_correct_error": False,
+                "matching_report_indices": [],
                 "matching_judge_indices": [],
+                "matching_error_indices": [],
                 "match_level": "unknown",
                 "rationale": f"judge-error detection check failed: {exc!r}",
                 "check_failed": True,
@@ -1332,17 +1443,19 @@ class EvolutionaryProofFuzzer:
         mutation_instructions: FuzzerMutationInstructions,
         mutated_proof_text: str,
         judge_results: tuple[JudgeResult, ...],
+        original_judge_results: tuple[JudgeResult, ...],
     ) -> dict[str, object]:
         prompt = self.judge_error_checker.prompt(
             original_proof_text=original_proof_text,
             mutation_instructions=mutation_instructions,
             mutated_proof_text=mutated_proof_text,
             judge_results=judge_results,
+            original_judge_results=original_judge_results,
         )
         response = self.fuzzer._complete_with_logging(
             prompt,
-            call_kind="judge_error_detection_check",
-            metadata={"attempt_stage": "judge_error_detection_check"},
+            call_kind="introduced_error_match",
+            metadata={"attempt_stage": "introduced_error_match"},
         )
         result = parse_judge_error_detection_result(response)
         result["raw_response"] = response
@@ -1356,9 +1469,23 @@ class EvolutionaryProofFuzzer:
         target_judge_results = attempt.metadata.get("target_judge_results")
         if isinstance(target_judge_results, list):
             _write_json_file(trace_dir / "target_judge_results.json", target_judge_results)
+        target_error_reports = attempt.metadata.get("target_error_reports")
+        if isinstance(target_error_reports, list):
+            _write_json_file(trace_dir / "target_error_reports.json", target_error_reports)
+        original_error_control_reports = attempt.metadata.get(
+            "original_error_control_reports"
+        )
+        if isinstance(original_error_control_reports, list):
+            _write_json_file(
+                trace_dir / "original_error_control_reports.json",
+                original_error_control_reports,
+            )
         judge_error_detection_check = attempt.metadata.get("judge_error_detection_check")
         if isinstance(judge_error_detection_check, dict):
             _write_json_file(trace_dir / "judge_error_detection_check.json", judge_error_detection_check)
+        introduced_error_match = attempt.metadata.get("introduced_error_match")
+        if isinstance(introduced_error_match, dict):
+            _write_json_file(trace_dir / "introduced_error_match.json", introduced_error_match)
         _write_text_file(trace_dir / "mutations_produced.txt", _format_mutations_text(attempt.mutation_instructions))
         _write_text_file(trace_dir / "original_proof.txt", attempt.original_proof_text)
         _write_text_file(trace_dir / "mutated_proof.txt", attempt.mutated_proof_text)
@@ -1644,6 +1771,8 @@ class EvolutionaryProofFuzzer:
         proof_text: str = "",
         metadata: dict[str, object] | None = None,
     ) -> tuple[FuzzStrategy, ...]:
+        if self.fixed_strategies is not None:
+            return self.fixed_strategies
         if self.config.strategy_injection_probability <= 0:
             return ()
         if self.rng.random() > self.config.strategy_injection_probability:
@@ -1772,6 +1901,29 @@ def load_mined_strategies(path: str | Path | None = None) -> tuple[FuzzStrategy,
 
 def parse_judge_result(text: str) -> JudgeResult:
     data = _load_json_object(text)
+    if "errors" in data and "verdict" not in data:
+        errors = _error_inventory(data.get("errors"))
+        descriptions = [
+            str(error.get("description", "")).strip()
+            for error in errors
+            if str(error.get("description", "")).strip()
+        ]
+        confidences = [
+            float(error.get("confidence", 0.0) or 0.0)
+            for error in errors
+            if isinstance(error.get("confidence", 0.0), (int, float))
+        ]
+        # `verdict` is a compatibility projection for existing artifacts only. Attack
+        # success is decided by the separate introduced-error matcher below.
+        return JudgeResult(
+            verdict="incorrect" if errors else "correct",
+            confidence=max(confidences, default=0.0),
+            rationale=str(data.get("review_summary", "")),
+            detected_flaw="; ".join(descriptions),
+            detected_errors=errors,
+            response_kind="error_inventory",
+            raw_response=text,
+        )
     return JudgeResult(
         verdict=str(data.get("verdict", "")),
         confidence=float(data.get("confidence", 0.0) or 0.0),
@@ -1783,7 +1935,16 @@ def parse_judge_result(text: str) -> JudgeResult:
 
 def parse_judge_error_detection_result(text: str) -> dict[str, object]:
     data = _load_json_object(text)
-    raw_indices = data.get("matching_judge_indices", ())
+    reported_found = bool(
+        data.get(
+            "introduced_error_found",
+            data.get("any_judge_reported_correct_error", False),
+        )
+    )
+    raw_indices = data.get(
+        "matching_report_indices",
+        data.get("matching_judge_indices", ()),
+    )
     matching_indices: list[int] = []
     if isinstance(raw_indices, list):
         for index in raw_indices:
@@ -1793,11 +1954,31 @@ def parse_judge_error_detection_result(text: str) -> dict[str, object]:
                 continue
     match_level = str(data.get("match_level", "none")).strip().lower()
     if match_level not in {"none", "partial", "exact"}:
-        match_level = "partial" if bool(data.get("any_judge_reported_correct_error")) else "none"
+        match_level = "none"
+    # Partial or suggestive overlap is deliberately treated as a miss. This also
+    # normalizes older matcher responses that used the legacy `partial` level.
+    introduced_error_found = reported_found and match_level == "exact"
+    raw_error_indices = data.get("matching_error_indices", ())
+    matching_error_indices = [
+        {
+            "report_index": int(item.get("report_index", 0)),
+            "error_index": int(item.get("error_index", 0)),
+        }
+        for item in raw_error_indices
+        if isinstance(item, dict)
+        and str(item.get("report_index", "")).lstrip("-").isdigit()
+        and str(item.get("error_index", "")).lstrip("-").isdigit()
+    ] if isinstance(raw_error_indices, list) else []
     return {
-        "any_judge_reported_correct_error": bool(data.get("any_judge_reported_correct_error", False)),
+        "introduced_error_found": introduced_error_found,
+        # Retain the old key so existing analysis code can read new runs.
+        "any_judge_reported_correct_error": introduced_error_found,
+        "matching_report_indices": matching_indices,
         "matching_judge_indices": matching_indices,
+        "matching_error_indices": matching_error_indices,
         "match_level": match_level,
+        "matcher_policy": "exact_only",
+        "reported_introduced_error_found": reported_found,
         "rationale": str(data.get("rationale", "")),
     }
 
@@ -1878,6 +2059,19 @@ def fuzz_attempt_succeeded(
             "Unknown target judge success policy "
             f"{target_judge_success_policy!r}; expected one of: {allowed}"
         )
+    if not maintain_correctness and judge_error_detection_result is not None:
+        return not (
+            bool(judge_error_detection_result.get("check_failed"))
+            or bool(
+                judge_error_detection_result.get(
+                    "introduced_error_found",
+                    judge_error_detection_result.get(
+                        "any_judge_reported_correct_error",
+                        False,
+                    ),
+                )
+            )
+        )
     judge_results = tuple(target_judge_results or (judge_result,))
     if not judge_results:
         judge_results = (judge_result,)
@@ -1892,15 +2086,6 @@ def fuzz_attempt_succeeded(
     else:
         accepted_by_target = any(per_judge_success)
     if not accepted_by_target:
-        return False
-    if (
-        not maintain_correctness
-        and judge_error_detection_result is not None
-        and (
-            bool(judge_error_detection_result.get("check_failed"))
-            or bool(judge_error_detection_result.get("any_judge_reported_correct_error"))
-        )
-    ):
         return False
     return True
 
@@ -2268,19 +2453,40 @@ def _summarize_failed_attempt_for_prompt(attempt: FuzzAttempt, *, index: int) ->
     mutations = _mutation_summaries_for_prompt(attempt.mutation_instructions, limit=3)
 
     judge_parts = []
-    target_judge_results = attempt.metadata.get("target_judge_results")
+    target_judge_results = attempt.metadata.get(
+        "target_error_reports",
+        attempt.metadata.get("target_judge_results"),
+    )
     if isinstance(target_judge_results, list) and target_judge_results:
-        verdicts = [
-            str(_dict_value(result).get("verdict", "")).strip()
+        inventory_reports = [
+            _dict_value(result)
             for result in target_judge_results
+            if _dict_value(result).get("response_kind") == "error_inventory"
         ]
-        verdicts_text = ", ".join(verdict for verdict in verdicts if verdict)
-        if verdicts_text:
-            judge_parts.append(f"target judge verdicts: {verdicts_text}")
+        if inventory_reports:
+            inventories = [result.get("detected_errors", ()) for result in inventory_reports]
+            counts = [len(value) if isinstance(value, list) else 0 for value in inventories]
+            judge_parts.append(
+                "blind error-finder report counts: "
+                + ", ".join(str(count) for count in counts)
+            )
+        else:
+            verdicts = [
+                str(_dict_value(result).get("verdict", "")).strip()
+                for result in target_judge_results
+            ]
+            verdicts_text = ", ".join(verdict for verdict in verdicts if verdict)
+            if verdicts_text:
+                judge_parts.append(f"target judge verdicts: {verdicts_text}")
     elif attempt.judge_result is not None:
         judge_parts.append(f"target judge verdict: {attempt.judge_result.verdict}")
     if attempt.judge_result is not None and attempt.judge_result.detected_flaw:
-        judge_parts.append(f"target judge detected flaw: {attempt.judge_result.detected_flaw}")
+        label = (
+            "blind error-finder reported"
+            if attempt.judge_result.response_kind == "error_inventory"
+            else "target judge detected flaw"
+        )
+        judge_parts.append(f"{label}: {attempt.judge_result.detected_flaw}")
 
     mutation_check = attempt.mutation_check_result
     if mutation_check is not None:
@@ -2288,12 +2494,18 @@ def _summarize_failed_attempt_for_prompt(attempt: FuzzAttempt, *, index: int) ->
         if mutation_check.detected_flaw:
             judge_parts.append(f"mutation-check flaw: {mutation_check.detected_flaw}")
 
-    reveal_check = attempt.metadata.get("judge_error_detection_check")
+    reveal_check = attempt.metadata.get(
+        "introduced_error_match",
+        attempt.metadata.get("judge_error_detection_check"),
+    )
     if isinstance(reveal_check, dict):
-        if reveal_check.get("any_judge_reported_correct_error"):
-            judge_parts.append("failure reason: a blind judge report identified the planted error")
+        if reveal_check.get(
+            "introduced_error_found",
+            reveal_check.get("any_judge_reported_correct_error"),
+        ):
+            judge_parts.append("failure reason: a blind error-finder report identified the planted error")
         elif reveal_check.get("check_failed"):
-            judge_parts.append("failure reason: judge-error reveal check failed")
+            judge_parts.append("failure reason: introduced-error matcher failed")
     if not judge_parts:
         judge_parts.append("failure reason: did not satisfy the fuzzing success criteria")
 
@@ -2630,6 +2842,26 @@ def _extract_json_candidate(text: str) -> str:
 
 def _dict_value(value: object) -> dict[str, object]:
     return value if isinstance(value, dict) else {}
+
+
+def _error_inventory(value: object) -> tuple[dict[str, object], ...]:
+    if not isinstance(value, (list, tuple)):
+        return ()
+    errors: list[dict[str, object]] = []
+    for item in value:
+        if not isinstance(item, dict):
+            continue
+        errors.append(
+            {
+                "location": str(item.get("location", "")),
+                "root_cause": str(item.get("root_cause", "")),
+                "description": str(item.get("description", "")),
+                "consequence": str(item.get("consequence", "")),
+                "severity": str(item.get("severity", "")),
+                "confidence": float(item.get("confidence", 0.0) or 0.0),
+            }
+        )
+    return tuple(errors)
 
 
 def _parse_optional_bool(value: object) -> bool | None:

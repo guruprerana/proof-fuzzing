@@ -1,3 +1,6 @@
+import json
+from pathlib import Path
+from tempfile import TemporaryDirectory
 import unittest
 
 from src.proof_fuzzer.codex_client import CodexProofFuzzerClient
@@ -128,6 +131,125 @@ class CodexClientTest(unittest.TestCase):
         client.close()
 
         self.assertTrue(context.exited)
+
+    def test_isolated_workspace_contains_prompt_response_and_scoped_thread(self) -> None:
+        with TemporaryDirectory() as tmp_dir:
+            workspace_root = Path(tmp_dir) / "codex_workspace"
+            client = CodexProofFuzzerClient(
+                workspace_root=workspace_root,
+                developer_instructions="Return JSON only.",
+                codex_factory=FakeCodexContext,
+                sdk=FakeSDK,
+            )
+
+            self.assertEqual(client.complete("Proof text"), "final answer")
+
+            workspace = workspace_root / "call_000001"
+            context = FakeCodexContext.last_instance
+            self.assertEqual(context.config.cwd, str(workspace))
+            self.assertEqual(context.thread_start_kwargs["cwd"], str(workspace))
+            self.assertEqual(context.thread_start_kwargs["sandbox"], "read-only")
+            self.assertEqual(context.thread.run_kwargs["sandbox"], "read-only")
+            thread_config = context.thread_start_kwargs["config"]
+            self.assertEqual(thread_config["agents"]["enabled"], False)
+            self.assertEqual(thread_config["web_search"], "disabled")
+            self.assertEqual((workspace / "prompt.txt").read_text(encoding="utf-8"), "Proof text")
+            self.assertNotIn("Proof text", context.thread.prompt)
+            self.assertIn("prompt.txt", context.thread.prompt)
+            self.assertEqual((workspace / "response.txt").read_text(encoding="utf-8"), "final answer")
+            metadata = json.loads((workspace / "metadata.json").read_text(encoding="utf-8"))
+            self.assertEqual(metadata["status"], "completed")
+            self.assertEqual(metadata["network_access"], False)
+            self.assertEqual(metadata["filesystem_policy"], "sandbox_read_only")
+            self.assertEqual(metadata["permission_profile"], "")
+            self.assertEqual(metadata["web_search"], "disabled")
+            self.assertEqual(metadata["input_files"], ["prompt.txt"])
+            instructions = context.thread_start_kwargs["developer_instructions"]
+            self.assertIn("Return JSON only.", instructions)
+            self.assertIn("Treat the current working directory", instructions)
+            self.assertIn("Do not use network or internet resources", instructions)
+
+    def test_isolated_workspace_uses_one_directory_per_call(self) -> None:
+        with TemporaryDirectory() as tmp_dir:
+            workspace_root = Path(tmp_dir) / "codex_workspace"
+            client = CodexProofFuzzerClient(
+                workspace_root=workspace_root,
+                codex_factory=FakeCodexContext,
+                sdk=FakeSDK,
+            )
+
+            client.complete("First")
+            client.complete("Second")
+
+            self.assertEqual(
+                (workspace_root / "call_000001" / "prompt.txt").read_text(encoding="utf-8"),
+                "First",
+            )
+            self.assertEqual(
+                (workspace_root / "call_000002" / "prompt.txt").read_text(encoding="utf-8"),
+                "Second",
+            )
+
+    def test_file_backed_completion_separates_strategy_and_trace(self) -> None:
+        with TemporaryDirectory() as tmp_dir:
+            workspace_root = Path(tmp_dir) / "codex_workspace"
+            client = CodexProofFuzzerClient(
+                workspace_root=workspace_root,
+                codex_factory=FakeCodexContext,
+                sdk=FakeSDK,
+            )
+
+            result = client.complete_with_files(
+                "Use strategy.txt to mutate trace.json. Return JSON only.",
+                {
+                    "strategy.txt": "Preserve fluency.",
+                    "trace.json": '{"trace": "secret benchmark content"}',
+                },
+            )
+
+            workspace = workspace_root / "call_000001"
+            context = FakeCodexContext.last_instance
+            self.assertEqual(result, "final answer")
+            self.assertEqual(
+                (workspace / "strategy.txt").read_text(encoding="utf-8"),
+                "Preserve fluency.",
+            )
+            self.assertEqual(
+                (workspace / "trace.json").read_text(encoding="utf-8"),
+                '{"trace": "secret benchmark content"}',
+            )
+            self.assertIn("strategy.txt", context.thread.prompt)
+            self.assertIn("trace.json", context.thread.prompt)
+            self.assertNotIn("Preserve fluency", context.thread.prompt)
+            self.assertNotIn("secret benchmark content", context.thread.prompt)
+            metadata = json.loads((workspace / "metadata.json").read_text())
+            self.assertEqual(
+                metadata["input_files"],
+                ["prompt.txt", "strategy.txt", "trace.json"],
+            )
+
+    def test_file_backed_completion_rejects_unsafe_filenames(self) -> None:
+        with TemporaryDirectory() as tmp_dir:
+            client = CodexProofFuzzerClient(
+                workspace_root=Path(tmp_dir) / "codex_workspace",
+                codex_factory=FakeCodexContext,
+                sdk=FakeSDK,
+            )
+
+            for filename in ("../trace.json", "/tmp/trace.json", "prompt.txt"):
+                with self.subTest(filename=filename), self.assertRaises(ValueError):
+                    client.complete_with_files("Instructions", {filename: "content"})
+
+    def test_isolated_workspace_rejects_unsafe_thread_settings(self) -> None:
+        unsafe_settings = (
+            {"sandbox": "workspace_write"},
+            {"approval_mode": "auto_review"},
+            {"fresh_thread_per_call": False},
+            {"cwd": "/repo"},
+        )
+        for settings in unsafe_settings:
+            with self.subTest(settings=settings), self.assertRaises(ValueError):
+                CodexProofFuzzerClient(workspace_root="/tmp/codex-workspaces", **settings)
 
 
 if __name__ == "__main__":

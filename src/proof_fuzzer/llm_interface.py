@@ -853,11 +853,13 @@ class NaturalLanguageProofFuzzerLLMInterface(ProofFuzzerLLMInterfaceBase):
         proof_text: str,
         llm: LLMClient | None = None,
         *,
+        mutation_policy: str | None = None,
         log_dir: str | Path | None = None,
         trace_logger: LLMTraceLogger | None = None,
     ):
         super().__init__(llm, log_dir=log_dir, trace_logger=trace_logger)
         self.proof_text = proof_text
+        self.mutation_policy = mutation_policy.strip() if mutation_policy else None
         self.segments = split_natural_language_proof(proof_text)
 
     def mutation_instruction_prompt(
@@ -1032,6 +1034,18 @@ class NaturalLanguageProofFuzzerLLMInterface(ProofFuzzerLLMInterfaceBase):
                 else "Generate an actually incorrect-proof mutation that could plausibly trick an LLM judge into thinking the proof is correct."
             )
         )
+        if self.mutation_policy is None:
+            policy_heading = "Mutation quality"
+            policy_text = (
+                _natural_language_mutation_quality_guidance(
+                    maintain_correctness=maintain_correctness,
+                )
+                + _format_strategy_guidance(strategy_guidance)
+                + _format_prior_attempt_guidance(prior_attempt_guidance)
+            )
+        else:
+            policy_heading = "Mutation policy"
+            policy_text = self.mutation_policy
 
         return f"""You are acting as a proof fuzzer for a natural-language mathematical proof.
 
@@ -1044,10 +1058,8 @@ Correctness target:
 Judge-fuzzing goal:
 {judge_goal}
 
-Mutation quality:
-{_natural_language_mutation_quality_guidance(maintain_correctness=maintain_correctness)}
-{_format_strategy_guidance(strategy_guidance)}
-{_format_prior_attempt_guidance(prior_attempt_guidance)}
+{policy_heading}:
+{policy_text}
 
 Targetable proof segments:
 {segment_text}

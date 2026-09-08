@@ -36,6 +36,7 @@ class OpenAITenAdvancesEvolutionRunConfig(ProofBenchJudgeEvolutionRunConfig):
     evolution_threshold: int = 10
     correctness_selection_mode: str = "false_proof"
     false_proof_probability: float = 1.0
+    judge_error_detection_check: bool = True
     seed_mined_strategies: bool = False
 
 

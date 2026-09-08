@@ -219,10 +219,21 @@ def _source_example_lines(
         f"- Mutation trace dir: `{trace_dir}`",
     ]
     lines.extend(_strategy_lines(attempt, strategy_titles))
+    blind_result = _dict(attempt.get("judge_result"))
+    blind_errors = blind_result.get("detected_errors", ())
+    blind_error_count = len(blind_errors) if isinstance(blind_errors, list) else 0
+    introduced_match = _dict(
+        metadata.get("introduced_error_match")
+        or metadata.get("judge_error_detection_check")
+    )
+    introduced_error_found = introduced_match.get(
+        "introduced_error_found",
+        introduced_match.get("any_judge_reported_correct_error", ""),
+    )
     lines.extend([
         f"- Example: `{metadata.get('example_id', '')}`; sample index: `{metadata.get('sample_index', '')}`",
         f"- Problem id: `{metadata.get('problem_id') or metadata.get('grading_id') or ''}`",
-        f"- Blind judge verdict: `{_dict(attempt.get('judge_result')).get('verdict', '')}`; mutation-check verdict: `{_dict(attempt.get('mutation_check_result')).get('verdict', '')}`",
+        f"- Blind error-finder items: `{blind_error_count}`; introduced error found by matcher: `{introduced_error_found}`; mutation-check verdict: `{_dict(attempt.get('mutation_check_result')).get('verdict', '')}`",
         f"- Full diff size: about **{_diff_changed_lines(attempt)} changed lines** in the sentence/paragraph diff",
         "",
         "**Problem excerpt:**",

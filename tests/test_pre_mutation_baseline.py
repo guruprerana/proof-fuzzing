@@ -34,9 +34,11 @@ class PreMutationBaselineJudgeTest(unittest.TestCase):
             max_proof_chars=1000,
         )
 
-        self.assertIn("You are grading a submitted mathematical proof.", prompt)
-        self.assertIn("Problem:", prompt)
-        self.assertIn("Submitted proof:", prompt)
+        self.assertIn("reviewing a mathematical reasoning trace for errors", prompt)
+        self.assertIn("PROBLEM:", prompt)
+        self.assertIn("REASONING TRACE TO REVIEW:", prompt)
+        self.assertIn('"errors": [', prompt)
+        self.assertNotIn('"verdict":', prompt)
         self.assertIn("Original correct proof.", prompt)
         self.assertNotIn("Mutated bad proof.", prompt)
         self.assertNotIn("mutation", prompt.lower())

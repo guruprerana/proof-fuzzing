@@ -347,7 +347,7 @@ def run_natural_language_proof_examples_evolutionary_pipeline(
         storage_dir="logs/proof_fuzzer_evolution/natural_language",
     )
     active_store = store or ProofFuzzAttemptStore(active_config.storage_dir)
-    work_items = _sample_work_items(
+    work_items = sample_natural_language_proof_work_items(
         examples,
         attempts_per_example=attempts_per_example,
         num_attempts=num_attempts,
@@ -531,7 +531,7 @@ def _run_one_proof_bench_judge_attempt(
         "prompt_truncated": len(proof_text) < len(example.proof),
     }
     return evolutionary.run_mutation_attempt(
-        objective=_format_objective(
+        objective=format_natural_language_proof_objective(
             example,
             objective_prefix=objective_prefix,
             max_problem_chars=config.max_problem_chars,
@@ -541,7 +541,7 @@ def _run_one_proof_bench_judge_attempt(
     )
 
 
-def _format_objective(
+def format_natural_language_proof_objective(
     example: NaturalLanguageProofExample,
     *,
     objective_prefix: str = "",
@@ -563,7 +563,7 @@ def _format_objective(
     return "\n\n".join(pieces)
 
 
-def _sample_work_items(
+def sample_natural_language_proof_work_items(
     examples: tuple[NaturalLanguageProofExample, ...],
     *,
     attempts_per_example: int,

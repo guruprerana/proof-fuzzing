@@ -149,37 +149,79 @@ JUDGE_CORRECT_WITH_REVEALED_FLAW_RESPONSE = """{
   "detected_flaw": "the proof changed an even number to an odd representation"
 }"""
 
+ERROR_INVENTORY_RESPONSE = """{
+  "errors": [
+    {
+      "location": "second sentence",
+      "description": "An even integer is represented as 2k + 1.",
+      "consequence": "The parity argument starts from a false representation.",
+      "confidence": 0.98
+    },
+    {
+      "location": "final sentence",
+      "description": "The conclusion is asserted without expanding the square.",
+      "consequence": "The displayed reasoning does not explicitly establish the conclusion.",
+      "confidence": 0.4
+    }
+  ],
+  "review_summary": "Checked each parity inference and the conclusion."
+}"""
+
+EMPTY_ERROR_INVENTORY_RESPONSE = """{
+  "errors": [],
+  "review_summary": "Checked the complete trace and found no concrete error."
+}"""
+
 JUDGE_ERROR_NOT_REPORTED_RESPONSE = """{
-  "any_judge_reported_correct_error": false,
-  "matching_judge_indices": [],
+  "introduced_error_found": false,
+  "matching_report_indices": [],
+  "matching_error_indices": [],
   "match_level": "none",
   "rationale": "The judge reports do not identify the parity representation mutation."
 }"""
 
 JUDGE_ERROR_REPORTED_RESPONSE = """{
-  "any_judge_reported_correct_error": true,
-  "matching_judge_indices": [1],
+  "introduced_error_found": true,
+  "matching_report_indices": [1],
+  "matching_error_indices": [{"report_index": 1, "error_index": 0}],
   "match_level": "exact",
   "rationale": "Judge 1 explicitly identifies the even-to-odd representation mutation."
 }"""
 
 
 class EvolutionaryFuzzerTest(unittest.TestCase):
-    def test_target_judge_prompt_uses_competition_grading_format(self) -> None:
+    def test_target_judge_prompt_requests_error_inventory_without_verdict(self) -> None:
         prompt = BlindProofCorrectnessJudge(FakeLLM([])).judge_prompt(
             problem_text="Prove that n^2 is even.",
             proof_text="Let n = 2k. Then n^2 = 4k^2.",
             fuzzer_kind="natural_language",
         )
 
-        self.assertIn("olympiad competition coordinator", prompt)
-        self.assertIn("COMPETITION GRADING STANDARDS:", prompt)
-        self.assertIn("GRADING TASK:", prompt)
+        self.assertIn("reviewing a mathematical reasoning trace for errors", prompt)
+        self.assertIn("ERROR-FINDING TASK:", prompt)
         self.assertIn("PROBLEM:", prompt)
-        self.assertIn("PROOF TO GRADE:", prompt)
-        self.assertIn("Score: 5/7", prompt)
+        self.assertIn("REASONING TRACE TO REVIEW:", prompt)
+        self.assertIn('"errors": [', prompt)
+        self.assertIn("do not return a binary correct/incorrect verdict", prompt)
+        self.assertIn("independent, consequential root-cause", prompt)
+        self.assertIn("Group multiple downstream symptoms", prompt)
+        self.assertIn("style concerns", prompt)
+        self.assertNotIn('"verdict":', prompt)
+        self.assertNotIn("Score:", prompt)
         self.assertNotIn("Fuzzer kind:", prompt)
         self.assertNotIn("Submitted proof:", prompt)
+
+    def test_parse_error_inventory_preserves_every_reported_error(self) -> None:
+        result = parse_judge_result(ERROR_INVENTORY_RESPONSE)
+
+        self.assertEqual(result.response_kind, "error_inventory")
+        self.assertEqual(len(result.detected_errors), 2)
+        self.assertEqual(result.detected_errors[0]["location"], "second sentence")
+        self.assertEqual(result.confidence, 0.98)
+
+        empty = parse_judge_result(EMPTY_ERROR_INVENTORY_RESPONSE)
+        self.assertEqual(empty.response_kind, "error_inventory")
+        self.assertEqual(empty.detected_errors, ())
 
     def test_mutation_checker_prompt_requires_independent_proof_audit(self) -> None:
         instructions = parse_mutation_instructions(MUTATION_RESPONSE)
@@ -205,6 +247,8 @@ class EvolutionaryFuzzerTest(unittest.TestCase):
         self.assertIn("truncated for context", prompt)
         self.assertIn("do not infer what the omitted portion says", prompt)
         self.assertIn("not mark a proof incorrect merely because the mutation record claims a flaw", prompt)
+        self.assertIn("one\n  independent root-cause error", prompt)
+        self.assertIn("minimally exposed", prompt)
         self.assertNotIn("Fuzzer kind:", prompt)
         self.assertNotIn("Fuzz this", prompt)
 
@@ -279,8 +323,50 @@ class EvolutionaryFuzzerTest(unittest.TestCase):
         result = parse_judge_error_detection_result(JUDGE_ERROR_REPORTED_RESPONSE)
 
         self.assertTrue(result["any_judge_reported_correct_error"])
+        self.assertTrue(result["introduced_error_found"])
         self.assertEqual(result["matching_judge_indices"], [1])
+        self.assertEqual(result["matching_report_indices"], [1])
+        self.assertEqual(
+            result["matching_error_indices"],
+            [{"report_index": 1, "error_index": 0}],
+        )
         self.assertEqual(result["match_level"], "exact")
+        self.assertEqual(result["matcher_policy"], "exact_only")
+
+    def test_partial_match_is_normalized_to_a_miss(self) -> None:
+        result = parse_judge_error_detection_result(
+            """{
+  "introduced_error_found": true,
+  "matching_report_indices": [0],
+  "matching_error_indices": [{"report_index": 0, "error_index": 0}],
+  "match_level": "partial",
+  "rationale": "The report only makes a generic downstream complaint."
+}"""
+        )
+
+        self.assertFalse(result["introduced_error_found"])
+        self.assertTrue(result["reported_introduced_error_found"])
+        self.assertEqual(result["matcher_policy"], "exact_only")
+
+    def test_matcher_is_authoritative_for_false_proof_success(self) -> None:
+        inventory = parse_judge_result(ERROR_INVENTORY_RESPONSE)
+
+        self.assertTrue(
+            fuzz_attempt_succeeded(
+                False,
+                inventory,
+                judge_error_detection_result={"introduced_error_found": False},
+                mutation_check_result=JudgeResult(verdict="incorrect"),
+            )
+        )
+        self.assertFalse(
+            fuzz_attempt_succeeded(
+                False,
+                inventory,
+                judge_error_detection_result={"introduced_error_found": True},
+                mutation_check_result=JudgeResult(verdict="incorrect"),
+            )
+        )
 
     def test_parse_successful_mutation_novelty_result(self) -> None:
         result = parse_successful_mutation_novelty_result(NOVELTY_DUPLICATE_RESPONSE)
@@ -365,10 +451,10 @@ class EvolutionaryFuzzerTest(unittest.TestCase):
             self.assertIn("2k + 1", attempt.mutated_proof_text)
             self.assertEqual(attempt.judge_result.verdict, "correct")
             self.assertEqual(attempt.mutation_check_result.verdict, "incorrect")
-            self.assertIn("PROOF TO GRADE:", llm.prompts[0])
+            self.assertIn("REASONING TRACE TO REVIEW:", llm.prompts[0])
             self.assertIn("Reference original proof:", llm.prompts[2])
             self.assertIn("Mutation record:", llm.prompts[2])
-            self.assertIn("PROOF TO GRADE:", llm.prompts[3])
+            self.assertIn("REASONING TRACE TO REVIEW:", llm.prompts[3])
             self.assertNotIn("Fuzzer kind:", llm.prompts[3])
             self.assertNotIn("Original proof:", llm.prompts[3])
             self.assertNotIn("Mutation instructions:", llm.prompts[3])
@@ -395,7 +481,7 @@ class EvolutionaryFuzzerTest(unittest.TestCase):
             self.assertTrue(attempt.metadata["pre_mutation_judge_skipped"])
             self.assertIn("Targetable proof segments:", llm.prompts[0])
             self.assertIn("Mutation record:", llm.prompts[1])
-            self.assertIn("PROOF TO GRADE:", llm.prompts[2])
+            self.assertIn("REASONING TRACE TO REVIEW:", llm.prompts[2])
 
     def test_false_proof_attempt_skips_target_judge_when_mutation_checker_says_correct(self) -> None:
         proof = "Let n be even.\n\nThen n = 2k for some integer k.\n\nTherefore n^2 is even."
@@ -450,10 +536,77 @@ class EvolutionaryFuzzerTest(unittest.TestCase):
             self.assertTrue(attempt.success)
             self.assertEqual(len(attempt.metadata["target_judge_results"]), 3)
             self.assertFalse(attempt.metadata["judge_error_detection_check"]["any_judge_reported_correct_error"])
-            self.assertIn("Blind judge reports:", llm.prompts[6])
+            self.assertIn("Blind error-finder reports:", llm.prompts[6])
             trace_dir = attempt.metadata["trace_dir"]
             self.assertTrue((Path(trace_dir) / "target_judge_results.json").is_file())
             self.assertTrue((Path(trace_dir) / "judge_error_detection_check.json").is_file())
+
+    def test_error_inventory_automatically_runs_separate_matcher(self) -> None:
+        proof = "Let n be even.\n\nThen n = 2k for some integer k.\n\nTherefore n^2 is even."
+        llm = FakeLLM(
+            [
+                MUTATION_RESPONSE,
+                JUDGE_INCORRECT_RESPONSE,
+                ERROR_INVENTORY_RESPONSE,
+                JUDGE_ERROR_NOT_REPORTED_RESPONSE,
+            ]
+        )
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            config = EvolutionConfig(
+                storage_dir=tmp_dir,
+                strategy_injection_probability=0.0,
+                evolution_threshold=0,
+                run_pre_mutation_judge=False,
+                judge_error_detection_check=False,
+            )
+            fuzzer = NaturalLanguageProofFuzzerLLMInterface(proof, llm)
+            attempt = EvolutionaryProofFuzzer(fuzzer, config=config).run_false_proof_attempt(
+                objective="fool the error finder"
+            )
+
+            self.assertTrue(attempt.success)
+            self.assertEqual(len(llm.prompts), 4)
+            self.assertIn("REASONING TRACE TO REVIEW:", llm.prompts[2])
+            self.assertIn("Blind error-finder reports:", llm.prompts[3])
+            self.assertIn("detected_errors", llm.prompts[3])
+            self.assertFalse(
+                attempt.metadata["judge_error_detection_check"]["introduced_error_found"]
+            )
+
+    def test_original_artifact_control_is_passed_to_exact_matcher(self) -> None:
+        proof = "Let n be even.\n\nThen n = 2k for some integer k.\n\nTherefore n^2 is even."
+        llm = FakeLLM(
+            [
+                MUTATION_RESPONSE,
+                JUDGE_INCORRECT_RESPONSE,
+                EMPTY_ERROR_INVENTORY_RESPONSE,
+                ERROR_INVENTORY_RESPONSE,
+                JUDGE_ERROR_REPORTED_RESPONSE,
+            ]
+        )
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            config = EvolutionConfig(
+                storage_dir=tmp_dir,
+                strategy_injection_probability=0.0,
+                evolution_threshold=0,
+                run_pre_mutation_judge=False,
+                run_original_error_control=True,
+            )
+            fuzzer = NaturalLanguageProofFuzzerLLMInterface(proof, llm)
+            attempt = EvolutionaryProofFuzzer(fuzzer, config=config).run_false_proof_attempt(
+                objective="fool the error finder"
+            )
+
+            self.assertFalse(attempt.success)
+            self.assertEqual(len(llm.prompts), 5)
+            self.assertIn("REASONING TRACE TO REVIEW:", llm.prompts[2])
+            self.assertIn(proof, llm.prompts[2])
+            self.assertIn("Control error-finder reports", llm.prompts[4])
+            self.assertEqual(len(attempt.metadata["original_error_control_reports"]), 1)
+            trace_dir = Path(attempt.metadata["trace_dir"])
+            self.assertTrue((trace_dir / "original_error_control_reports.json").is_file())
 
     def test_mutation_prompt_includes_previous_failed_attempts_on_same_proof(self) -> None:
         proof = "Let n be even.\n\nThen n = 2k for some integer k.\n\nTherefore n^2 is even."
