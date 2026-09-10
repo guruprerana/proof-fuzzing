@@ -19,6 +19,52 @@ Shared experiment logic belongs in `src/proof_fuzzer/`.
 
 ## Prompt and strategy experiments
 
+Strategy libraries are local experiment inputs, not bundled source code. The local
+audited guidance from the persistent-agent runs can be found in
+`src/proof_fuzzer/data/audited_persistent_strategies_20260909.jsonl` (10 loader-compatible
+strategies, with validity checks and per-attempt provenance) and the companion `.md`
+(a standalone mutation-policy prompt, suitable for the 20k policy budget).
+For runners exposing strategy seeding, pass `--seed-mined-strategies --mined-strategy-path
+src/proof_fuzzer/data/audited_persistent_strategies_20260909.jsonl`, or set the equivalent
+`EvolutionConfig` fields. The standalone persistent runner does not currently load this
+library automatically. No existing run or default strategy bank is changed by adding it.
+Observed audit counts are stored in metadata; runtime strategy scores start at zero.
+
+For the persistent runner, pass `--strategies-file src/proof_fuzzer/data/audited_persistent_strategies_20260909.md`
+to provide the library as a separate mutation-agent input. Use `--proof-ids ID1 ID2 ...`
+to make exactly one attempt on each listed manuscript in the same persistent session.
+The judge does not receive the strategy file or introduced-error explanation.
+
+- `run_persistent_proof_fuzzing.py --storage-dir <new-directory>`: 25 attempts with
+  one persistent file-editing mutator thread and fresh blind judges. No separate
+  evolution, mutation-validity, original-control, or error-matcher calls. Saves full
+  candidates, explanations, diffs, judge reports, prompts, timings and errors under
+  `attempts/`; streams mutator events under `mutator_traces/` and judge events under
+  `codex_traces/`. `summary.json` reports progress but deliberately does not claim
+  verified misses. The original full manuscript is retained without truncation.
+
+- `run_matched_strategy_pilot.py`: compare generic mutation instructions with a
+  frozen Markdown strategy library. Each mutation, validity check, blind review,
+  and matcher uses a fresh session. No evaluation feedback goes to the mutators.
+  Each valid submission gets three blind reviews, including duplicate submissions
+  (duplicates are flagged). Reports include ≥1, ≥2, and all-three missed reviews.
+  Defaults to five attempts per arm on proofs 01, 02, 05, 06, and 07: 50 attempts.
+  `--strategies-file` is required; `--proof-root`, `--proof-ids`,
+  `--attempts-per-proof`, `--model`, and `--reasoning-effort` are configurable.
+  Use `--dry-run` to save the manifest and schedule without model calls.
+
+```bash
+python scripts/run_matched_strategy_pilot.py \
+  --storage-dir logs/matched_strategy_transfer_new \
+  --strategies-file /path/to/frozen_strategies.md \
+  --attempts-per-proof 5
+```
+
+Both agent runners preserve full proofs, exposed tool events, and token usage in
+`codex_traces/call_*/{events.jsonl,result.json}`. Partial event logs survive failed
+calls. Persistent mutator events are in `mutator_traces/`. Raw judge responses are
+retained; malformed non-detection is ambiguous in the matched runner, not a miss.
+
 - `run_medprmbench_codex_prompt_experiment.py`: train and evaluate a mutation
   prompt on medical reasoning traces.
 - `run_reflect_codex_prompt_experiment.py`: train and evaluate a mutation prompt
@@ -42,3 +88,20 @@ attempt records in their run directories. Use those artifacts for ad hoc analysi
 and presentation-specific reports. Reusable reporting code lives in
 `src/proof_fuzzer/reporting.py`; standalone report formatters and generic shell
 retry wrappers are not maintained here.
+
+## Local data and historical launchers
+
+`local_datasets/`, `logs/`, and `src/proof_fuzzer/data/` are intentionally ignored.
+Provide your own proof datasets and strategy files. Strategy seeding is opt-in;
+`--mined-strategy-path` selects a JSONL library. The legacy default seed path still
+works when populated locally, and gives an actionable error when absent.
+
+The hard-coded TORA, three-proof Olympiad, and single-ten-proof pilot launchers
+were archived locally under `logs/archived_launchers_20260910/`, rather than
+maintained as supported commands. Historical run artifacts remain untouched.
+Reusable full-proof mutation, imperfect-original validation, and prompt-budget
+behavior are covered by dataset-independent tests.
+
+For programmatic prompt-evolution training, use `run_prompt_evolutionary_pipeline`
+and `training_prompt_config` from `src.proof_fuzzer.prompt_evolution`. The latter
+provides a 20,000-character absolute policy budget, including after failed attempts.
