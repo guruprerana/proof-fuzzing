@@ -14,7 +14,6 @@ from src.proof_fuzzer.evolution import (
     EvolutionConfig,
     FUZZER_KIND_NATURAL_LANGUAGE,
     FuzzAttempt,
-    truncate_text_head_tail,
 )
 from src.proof_fuzzer.llm_interface import LLMClient
 from src.proof_fuzzer.openai_ten_advances import (
@@ -62,6 +61,8 @@ class PromptEvolutionExperimentConfig:
         "Generate a subtle invalid mutation of a recently published theoretical "
         "computer-science proof."
     )
+    dataset_name: str = "OpenAI ten-advances"
+    proof_source: str = "Markdown manuscript"
 
     def __post_init__(self) -> None:
         if self.train_problem_count < 1:
@@ -233,8 +234,8 @@ def run_openai_ten_advances_prompt_evolution_experiment(
                     prompt_version=learned_prompt,
                     work_items=work_items,
                     objective_prefix=active.objective_prefix,
-                    dataset_name="OpenAI ten-advances training",
-                    proof_source="Markdown manuscript",
+                    dataset_name=f"{active.dataset_name} training",
+                    proof_source=active.proof_source,
                     max_workers=active.max_workers,
                 )
             completed = training_controller.attempts_for_prompt(learned_prompt)
@@ -380,17 +381,15 @@ def _run_heldout_evaluation(
         job: tuple[str, OpenAITenAdvancesProof, int],
     ) -> tuple[str, FuzzAttempt]:
         arm, example, attempt_index = job
-        proof_text = truncate_text_head_tail(
-            example.proof,
-            controllers[arm].attempt_config.max_proof_chars,
-        )
+        # Match training: always supply the complete source proof.
+        proof_text = example.proof
         attempt = controllers[arm].run_false_proof_attempt(
             proof_text=proof_text,
             objective=format_natural_language_proof_objective(
                 example,
                 objective_prefix=config.objective_prefix,
                 max_problem_chars=controllers[arm].attempt_config.max_problem_chars,
-                dataset_name="OpenAI ten-advances held-out",
+                dataset_name=f"{config.dataset_name} held-out",
             ),
             metadata={
                 **example.to_metadata(),
@@ -398,7 +397,7 @@ def _run_heldout_evaluation(
                 "experiment_arm": arm,
                 "held_out": True,
                 "example_attempt_index": attempt_index,
-                "proof_source": "Markdown manuscript",
+                "proof_source": config.proof_source,
                 "fuzzer_kind": FUZZER_KIND_NATURAL_LANGUAGE,
                 "proof_chars_original": len(example.proof),
                 "proof_chars_used": len(proof_text),

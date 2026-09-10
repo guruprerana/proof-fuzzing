@@ -71,6 +71,8 @@ class EvolutionConfig:
     target_judge_success_policy: str = "all"
     judge_error_detection_check: bool = False
     run_original_error_control: bool = False
+    original_proof_may_be_incorrect: bool = False
+    full_proof_mutation_output: bool = False
     max_previous_failed_attempts_in_prompt: int = 3
     max_previous_failed_attempt_chars: int = 4_000
     max_previous_successful_attempts_in_prompt: int = 3
@@ -581,6 +583,77 @@ Schema:
 """
 
 
+class ImperfectProofMutationJudge(ProofFuzzJudge):
+    """Check the described introduced flaw in its mathematical context."""
+
+    def judge_prompt(
+        self, *, original_proof_text: str,
+        mutation_instructions: FuzzerMutationInstructions,
+        mutated_proof_text: str = "", fuzzer_kind: str = FUZZER_KIND_SEMIFORMAL,
+        objective: str = "", problem_text: str = "",
+    ) -> str:
+        del fuzzer_kind
+        problem = problem_text.strip() or _extract_problem_text_from_objective(objective) or "not specified"
+        explanation = mutation_instructions.rationale.strip() or "\n".join(
+            mutation.summary for mutation in mutation_instructions.mutations
+        )
+        return f"""You are checking a described error introduced into a mathematical proof.
+
+Task: determine whether the introduced-error explanation identifies a real logical or
+mathematical flaw in the mutated proof. Inspect the claimed step and the context needed to
+assess it. Treat the explanation as a claim to verify, not as evidence that an error exists.
+
+The original proof is supplied only to distinguish the introduced flaw from existing defects.
+It may already be wrong. Do not audit unrelated parts of either proof or judge the overall
+theorem. Global invalidity alone never validates a mutation.
+
+Problem:
+<problem>
+{problem}
+</problem>
+
+Original proof (comparison context):
+<original_proof>
+{original_proof_text}
+</original_proof>
+
+Mutated proof:
+<mutated_proof>
+{mutated_proof_text}
+</mutated_proof>
+
+Introduced-error explanation:
+<introduced_error>
+{explanation}
+</introduced_error>
+
+Verdict rules (these refer only to the described introduced flaw):
+- "incorrect": the described edit introduces a genuine false assertion, invalid inference,
+  calculation error, or other logical flaw in the proof's stated context.
+- "correct": the alleged flaw is actually valid in context, the claimed change is absent,
+  or the same defect was already present. Reject rewordings or downstream manifestations
+  of pre-existing errors as evidence of a new flaw.
+- "uncertain": the supplied text is insufficient to establish whether the described flaw
+  is real and newly introduced. Do not invent missing hypotheses or context.
+
+A real erroneous step still counts when the final conclusion is true or another argument
+establishes it. The error need not be essential to the overall proof. Conversely, an explicitly
+retracted intermediate claim or a claim justified by the applicable hypotheses is not a flaw
+merely because the explanation calls it one. Subtlety, stylistic plausibility, and the number
+of textual edits are not criteria for this check.
+
+In the rationale, identify the described step and explain why it is logically flawed or
+valid under the applicable hypotheses. Address the supplied explanation directly.
+Return exactly one JSON object with no prose outside JSON:
+{{
+  "verdict": "correct | incorrect | uncertain",
+  "confidence": 0.0,
+  "rationale": "assessment of the described introduced error",
+  "detected_flaw": "the verified introduced flaw, or empty if none was verified"
+}}
+"""
+
+
 class BlindProofErrorFinder:
     """Uses an LLM to inventory errors without revealing the planted mutation."""
 
@@ -615,20 +688,22 @@ class BlindProofErrorFinder:
         return f"""You are reviewing a mathematical reasoning trace for errors.
 
 ERROR-FINDING TASK:
-Read the entire trace closely and report every independent, consequential root-cause mathematical
-or logical error you can find. Check all essential cases and dependencies, false claims, invalid or
+Read the entire trace closely and report every concrete mathematical or logical error you find.
+Include erroneous assertions and invalid inferences even when the final conclusion is true or
+another argument establishes it. Identify the affected step and explain the error under the
+applicable hypotheses. Check cases and dependencies, false claims, invalid or
 circular inferences, hidden assumptions, algebraic or computational mistakes,
 sign/indexing/quantifier errors, unsupported changes of scope, and conclusions stronger than the
 reasoning establishes.
 
 Do not assign a score and do not return a binary correct/incorrect verdict. Your job is to
-produce an error inventory. Include an item only when you can state a concrete, material concern
-and explain how it breaks or materially weakens the reasoning. Group multiple downstream symptoms,
+produce an error inventory. Include an item only when you can identify a specific erroneous
+assertion or reasoning step and explain why it is wrong. Group multiple downstream symptoms,
 repeated occurrences, and consequences of the same root cause into one item. Do not list generic
-requests for more detail, optional improvements, style concerns, extraction/formatting artifacts,
-or broad completeness complaints unless they invalidate a required inference or the stated
-conclusion. If you find no specific consequential error, return an empty list. Do not assume the
-trace contains an error.
+requests for more detail, optional improvements, style concerns, harmless wording differences,
+extraction/formatting artifacts, or explicitly retracted claims. Report an omission only when
+you can identify a specific unsupported inference, rather than a broad completeness complaint.
+If you find no concrete error, return an empty list. Do not assume the trace contains an error.
 
 PROBLEM:
 ```text
@@ -650,8 +725,8 @@ Schema:
       "location": "step, equation, quotation, or other precise locator",
       "root_cause": "one-sentence statement of the independent root error",
       "description": "specific mathematical or logical error",
-      "consequence": "why this matters downstream",
-      "severity": "major | critical",
+      "consequence": "effect on the affected step and any downstream reasoning; state if local only",
+      "severity": "minor | major | critical",
       "confidence": 0.0
     }}
   ],
@@ -685,21 +760,27 @@ class IntroducedErrorMatcher:
         original_judge_payload = [
             result.to_dict() for result in original_judge_results
         ]
+        explanation = mutation_instructions.rationale.strip() or "\n".join(
+            mutation.summary for mutation in mutation_instructions.mutations
+        )
         return f"""You are auditing blind error-finder reports for a proof-fuzzing run.
 
 The blind error finders saw only the problem and submitted reasoning trace. They did not see the
-original trace or mutation instructions. You can see them now. Decide whether any reported error
-explicitly or uniquely identified the actual planted mutation.
+original trace or introduced-error explanation. You receive both proofs, the explanation of the
+introduced error, and both error inventories. Use the explanation to identify the specific planted
+error, verify its location against the proofs, and decide whether any reported error explicitly or
+uniquely identified that error. The explanation itself is not evidence that the blind reviewer
+detected it; detection must be supported by an entry in the mutated-proof inventory.
 
 Original proof:
 ```text
 {original_proof_text}
 ```
 
-Mutation instructions:
-```json
-{json.dumps(mutation_instructions.to_dict(), indent=2, sort_keys=True)}
-```
+Introduced-error explanation:
+<introduced_error>
+{explanation}
+</introduced_error>
 
 Mutated proof:
 ```text
@@ -944,7 +1025,11 @@ class EvolutionaryProofFuzzer:
         if mutation_checker is None:
             if fuzzer.llm is None:
                 raise ValueError("A mutation checker or fuzzer LLM client is required for evolutionary fuzzing.")
-            mutation_checker = ProofFuzzJudge(fuzzer.llm)
+            mutation_checker = (
+                ImperfectProofMutationJudge(fuzzer.llm)
+                if self.config.original_proof_may_be_incorrect
+                else ProofFuzzJudge(fuzzer.llm)
+            )
         if judge_error_checker is None:
             if fuzzer.llm is None:
                 raise ValueError("An introduced-error matcher or fuzzer LLM client is required for evolutionary fuzzing.")
@@ -1114,7 +1199,11 @@ class EvolutionaryProofFuzzer:
                             check_truncation=True,
                         )
                         instructions = self._with_retries(
-                            lambda: parse_mutation_instructions(response),
+                            lambda: (
+                                self.fuzzer.parse_full_proof_mutation_response(response)
+                                if getattr(self.fuzzer, "full_proof_mutation_output", False)
+                                else parse_mutation_instructions(response)
+                            ),
                             stage="mutation_parse",
                         )
                         break
@@ -1887,11 +1976,14 @@ class EvolutionaryProofFuzzer:
 
 
 def load_mined_strategies(path: str | Path | None = None) -> tuple[FuzzStrategy, ...]:
-    """Load mined proof-mistake strategies from JSONL seed data."""
+    """Load a local JSONL strategy library (not distributed with the source)."""
 
     strategy_path = Path(path) if path is not None else Path(__file__).with_name("data") / "mined_strategies.jsonl"
     if not strategy_path.is_file():
-        raise FileNotFoundError(f"Mined strategy seed file does not exist: {strategy_path}")
+        raise FileNotFoundError(
+            f"Mined strategy seed file does not exist: {strategy_path}. "
+            "Strategy data is local; supply mined_strategy_path / --mined-strategy-path."
+        )
     strategies: list[FuzzStrategy] = []
     for line in strategy_path.read_text(encoding="utf-8").splitlines():
         if line.strip():

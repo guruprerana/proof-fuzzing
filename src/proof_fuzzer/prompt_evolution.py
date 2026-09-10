@@ -8,6 +8,7 @@ from dataclasses import dataclass, field, replace
 from datetime import datetime, timezone
 import hashlib
 import json
+import math
 from pathlib import Path
 import re
 import threading
@@ -18,7 +19,6 @@ from src.proof_fuzzer.evolution import (
     FUZZER_KIND_NATURAL_LANGUAGE,
     FuzzAttempt,
     ProofFuzzAttemptStore,
-    truncate_text_head_tail,
     usage_limit_reached,
 )
 from src.proof_fuzzer.llm_interface import (
@@ -71,7 +71,7 @@ class PromptEvolutionConfig:
     max_prompt_chars: int = 5_000
     max_prompt_growth_chars: int = 400
     max_prompt_length_multiplier: float = 2.0
-    max_attempt_summary_chars: int = 1_200
+    max_attempt_summary_chars: int = 6_000
     max_evolution_context_chars: int = 40_000
     initial_prompt: str = DEFAULT_MUTATION_POLICY
     continue_on_evolution_error: bool = True
@@ -250,6 +250,18 @@ class MutationPromptStore:
         temporary.replace(self.current_path)
 
 
+def training_prompt_config(storage_dir, max_prompt_chars=20_000):
+    """Allow training to use the full absolute policy budget, including after failures."""
+    if max_prompt_chars < len(DEFAULT_MUTATION_POLICY):
+        raise ValueError("Policy budget must fit the initial mutation policy.")
+    return PromptEvolutionConfig(
+        storage_dir=str(storage_dir), generation_size=3, evolution_window=3,
+        random_seed=20260908, max_prompt_chars=max_prompt_chars,
+        max_prompt_growth_chars=max_prompt_chars,
+        max_prompt_length_multiplier=max(1, math.ceil(max_prompt_chars / len(DEFAULT_MUTATION_POLICY))),
+    )
+
+
 class MutationPromptEvolver:
     """Rewrites the complete mutation policy using judged attempt outcomes."""
 
@@ -327,19 +339,33 @@ class MutationPromptEvolver:
             config=config,
         )
         evidence_rule = (
-            "Successful attempts exist. New strategies must be directly supported by those "
-            "successes; failures may justify only concise prohibitions or self-checks."
-            if successes
-            else "No successful attempts exist in this generation. Do not add any new strategy "
-            "or rule. Only remove, merge, shorten, or clarify existing instructions, and do not "
-            "increase the policy length."
+            "Learn from both successful and failed attempts. You may propose new strategies "
+            "from failure feedback even when no attempt has succeeded. Treat these strategies "
+            "as hypotheses to test, not demonstrated judge blind spots."
         )
         outcome_rule = (
-            "- Turn patterns from successful attempts into concise, general strategies.\n"
-            "- Use failures only for concise prohibitions or self-checks."
-            if successes
-            else "- Use failed attempts only to decide what to remove, merge, shorten, or "
-            "clarify. Do not turn failures into new rules."
+            "- Retain strategies supported by successes.\n"
+            "- Distinguish caught valid mutations, invalid mutations, and generation/tool failures. "
+            "Only caught valid mutations provide negative evidence about judge detection.\n"
+            "- For a caught valid mutation, consider what the judge report and introduced-error "
+            "match reveal about why it was caught. You may refine that tactic or explore a "
+            "materially different hypothesis; you do not have to address the same detection mechanism.\n"
+            "- For an invalid mutation, use the mutation check to improve logical validity. "
+            "Do not mistake generation/tool failures for evidence about the judge.\n"
+            "- Treat a detection as evidence about that particular implementation, not grounds "
+            "to reject an entire mathematical error category.\n"
+            "- Keep proposed strategies applicable to the supplied proofs. Generalize mechanisms "
+            "without drifting into unrelated mathematical domains.\n"
+            "- Preserve untested strategies unless there is a concrete reason to revise them. "
+            "Prefer a few meaningful revisions over replacing the entire strategy set.\n"
+            "- Keep exploration substantive: merely making a proof longer or more obscure is "
+            "not sufficient. Each mutation must introduce a genuine logical flaw, but the final "
+            "answer need not change and the flaw need not invalidate every alternative argument.\n"
+            "- Explain in change_summary which feedback motivates each new hypothesis; "
+            "for exploratory ideas, explain why they are worth testing without claiming they "
+            "follow directly from a detection mechanism. Briefly describe what the next attempts "
+            "would test and what outcomes would support or weaken the hypothesis. "
+            "Do not merely rephrase a policy whose attempts were all detected."
         )
         return f"""You are improving one reusable policy for generating adversarial mutations of mathematical proofs.
 
@@ -360,8 +386,8 @@ Evidence rule: {evidence_rule}
   strategy ids, or model responses in the policy.
 - Remove redundant, obsolete, conflicting, and overly specific instructions.
 - Preserve exactly these three section headings: "Strategies:", "Do not:", and "Before returning:".
-- Keep the policy at or below {allowed_prompt_chars} characters. This evidence-based limit is
-  stricter than the absolute {config.max_prompt_chars}-character storage limit.
+- Keep the policy at or below {allowed_prompt_chars} characters.
+  The absolute storage limit is {config.max_prompt_chars} characters.
 - Return a complete replacement, not a patch or commentary about the old policy.
 
 Return exactly one JSON object with no prose outside JSON:
@@ -388,11 +414,7 @@ def _evolved_prompt_char_limit(
         int(len(config.initial_prompt) * config.max_prompt_length_multiplier),
     )
     hard_cap = min(config.max_prompt_chars, initial_cap)
-    growth_cap = (
-        len(current.prompt_text) + config.max_prompt_growth_chars
-        if successes > 0
-        else len(current.prompt_text)
-    )
+    growth_cap = len(current.prompt_text) + config.max_prompt_growth_chars
     return max(1, min(hard_cap, growth_cap))
 
 
@@ -481,6 +503,7 @@ class PromptEvolutionaryProofFuzzer:
             proof_text,
             self.llm,
             mutation_policy=version.prompt_text,
+            full_proof_mutation_output=self.attempt_config.full_proof_mutation_output,
         )
         runner = EvolutionaryProofFuzzer(
             fuzzer,
@@ -615,10 +638,9 @@ def _run_generation_batch(
 ) -> tuple[FuzzAttempt, ...]:
     def run_item(item: tuple[int, PromptEvolutionExample, int]) -> FuzzAttempt:
         sample_index, example, attempt_index = item
-        proof_text = truncate_text_head_tail(
-            example.proof,
-            controller.attempt_config.max_proof_chars,
-        )
+        # Preserve the entire source proof, including all intermediate dependencies.
+        # The legacy max_proof_chars option does not apply to prompt evolution.
+        proof_text = example.proof
         metadata = {
             **example.to_metadata(),
             "example_attempt_index": attempt_index,
@@ -712,22 +734,26 @@ def _attempt_summary(attempt: FuzzAttempt, *, max_chars: int) -> dict[str, objec
     encoded = json.dumps(summary, sort_keys=True)
     if len(encoded) <= max_chars:
         return summary
-    summary["mutation_check"] = _compact_judge(summary.get("mutation_check"))
-    summary["target_error_reports"] = [
-        _compact_judge(value)
-        for value in summary.get("target_error_reports", [])
-        if isinstance(value, dict)
-    ]
-    summary["introduced_error_match"] = None
-    encoded = json.dumps(summary, sort_keys=True)
-    if len(encoded) <= max_chars:
-        return summary
-    summary["mutations"] = summary["mutations"][:1]  # type: ignore[index]
-    summary["mutation_rationale"] = _bounded(str(summary["mutation_rationale"]), 160)
-    if len(json.dumps(summary, sort_keys=True)) > max_chars:
-        summary["target_error_reports"] = []
-        summary["mutation_check"] = None
-    return summary
+    # Remove duplicate mutation descriptions before compressing the actual feedback.
+    # Never replace judge/matcher evidence with null merely to save space.
+    summary.pop("mutations")
+    for string_limit in (600, 300, 160, 80, 40, 20):
+        compact = _compact_feedback(summary, string_limit=string_limit)
+        if len(json.dumps(compact, sort_keys=True)) <= max_chars:
+            return compact
+    return compact
+
+
+def _compact_feedback(value, *, string_limit: int):
+    """Bound verbose feedback while retaining verdicts, matches, and explanations."""
+    if isinstance(value, str):
+        return _bounded(value, string_limit)
+    if isinstance(value, dict):
+        return {key: _compact_feedback(item, string_limit=string_limit)
+                for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_compact_feedback(item, string_limit=string_limit) for item in value[:3]]
+    return value
 
 
 def _attempt_outcome(attempt: FuzzAttempt) -> str:
@@ -767,20 +793,6 @@ def _validate_mutation_policy(prompt_text: str, *, max_chars: int) -> str:
         if re.search(rf"(?im)^\s*{re.escape(heading)}\s*:\s*$", prompt) is None:
             raise ValueError(f"Mutation policy is missing the required {heading!r} section.")
     return prompt
-
-
-def _compact_judge(value: object) -> dict[str, object] | None:
-    if not isinstance(value, dict):
-        return None
-    return {
-        "verdict": value.get("verdict"),
-        "response_kind": value.get("response_kind"),
-        "detected_errors": list(value.get("detected_errors", []))[:3]
-        if isinstance(value.get("detected_errors"), list)
-        else [],
-        "rationale": _bounded(str(value.get("rationale", "")), 180),
-        "detected_flaw": _bounded(str(value.get("detected_flaw", "")), 180),
-    }
 
 
 def _bounded(value: str, max_chars: int) -> str:

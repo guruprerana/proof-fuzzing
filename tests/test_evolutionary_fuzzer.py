@@ -1,3 +1,4 @@
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -20,6 +21,19 @@ from src.proof_fuzzer import (
     parse_successful_mutation_novelty_result,
     parse_strategy_evolution_response,
 )
+
+
+def write_strategy_fixture(directory):
+    """Synthetic seed bank; tests must not depend on local experiment data."""
+    path = Path(directory) / "seed.jsonl"
+    rows = [dict(
+        strategy_id=f"mined_{topic}_fixture", fuzzer_kind="natural_language",
+        title=f"{topic} fixture", guidance=f"Check a {topic} inference.",
+        target_correctness=False, math_topic=topic,
+        metadata={"source": "mined", "pinned": True, "topic": topic},
+    ) for topic in ("algebra", "geometry")]
+    path.write_text("\n".join(json.dumps(row) for row in rows))
+    return path
 
 
 class FakeLLM:
@@ -203,7 +217,14 @@ class EvolutionaryFuzzerTest(unittest.TestCase):
         self.assertIn("REASONING TRACE TO REVIEW:", prompt)
         self.assertIn('"errors": [', prompt)
         self.assertIn("do not return a binary correct/incorrect verdict", prompt)
-        self.assertIn("independent, consequential root-cause", prompt)
+        self.assertIn("every concrete mathematical or logical error", prompt)
+        self.assertIn("even when the final conclusion is true", prompt)
+        self.assertIn("another argument establishes it", prompt)
+        self.assertIn("explicitly retracted claims", prompt)
+        self.assertIn("If you find no concrete error, return an empty list", prompt)
+        self.assertIn('"severity": "minor | major | critical"', prompt)
+        self.assertNotIn("materially weakens", prompt)
+        self.assertNotIn("required inference", prompt)
         self.assertIn("Group multiple downstream symptoms", prompt)
         self.assertIn("style concerns", prompt)
         self.assertNotIn('"verdict":', prompt)
@@ -931,6 +952,7 @@ class EvolutionaryFuzzerTest(unittest.TestCase):
             config = EvolutionConfig(
                 storage_dir=tmp_dir,
                 seed_mined_strategies=True,
+                mined_strategy_path=str(write_strategy_fixture(tmp_dir)),
                 evolution_threshold=0,
             )
 
@@ -941,7 +963,7 @@ class EvolutionaryFuzzerTest(unittest.TestCase):
             strategies = store.load_strategies("natural_language")
             strategy_ids = [strategy.strategy_id for strategy in strategies]
 
-            self.assertGreaterEqual(len(strategies), 10)
+            self.assertEqual(len(strategies), 2)
             self.assertEqual(len(strategy_ids), len(set(strategy_ids)))
             self.assertTrue(all(strategy.metadata.get("source") == "mined" for strategy in strategies))
             self.assertTrue(all(strategy.metadata.get("pinned") for strategy in strategies))
@@ -953,7 +975,7 @@ class EvolutionaryFuzzerTest(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             store = ProofFuzzAttemptStore(tmp_dir)
-            store.save_strategies("natural_language", load_mined_strategies())
+            store.save_strategies("natural_language", load_mined_strategies(write_strategy_fixture(tmp_dir)))
             config = EvolutionConfig(
                 storage_dir=tmp_dir,
                 strategy_injection_probability=1.0,

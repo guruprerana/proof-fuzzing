@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, fields, is_dataclass
 from datetime import datetime, timezone
+from enum import Enum
 import json
 from pathlib import Path
 import threading
@@ -64,6 +65,8 @@ class CodexProofFuzzerClient:
         developer_instructions: str | None = None,
         fresh_thread_per_call: bool = True,
         ephemeral_threads: bool = True,
+        log_events: bool = False,
+        mutation_file_editing: bool = False,
         codex_factory: Any | None = None,
         sdk: Any | None = None,
     ):
@@ -81,6 +84,11 @@ class CodexProofFuzzerClient:
             raise ValueError("Per-call Codex workspaces require fresh_thread_per_call=True.")
         if workspace_root is not None and cwd is not None:
             raise ValueError("Set either workspace_root or cwd for Codex, not both.")
+        if log_events and workspace_root is None:
+            raise ValueError("Event logging requires isolated per-call workspaces.")
+        if mutation_file_editing and workspace_root is None:
+            raise ValueError("Mutation file editing requires isolated per-call workspaces.")
+        self.mutation_file_editing = mutation_file_editing
 
         self.model = model
         self.reasoning_effort = reasoning_effort
@@ -93,6 +101,7 @@ class CodexProofFuzzerClient:
         self.developer_instructions = developer_instructions
         self.fresh_thread_per_call = fresh_thread_per_call
         self.ephemeral_threads = ephemeral_threads
+        self.log_events = log_events
         self.codex_factory = codex_factory
         self.sdk = sdk
         self._codex_context: Any | None = None
@@ -112,7 +121,15 @@ class CodexProofFuzzerClient:
         """Return final content plus available raw Codex turn data."""
 
         if self.fresh_thread_per_call:
-            result = self._run_fresh_thread(prompt)
+            if self.mutation_file_editing and prompt.startswith(
+                "You are introducing a subtle mathematical error into a proof."
+            ):
+                instructions, source = _file_mutation_task(prompt)
+                result = self._run_fresh_thread(
+                    instructions, files={"original_proof.md": source}, mutation_source=source,
+                )
+            else:
+                result = self._run_fresh_thread(prompt)
         else:
             result = self._run_reused_thread(prompt)
         chat_result = CodexChatResult(
@@ -165,26 +182,33 @@ class CodexProofFuzzerClient:
             context.__exit__(None, None, None)
 
     def _run_fresh_thread(
-        self, prompt: str, *, files: Mapping[str, str] | None = None
+        self, prompt: str, *, files: Mapping[str, str] | None = None,
+        mutation_source: str | None = None,
     ) -> object:
         sdk = self.sdk or _load_codex_sdk()
         call_cwd = self.cwd
         workspace = None
         run_prompt = prompt
+        sandbox = "workspace_write" if mutation_source is not None else self.sandbox
         if self.workspace_root is not None:
             workspace = self._create_call_workspace(prompt, files=files)
+            self._write_workspace_metadata(workspace, status="running", sandbox=sandbox)
             call_cwd = str(workspace)
             run_prompt = _workspace_bootstrap(files or {})
         try:
             with self._make_codex_context(sdk, cwd=call_cwd) as codex:
-                thread = self._start_thread(codex, sdk, cwd=call_cwd)
-                result = self._run_thread(thread, sdk, run_prompt)
+                thread = self._start_thread(codex, sdk, cwd=call_cwd, sandbox=sandbox)
+                result = self._run_thread(thread, sdk, run_prompt, workspace=workspace, sandbox=sandbox)
+            if workspace is not None:
+                self._record_workspace_result(workspace, result, sandbox=sandbox)
+            if mutation_source is not None:
+                from types import SimpleNamespace
+                content = _read_file_mutation(workspace, mutation_source)
+                result = SimpleNamespace(final_response=content, status=result.status, agent_result=result)
         except Exception as exc:
             if workspace is not None:
-                self._record_workspace_failure(workspace, exc)
+                self._record_workspace_failure(workspace, exc, sandbox=sandbox)
             raise
-        if workspace is not None:
-            self._record_workspace_result(workspace, result)
         return result
 
     def _run_reused_thread(self, prompt: str) -> object:
@@ -205,17 +229,22 @@ class CodexProofFuzzerClient:
             return factory(config=config)
         return factory()
 
-    def _start_thread(self, codex: object, sdk: "_CodexSDK", *, cwd: str | None) -> object:
+    def _start_thread(self, codex: object, sdk: "_CodexSDK", *, cwd: str | None, sandbox: str | None = None) -> object:
         kwargs: dict[str, object] = {
             "approval_mode": _approval_mode_value(sdk, self.approval_mode),
             "ephemeral": self.ephemeral_threads,
             "model": self.model,
-            "sandbox": _sandbox_value(sdk, self.sandbox),
+            "sandbox": _sandbox_value(sdk, sandbox or self.sandbox),
         }
         if self.workspace_root is not None:
             if cwd is None:
                 raise RuntimeError("An isolated Codex workspace requires a working directory.")
             kwargs["config"] = _isolated_thread_config()
+            if sandbox == "workspace_write":
+                kwargs["config"]["sandbox_workspace_write"] = {
+                    "writable_roots": [cwd], "network_access": False,
+                    "exclude_tmpdir_env_var": True, "exclude_slash_tmp": True,
+                }
         if cwd:
             kwargs["cwd"] = cwd
         if self.service_tier:
@@ -232,14 +261,58 @@ class CodexProofFuzzerClient:
             kwargs["developer_instructions"] = developer_instructions
         return codex.thread_start(**kwargs)
 
-    def _run_thread(self, thread: object, sdk: "_CodexSDK", prompt: str) -> object:
+    def _run_thread(self, thread: object, sdk: "_CodexSDK", prompt: str, *, workspace: Path | None = None, sandbox: str | None = None, trace_dir: Path | None = None) -> object:
         kwargs: dict[str, object] = {
             "effort": self.reasoning_effort,
             "model": self.model,
-            "sandbox": _sandbox_value(sdk, self.sandbox),
+            # Inherit the precisely scoped thread policy for writable calls.
+            # The SDK's workspace-write turn preset drops explicit roots/tmp exclusions.
+            "sandbox": None if sandbox == "workspace_write" else _sandbox_value(sdk, sandbox or self.sandbox),
             "service_tier": self.service_tier,
         }
-        return thread.run(prompt, **kwargs)
+        if not self.log_events:
+            return thread.run(prompt, **kwargs)
+        # Use the SDK's own collector so status/error/final-response semantics
+        # remain identical to Thread.run while preserving the intermediate stream.
+        from openai_codex._run import _collect_turn_result
+
+        assert workspace is not None
+        trace_dir = trace_dir or self.workspace_root.parent / "codex_traces" / workspace.name
+        trace_dir.mkdir(parents=True, exist_ok=False)
+        with (trace_dir / "events.jsonl").open("w", encoding="utf-8") as events, \
+                (trace_dir / "transcript.md").open("w", encoding="utf-8") as transcript:
+            def record(method, payload):
+                entry = {"recorded_at": datetime.now(timezone.utc).isoformat(),
+                         "method": method, "payload": _event_jsonable(payload)}
+                events.write(json.dumps(entry, ensure_ascii=False) + "\n")
+                events.flush()
+                if method in {"client/turnStart", "item/completed", "turn/completed", "client/error"}:
+                    transcript.write(f"\n## {entry['recorded_at']} — {method}\n\n")
+                    transcript.write(json.dumps(entry["payload"], ensure_ascii=False, indent=2) + "\n")
+                    transcript.flush()
+
+            record("client/turnStart", {"input": prompt, "model": self.model,
+                                        "reasoning_effort": self.reasoning_effort})
+            stream = None
+            try:
+                turn = thread.turn(prompt, **kwargs)
+                stream = turn.stream()
+
+                def logged_events():
+                    for event in stream:
+                        record(event.method, event.payload)
+                        yield event
+
+                result = _collect_turn_result(logged_events(), turn_id=turn.id)
+                (trace_dir / "result.json").write_text(
+                    json.dumps(_event_jsonable(result), ensure_ascii=False, indent=2), encoding="utf-8")
+                return result
+            except Exception as exc:
+                record("client/error", {"type": type(exc).__name__, "message": str(exc)})
+                raise
+            finally:
+                if stream is not None:
+                    stream.close()
 
     def _create_call_workspace(
         self, prompt: str, *, files: Mapping[str, str] | None = None
@@ -263,15 +336,16 @@ class CodexProofFuzzerClient:
         self._write_workspace_metadata(workspace, status="running")
         return workspace
 
-    def _record_workspace_result(self, workspace: Path, result: object) -> None:
+    def _record_workspace_result(self, workspace: Path, result: object, *, sandbox: str | None = None) -> None:
         response = str(getattr(result, "final_response", None) or "")
         (workspace / "response.txt").write_text(response, encoding="utf-8")
         self._write_workspace_metadata(
             workspace,
             status=str(getattr(result, "status", None) or "completed"),
+            sandbox=sandbox,
         )
 
-    def _record_workspace_failure(self, workspace: Path, exc: Exception) -> None:
+    def _record_workspace_failure(self, workspace: Path, exc: Exception, *, sandbox: str | None = None) -> None:
         (workspace / "error.txt").write_text(
             f"{type(exc).__name__}: {exc}\n",
             encoding="utf-8",
@@ -280,6 +354,7 @@ class CodexProofFuzzerClient:
             workspace,
             status="failed",
             error_type=type(exc).__name__,
+            sandbox=sandbox,
         )
 
     def _write_workspace_metadata(
@@ -288,31 +363,50 @@ class CodexProofFuzzerClient:
         *,
         status: str,
         error_type: str = "",
+        sandbox: str | None = None,
     ) -> None:
         metadata = {
             "approval_mode": self.approval_mode,
             "created_or_updated_at": datetime.now(timezone.utc).isoformat(),
             "ephemeral_thread": self.ephemeral_threads,
             "error_type": error_type,
-            "filesystem_policy": "sandbox_read_only",
+            "filesystem_policy": "sandbox_" + (sandbox or self.sandbox),
             "input_files": sorted(
                 path.name
                 for path in workspace.iterdir()
                 if path.is_file()
-                and path.name not in {"error.txt", "metadata.json", "response.txt"}
+                and path.name not in {"error.txt", "metadata.json", "response.txt", "mutated_proof.md", "introduced_error.md"}
             ),
             "model": self.model,
             "network_access": False,
             "permission_profile": "",
             "reasoning_effort": self.reasoning_effort,
-            "sandbox_compatibility_setting": self.sandbox,
+            "sandbox_compatibility_setting": sandbox or self.sandbox,
             "status": status,
+            "event_logging": self.log_events,
+            "event_trace_dir": str(self.workspace_root.parent / "codex_traces" / workspace.name)
+            if self.log_events else None,
             "web_search": "disabled",
         }
         (workspace / "metadata.json").write_text(
             json.dumps(metadata, indent=2, sort_keys=True) + "\n",
             encoding="utf-8",
         )
+
+
+def _event_jsonable(value):
+    """Preserve structured SDK payloads, including unknown notification fields."""
+    if isinstance(value, Enum):
+        return _event_jsonable(value.value)
+    if callable(getattr(value, "model_dump", None)):
+        return value.model_dump(mode="json", by_alias=True)
+    if is_dataclass(value):
+        return {field.name: _event_jsonable(getattr(value, field.name)) for field in fields(value)}
+    if isinstance(value, dict):
+        return {key: _event_jsonable(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_event_jsonable(item) for item in value]
+    return value
 
 
 @dataclass(frozen=True)
@@ -375,6 +469,49 @@ def _workspace_bootstrap(files: Mapping[str, str]) -> str:
         f"Read the task instructions and inputs from these workspace files: {listed}. "
         "Follow prompt.txt, then return only the requested final response."
     )
+
+
+def _file_mutation_task(prompt: str) -> tuple[str, str]:
+    """Adapt only the full-proof mutation protocol; fail closed if it changes."""
+    prefix, marker, rest = prompt.partition("Original proof:\n<original_proof>\n")
+    source, closing, output = rest.rpartition("\n</original_proof>\n")
+    if not marker or not closing or "## Introduced error" not in output:
+        raise ValueError("Unrecognized full-proof mutation prompt for file editing.")
+    explanation = output.split("## Introduced error", 1)[1].strip()
+    return prefix + """File-based mutation task:
+The complete original proof is in original_proof.md. Read it in full.
+Copy original_proof.md to mutated_proof.md, then use targeted filesystem edits on that copy.
+Preserve all unchanged text; do not rewrite or summarize the entire manuscript, omit sections,
+or insert placeholders. Do not modify original_proof.md or prompt.txt.
+Write only the complete revised proof in mutated_proof.md, without mutation commentary.
+Write the introduced-error explanation separately in introduced_error.md:
+""" + explanation + """
+
+Inspect the diff against original_proof.md to check that only intended changes were made.
+Do not print the whole proof in your final response. After saving both output files, reply Done.
+""", source
+
+
+def _read_file_mutation(workspace: Path, original: str) -> str:
+    import stat
+
+    def read(name):
+        path = workspace / name
+        info = path.lstat()
+        if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1:
+            raise ValueError(f"Mutation artifact must be a regular, unlinked file: {name}")
+        content = path.read_text(encoding="utf-8")
+        if not content.strip():
+            raise ValueError(f"Empty mutation artifact: {name}")
+        return content
+
+    if read("original_proof.md") != original:
+        raise ValueError("Mutation agent modified the original proof input.")
+    mutated = read("mutated_proof.md")
+    explanation = read("introduced_error.md")
+    if mutated == original:
+        raise ValueError("Mutation agent left the proof unchanged.")
+    return f"## Mutated proof\n{mutated}\n\n## Introduced error\n{explanation}"
 
 
 def _isolated_thread_config() -> dict[str, object]:

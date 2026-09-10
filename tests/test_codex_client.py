@@ -2,6 +2,8 @@ import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
+from unittest.mock import patch
+from types import SimpleNamespace
 
 from src.proof_fuzzer.codex_client import CodexProofFuzzerClient
 
@@ -69,6 +71,112 @@ class FakeCodexContext:
 
 
 class CodexClientTest(unittest.TestCase):
+    def test_file_mutation_outputs_and_permissions_are_call_local(self):
+        from src.proof_fuzzer.llm_interface import NaturalLanguageProofFuzzerLLMInterface
+        source = "Let n be even. Then n=2k.\nThe remaining text is unchanged."
+        fuzzer = NaturalLanguageProofFuzzerLLMInterface(source, full_proof_mutation_output=True)
+        prompt = fuzzer._mutation_instruction_prompt(objective_text="Test", maintain_correctness=False)
+        with TemporaryDirectory() as tmp_dir:
+            client = CodexProofFuzzerClient(workspace_root=tmp_dir, mutation_file_editing=True,
+                                           sdk=FakeSDK, codex_factory=FakeCodexContext)
+            def run(thread, prompt, **kwargs):
+                context = FakeCodexContext.last_instance
+                workspace = Path(context.config.cwd)
+                self.assertIsNone(kwargs["sandbox"])
+                self.assertEqual(context.thread_start_kwargs["sandbox"], "workspace-write")
+                policy = context.thread_start_kwargs["config"]["sandbox_workspace_write"]
+                self.assertEqual(policy["writable_roots"], [str(workspace)])
+                self.assertFalse(policy["network_access"])
+                self.assertTrue(policy["exclude_slash_tmp"])
+                self.assertEqual((workspace / "original_proof.md").read_text(), source)
+                task = (workspace / "prompt.txt").read_text()
+                self.assertNotIn(source, task)
+                self.assertIn("targeted filesystem edits", task)
+                (workspace / "mutated_proof.md").write_text(source.replace("2k.", "2k+1."))
+                (workspace / "introduced_error.md").write_text("An even number is represented as odd.")
+                return FakeTurnResult()
+            with patch.object(FakeThread, "run", run):
+                response = client.complete(prompt)
+            instructions = fuzzer.parse_full_proof_mutation_response(response)
+            self.assertIn("An even number", instructions.rationale)
+            self.assertIn("remaining text is unchanged", response)
+            workspace = client.last_workspace
+            metadata = json.loads((workspace / "metadata.json").read_text())
+            self.assertEqual(metadata["filesystem_policy"], "sandbox_workspace_write")
+            self.assertNotIn("introduced_error.md", metadata["input_files"])
+            self.assertEqual((workspace / "response.txt").read_text(), "final answer")
+            client.complete("Review this proof")
+            self.assertEqual(FakeCodexContext.last_instance.thread_start_kwargs["sandbox"], "read-only")
+
+    def test_file_mutation_rejects_missing_unchanged_and_linked_outputs(self):
+        from src.proof_fuzzer.codex_client import _read_file_mutation
+        with TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            (root / "original_proof.md").write_text("Original")
+            with self.assertRaises(FileNotFoundError):
+                _read_file_mutation(root, "Original")
+            (root / "mutated_proof.md").write_text("Original")
+            (root / "introduced_error.md").write_text("Explanation")
+            with self.assertRaisesRegex(ValueError, "unchanged"):
+                _read_file_mutation(root, "Original")
+            (root / "mutated_proof.md").unlink()
+            (root / "mutated_proof.md").symlink_to(root / "original_proof.md")
+            with self.assertRaisesRegex(ValueError, "regular"):
+                _read_file_mutation(root, "Original")
+            with self.assertRaisesRegex(ValueError, "modified"):
+                _read_file_mutation(root, "Different input")
+
+    def test_event_stream_logs_tool_output_and_preserves_final_response(self):
+        from openai_codex.models import Notification
+        from openai_codex.generated.v2_all import ItemCompletedNotification, TurnCompletedNotification
+
+        with TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            def stream():
+                yield Notification("item/started", {"item": {"type": "commandExecution", "command": "pwd"}})
+                yield Notification("item/commandExecution/outputDelta", {"delta": "/workspace\n"})
+                # The log must be readable while the turn is still in progress.
+                self.assertIn("/workspace", (root / "codex_traces/call_000001/events.jsonl").read_text())
+                yield Notification("item/completed", ItemCompletedNotification.model_validate({
+                    "threadId": "thread", "turnId": "turn", "completedAtMs": 1,
+                    "item": {"id": "msg", "type": "agentMessage", "text": "final answer", "phase": "final_answer"},
+                }))
+                yield Notification("turn/completed", TurnCompletedNotification.model_validate({
+                    "threadId": "thread", "turn": {"id": "turn", "status": "completed", "items": [], "itemsView": "full"},
+                }))
+
+            def turn(thread, prompt, **kwargs):
+                thread.prompt, thread.run_kwargs = prompt, kwargs
+                return SimpleNamespace(id="turn", stream=stream)
+
+            with patch.object(FakeThread, "turn", turn, create=True):
+                client = CodexProofFuzzerClient(workspace_root=root / "codex_workspace",
+                    log_events=True, sdk=FakeSDK, codex_factory=FakeCodexContext)
+                self.assertEqual(client.complete("Proof"), "final answer")
+            trace = root / "codex_traces/call_000001"
+            entries = [json.loads(line) for line in (trace / "events.jsonl").read_text().splitlines()]
+            self.assertEqual(entries[2]["payload"]["delta"], "/workspace\n")
+            self.assertIn("final answer", (trace / "transcript.md").read_text())
+            self.assertEqual(json.loads((trace / "result.json").read_text())["final_response"], "final answer")
+            workspace = root / "codex_workspace/call_000001"
+            self.assertFalse((workspace / "events.jsonl").exists())
+            self.assertEqual(json.loads((workspace / "metadata.json").read_text())["input_files"], ["prompt.txt"])
+
+    def test_event_stream_keeps_partial_output_on_failure(self):
+        from openai_codex.models import Notification
+        def stream():
+            yield Notification("item/agentMessage/delta", {"delta": "Partial commentary"})
+            raise RuntimeError("stream disconnected")
+        with TemporaryDirectory() as tmp_dir, patch.object(FakeThread, "turn", create=True,
+                return_value=SimpleNamespace(id="turn", stream=stream)):
+            client = CodexProofFuzzerClient(workspace_root=Path(tmp_dir) / "codex_workspace",
+                log_events=True, sdk=FakeSDK, codex_factory=FakeCodexContext)
+            with self.assertRaisesRegex(RuntimeError, "stream disconnected"):
+                client.complete("Proof")
+            events = (Path(tmp_dir) / "codex_traces/call_000001/events.jsonl").read_text()
+            self.assertIn("Partial commentary", events)
+            self.assertIn("client/error", events)
+
     def setUp(self) -> None:
         FakeSDK.Codex = FakeCodexContext
         FakeSDK.CodexConfig = FakeCodexConfig

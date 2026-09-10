@@ -552,7 +552,14 @@ def format_natural_language_proof_objective(
     pieces = []
     if prefix:
         pieces.append(prefix)
-    pieces.append(f"Fuzz this correct {dataset_name} proof.")
+    if getattr(example, "original_proof_may_be_incorrect", False):
+        pieces.append(
+            f"Fuzz this {dataset_name} proof, which may already contain errors. "
+            "Introduce one new consequential root-cause error distinct from pre-existing defects. "
+            "Preserve the submitted TRUE/FALSE verdict."
+        )
+    else:
+        pieces.append(f"Fuzz this correct {dataset_name} proof.")
     if example.problem:
         problem = (
             truncate_text_head_tail(example.problem, max_problem_chars)

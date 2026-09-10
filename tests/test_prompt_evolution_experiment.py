@@ -146,6 +146,8 @@ class PromptEvolutionExperimentTest(unittest.TestCase):
                 ),
                 attempt_config=EvolutionConfig(
                     storage_dir=tmp_dir,
+                    # Legacy caps must not truncate training or held-out proofs.
+                    max_proof_chars=1,
                     run_pre_mutation_judge=False,
                     trace_llm_calls=False,
                 ),
@@ -154,6 +156,13 @@ class PromptEvolutionExperimentTest(unittest.TestCase):
             self.assertEqual(len(result.training_attempts), 2)
             self.assertEqual(len(result.baseline_attempts), 2)
             self.assertEqual(len(result.learned_attempts), 2)
+            source_proofs = {example.example_id: example.proof for example in examples}
+            for attempt in (*result.training_attempts, *result.baseline_attempts,
+                            *result.learned_attempts):
+                expected = source_proofs[attempt.metadata["example_id"]]
+                self.assertEqual(attempt.original_proof_text, expected)
+                self.assertEqual(attempt.metadata["proof_chars_used"], len(expected))
+                self.assertEqual(attempt.metadata["proof_chars_original"], len(expected))
             self.assertEqual(result.learned_prompt.version, 1)
             self.assertEqual(result.learned_prompt.prompt_text, EVOLVED_POLICY)
             self.assertFalse(set(result.train_example_ids) & set(result.test_example_ids))

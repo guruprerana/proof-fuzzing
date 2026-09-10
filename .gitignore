@@ -250,3 +250,6 @@ CppProperties.json
 *.ast.json
 
 logs
+
+# Local/generated strategy libraries; supply explicit paths to experiment runners.
+/src/proof_fuzzer/data/

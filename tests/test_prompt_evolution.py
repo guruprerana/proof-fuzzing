@@ -297,7 +297,7 @@ Before returning:
             self.assertTrue(error_path.is_file())
             self.assertIn("required", error_path.read_text(encoding="utf-8"))
 
-    def test_zero_success_generation_cannot_grow_the_policy(self) -> None:
+    def test_zero_success_generation_can_learn_from_failure_and_grow(self) -> None:
         longer_policy = DEFAULT_MUTATION_POLICY + "\nDo not add unsupported tactics."
         evolution_response = json.dumps(
             {
@@ -334,13 +334,31 @@ Before returning:
                 num_attempts=1,
             )
 
-            self.assertEqual(result.current_prompt.version, 0)
+            self.assertEqual(result.current_prompt.version, 1)
             self.assertFalse(result.attempts[0].success)
             evolution_prompt = llm.prompts[-1]
-            self.assertIn("No successful attempts exist", evolution_prompt)
-            self.assertIn("do not increase the policy length", evolution_prompt)
-            error_path = Path(tmp_dir) / "mutation_prompt_evolution_errors.jsonl"
-            self.assertIn("maximum is", error_path.read_text(encoding="utf-8"))
+            self.assertIn("even when no attempt has succeeded", evolution_prompt)
+            self.assertIn("hypotheses to test", evolution_prompt)
+            self.assertIn("you do not have to address the same detection mechanism", evolution_prompt)
+            self.assertIn("not grounds to reject an entire mathematical error category", evolution_prompt)
+            self.assertIn("applicable to the supplied proofs", evolution_prompt)
+            self.assertIn("Preserve untested strategies", evolution_prompt)
+            self.assertIn("the flaw need not invalidate every alternative argument", evolution_prompt)
+            self.assertIn("what outcomes would support or weaken the hypothesis", evolution_prompt)
+            self.assertIn("The planted parity error was explicitly identified", evolution_prompt)
+
+            from src.proof_fuzzer.prompt_evolution import _attempt_summary
+            attempt = result.attempts[0]
+            attempt.metadata["target_error_reports"] = [{
+                "rationale": "The parity inference fails. " * 500,
+                "detected_errors": ["The even integer is represented as odd."],
+            }]
+            summary = _attempt_summary(attempt, max_chars=1200)
+            self.assertLessEqual(len(json.dumps(summary, sort_keys=True)), 1200)
+            self.assertIsNotNone(summary["mutation_check"])
+            self.assertTrue(summary["target_error_reports"])
+            self.assertTrue(summary["introduced_error_match"]["introduced_error_found"])
+            self.assertTrue(summary["introduced_error_match"]["rationale"])
 
 
 if __name__ == "__main__":

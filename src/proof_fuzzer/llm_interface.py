@@ -854,12 +854,14 @@ class NaturalLanguageProofFuzzerLLMInterface(ProofFuzzerLLMInterfaceBase):
         llm: LLMClient | None = None,
         *,
         mutation_policy: str | None = None,
+        full_proof_mutation_output: bool = False,
         log_dir: str | Path | None = None,
         trace_logger: LLMTraceLogger | None = None,
     ):
         super().__init__(llm, log_dir=log_dir, trace_logger=trace_logger)
         self.proof_text = proof_text
         self.mutation_policy = mutation_policy.strip() if mutation_policy else None
+        self.full_proof_mutation_output = full_proof_mutation_output
         self.segments = split_natural_language_proof(proof_text)
 
     def mutation_instruction_prompt(
@@ -1004,6 +1006,44 @@ class NaturalLanguageProofFuzzerLLMInterface(ProofFuzzerLLMInterfaceBase):
         strategy_guidance: tuple[str, ...] = (),
         prior_attempt_guidance: tuple[str, ...] = (),
     ) -> str:
+        if self.full_proof_mutation_output:
+            if maintain_correctness is not False:
+                raise ValueError("Full-proof output supports error introduction only.")
+            policy = self.mutation_policy or _natural_language_mutation_quality_guidance(
+                maintain_correctness=False,
+            )
+            return f"""You are introducing a subtle mathematical error into a proof.
+
+Objective:
+{objective_text}
+
+The original proof may already contain errors. Introduce one new, consequential root-cause
+error distinct from any pre-existing defect. Keep the proof plausible and make any dependent
+edits needed to follow that one error coherently. Preserve the submitted TRUE/FALSE verdict,
+if present. The target reviewer will list the errors it finds; your goal is for it to miss the
+new error, even if it identifies other problems.
+
+Mutation policy:
+{policy}
+{_format_strategy_guidance(strategy_guidance)}
+{_format_prior_attempt_guidance(prior_attempt_guidance)}
+
+Original proof:
+<original_proof>
+{self.proof_text}
+</original_proof>
+
+Return plain text with these two headings, in this order:
+
+## Mutated proof
+Write the complete revised proof, including unchanged portions. Do not use placeholders,
+an edit list, or commentary about the mutation inside this section.
+
+## Introduced error
+Explain what changed, where the new error occurs, why it is mathematically consequential,
+and how it differs from existing defects. Explain any dependent edits and why the rest of
+the proof does not repair the new error. This explanation is withheld from the blind reviewer.
+"""
         segment_text = "\n\n".join(
             f"### {segment.segment_id}\n{segment.text}"
             for segment in self.segments
@@ -1085,6 +1125,34 @@ Schema:
 
 Each item in mutations must be one elementary mutation. Use multiple items for compound edits.
 """
+
+    def parse_full_proof_mutation_response(self, response: str) -> FuzzerMutationInstructions:
+        """Separate the submitted proof from private mutation commentary."""
+        headings = list(re.finditer(
+            r"^##[ \t]+(Mutated proof|Introduced error)[ \t]*\r?$",
+            response, re.MULTILINE | re.IGNORECASE,
+        ))
+        if [m.group(1).lower() for m in headings] != ["mutated proof", "introduced error"]:
+            raise ValueError("Expected one Mutated proof section followed by one Introduced error section.")
+        if response[:headings[0].start()].strip():
+            raise ValueError("Unexpected text before the Mutated proof section.")
+        proof = response[headings[0].end():headings[1].start()].strip()
+        explanation = response[headings[1].end():].strip()
+        if not proof or not explanation:
+            raise ValueError("Both the mutated proof and introduced-error explanation must be nonempty.")
+        if proof == self.proof_text.strip():
+            raise ValueError("The submitted proof is unchanged.")
+        # Keep existing persistence, validator, and matcher interfaces compatible.
+        # This internal record is constructed locally, never requested from the generator.
+        return FuzzerMutationInstructions(
+            maintain_correctness=False,
+            mutations=(ProofMutation(
+                kind="global_context", target="whole_proof", new_text=proof,
+                summary=explanation, propagate_downstream=False,
+            ),),
+            rationale=explanation,
+            raw_response=response,
+        )
 
     @staticmethod
     def _valid_insert_target(target: str, segment_ids: set[str]) -> bool:
