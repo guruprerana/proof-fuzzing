@@ -20,7 +20,7 @@ from src.proof_fuzzer.reflect_prompt_evolution import (
     ReflectPromptExperimentResult,
     run_reflect_prompt_evolution_experiment,
 )
-from src.proof_fuzzer.llm_interface import LLMClient
+from src.archive.proof_fuzzer.llm_interface import LLMClient
 
 
 DEFAULT_MEDPRMBENCH_ROOT = Path("local_datasets/MedPRMBench")

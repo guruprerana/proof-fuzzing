@@ -14,12 +14,12 @@ import random
 import threading
 import uuid
 
-from src.proof_fuzzer.evolution import truncate_text_head_tail
-from src.proof_fuzzer.llm_interface import (
+from src.archive.proof_fuzzer.evolution import truncate_text_head_tail
+from src.archive.proof_fuzzer.llm_interface import (
     LLMClient,
     _load_json_object as _load_llm_json_object,
 )
-from src.proof_fuzzer.prompt_evolution import (
+from src.archive.proof_fuzzer.prompt_evolution import (
     MutationPromptStore,
     MutationPromptVersion,
 )

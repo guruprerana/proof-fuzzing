@@ -132,7 +132,7 @@ class CodexClientTest(unittest.TestCase):
             self.assertIn('item/agentMessage/delta', trace)
 
     def test_file_mutation_outputs_and_permissions_are_call_local(self):
-        from src.proof_fuzzer.llm_interface import NaturalLanguageProofFuzzerLLMInterface
+        from src.archive.proof_fuzzer.llm_interface import NaturalLanguageProofFuzzerLLMInterface
         source = "Let n be even. Then n=2k.\nThe remaining text is unchanged."
         fuzzer = NaturalLanguageProofFuzzerLLMInterface(source, full_proof_mutation_output=True)
         prompt = fuzzer._mutation_instruction_prompt(objective_text="Test", maintain_correctness=False)

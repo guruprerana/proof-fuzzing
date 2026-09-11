@@ -13,7 +13,7 @@ from pathlib import Path
 import random
 from typing import Iterable
 
-from src.proof_fuzzer.evolution import (
+from src.archive.proof_fuzzer.evolution import (
     EvolutionConfig,
     EvolutionaryProofFuzzer,
     FUZZER_KIND_NATURAL_LANGUAGE,
@@ -22,7 +22,7 @@ from src.proof_fuzzer.evolution import (
     truncate_text_head_tail,
     usage_limit_reached,
 )
-from src.proof_fuzzer.llm_interface import LLMClient, NaturalLanguageProofFuzzerLLMInterface
+from src.archive.proof_fuzzer.llm_interface import LLMClient, NaturalLanguageProofFuzzerLLMInterface
 from src.proof_fuzzer.reporting import write_standard_source_reports
 from src.proof_fuzzer.vllm_client import (
     DEFAULT_BASE_URL,

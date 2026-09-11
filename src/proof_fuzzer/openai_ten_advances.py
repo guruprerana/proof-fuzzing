@@ -6,8 +6,8 @@ from dataclasses import dataclass
 from pathlib import Path
 import re
 
-from src.proof_fuzzer.evolution import EvolutionConfig, FuzzAttempt
-from src.proof_fuzzer.llm_interface import LLMClient
+from src.archive.proof_fuzzer.evolution import EvolutionConfig, FuzzAttempt
+from src.archive.proof_fuzzer.llm_interface import LLMClient
 from src.proof_fuzzer.proof_bench_judge import (
     ProofBenchJudgeEvolutionRunConfig,
     infer_math_topic,

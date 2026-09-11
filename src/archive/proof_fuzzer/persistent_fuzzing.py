@@ -1,14 +1,19 @@
 """One persistent mutator and a fresh blind judge, without auxiliary LLM stages."""
 
+import argparse
 from datetime import datetime, timezone
 import difflib
+import hashlib
 import json
 from pathlib import Path
 import time
 
 
-from .codex_client import _read_file_mutation
-from .judging import BlindErrorFinder, parse_judge_result, usage_limit_reached
+from src.proof_fuzzer.codex_client import (
+    CodexProofFuzzerClient, _load_codex_sdk, _read_file_mutation,
+)
+from src.archive.proof_fuzzer.evolution import BlindProofErrorFinder, parse_judge_result, usage_limit_reached
+from src.proof_fuzzer.openai_ten_advances import load_openai_ten_advances_proofs
 
 
 def write_json(path, data):
@@ -55,7 +60,7 @@ def run_attempts(*, root, proof, total, mutator, thread, sdk, judge, proofs=None
     if strategy_text is not None:
         (workspace / "strategies.md").write_text(strategy_text)
     records = list(initial_records)
-    finder = BlindErrorFinder(judge)
+    finder = BlindProofErrorFinder(judge)
     (workspace / "attempts").mkdir(exist_ok=True)
     (workspace / "feedback").mkdir(exist_ok=True)
     try:
@@ -115,7 +120,7 @@ def run_attempts(*, root, proof, total, mutator, thread, sdk, judge, proofs=None
                 record["mutation_seconds"] = round(time.monotonic() - started, 2)
                 stage = "target_judge"
                 print(f"Attempt {index}/{total}: blind judge", flush=True)
-                judge_prompt = finder.prompt(problem=proof.problem, proof=mutated)
+                judge_prompt = finder.judge_prompt(problem_text=proof.problem, proof_text=mutated)
                 (archive / "judge_prompt.txt").write_text(judge_prompt)
                 judge_started = time.monotonic()
                 response = judge.complete(judge_prompt)
@@ -159,6 +164,7 @@ def run_attempts(*, root, proof, total, mutator, thread, sdk, judge, proofs=None
         write_summary(root, records, total)
     return records
 
+
 def write_summary(root, records, total):
     write_json(root / "summary.json", {
         "complete": len(records) == total, "planned_attempts": total,
@@ -171,3 +177,80 @@ def write_summary(root, records, total):
         "distinct_successful_mechanisms": len({r['assessment']['mechanism_id'] for r in records
             if r.get('verified_success') and r.get('assessment', {}).get('mechanism_id')}),
     })
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--attempts", type=int, default=None)
+    parser.add_argument("--storage-dir", type=Path, required=True)
+    parser.add_argument("--proof-root", type=Path,
+                        default=Path("logs/openai_ten_advances_2026/proofs_markdown"))
+    parser.add_argument("--model", default="gpt-5.6-sol")
+    parser.add_argument("--reasoning-effort", default="medium")
+    selection = parser.add_mutually_exclusive_group()
+    selection.add_argument("--proof-id", default=None)
+    selection.add_argument("--proof-ids", nargs="+", help="One attempt per listed proof, in this order.")
+    parser.add_argument("--strategies-file", type=Path, default=None)
+    parser.add_argument("--dry-run", action="store_true")
+    args = parser.parse_args()
+    if args.attempts is None:
+        args.attempts = len(args.proof_ids) if args.proof_ids else 25
+    if args.attempts < 1:
+        parser.error("--attempts must be positive")
+    available = {p.example_id: p for p in load_openai_ten_advances_proofs(args.proof_root)}
+    ids = args.proof_ids or [args.proof_id or "09_multicolor_ramsey_numbers"]
+    if len(set(ids)) != len(ids) or any(i not in available for i in ids):
+        parser.error("Select distinct available proof ids")
+    if args.proof_ids and args.attempts != len(ids):
+        parser.error("--proof-ids requires exactly one attempt per proof")
+    matches = [available[i] for i in ids]
+    proof = matches[0]
+    strategy_text = args.strategies_file.read_text() if args.strategies_file else None
+    if strategy_text is not None and not strategy_text.strip():
+        parser.error("Strategy file must not be empty")
+    root = args.storage_dir.resolve()
+    config = {"model": args.model, "reasoning_effort": args.reasoning_effort, "attempts": args.attempts,
+              "pipeline": "persistent_mutator_fresh_blind_judge", "heldout_evaluation": False,
+              "original_control": False, "mutation_checker": False, "error_matcher": False,
+              "strategy_evolution_call": False, "log_events": True,
+              "proof_id": proof.example_id, "proof_chars": len(proof.proof),
+              "source_sha256": hashlib.sha256(proof.path.read_bytes()).hexdigest()}
+    config.update({
+        "one_attempt_per_proof": bool(args.proof_ids),
+        "proofs": [{"proof_id": p.example_id, "title": p.title, "proof_chars": len(p.proof),
+                    "source_sha256": hashlib.sha256(p.path.read_bytes()).hexdigest()} for p in matches],
+        "strategies_file": str(args.strategies_file) if args.strategies_file else None,
+        "strategies_sha256": hashlib.sha256(strategy_text.encode()).hexdigest() if strategy_text is not None else None,
+    })
+    if args.dry_run:
+        print(json.dumps(config, indent=2)); return
+    root.mkdir(parents=True, exist_ok=False)
+    workspace = root / "mutator_workspace"
+    workspace.mkdir()
+    (workspace / "problem.txt").write_text(proof.problem)
+    (root / "source_proof.md").write_text(proof.proof)
+    if strategy_text is not None:
+        (root / "strategies.md").write_text(strategy_text)
+    write_json(root / "run_config.json", config)
+    write_summary(root, [], args.attempts)
+    print(f"Storage: {root}\nProof: {proof.title}", flush=True)
+    mutator = CodexProofFuzzerClient(model=config["model"], reasoning_effort=args.reasoning_effort,
+                                   workspace_root=root / "mutator_call_root", log_events=True)
+    judge = CodexProofFuzzerClient(model=config["model"], reasoning_effort=args.reasoning_effort,
+                                 workspace_root=root / "judge_workspace", log_events=True)
+    sdk = _load_codex_sdk()
+    try:
+        with mutator._make_codex_context(sdk, cwd=str(workspace)) as codex:
+            thread = mutator._start_thread(codex, sdk, cwd=str(workspace), sandbox="workspace_write")
+            write_json(root / "mutator_thread.json", {"thread_id": thread.id,
+                       "workspace": str(workspace), "sandbox": "workspace_write"})
+            run_attempts(root=root, proof=proof, total=args.attempts, mutator=mutator,
+                         thread=thread, sdk=sdk, judge=judge,
+                         proofs=matches if args.proof_ids else None, strategy_text=strategy_text)
+    finally:
+        judge.close()
+        mutator.close()
+
+
+if __name__ == "__main__":
+    main()
