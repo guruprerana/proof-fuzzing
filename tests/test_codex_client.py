@@ -6,6 +6,7 @@ from unittest.mock import patch
 from types import SimpleNamespace
 
 from src.proof_fuzzer.codex_client import CodexProofFuzzerClient
+from src.proof_fuzzer.codex_client import CodexCallTechnicalError, OutputRepetitionGuard, _timed_events
 
 
 class FakeSDK:
@@ -71,6 +72,65 @@ class FakeCodexContext:
 
 
 class CodexClientTest(unittest.TestCase):
+    def test_repetition_guard_handles_split_deltas_but_not_regular_text(self):
+        guard = OutputRepetitionGuard()
+        detected = False
+        for _ in range(400):
+            for delta in ('\\u', '000', '0'):
+                detected = guard.update('message', delta) or detected
+        self.assertTrue(detected)
+        self.assertFalse(guard.update('new-message', 'A normal mathematical conclusion.'))
+        guard = OutputRepetitionGuard()
+        self.assertFalse(guard.update('message', ''.join(f'Step {n}: value={n*n}. ' for n in range(400))))
+
+    def test_silent_stream_times_out(self):
+        import threading
+        released = threading.Event()
+        def stream():
+            released.wait(timeout=2)
+            yield SimpleNamespace(method='done')
+        try:
+            with self.assertRaises(CodexCallTechnicalError):
+                list(_timed_events(SimpleNamespace(stream=stream), 0.02))
+        finally:
+            released.set()
+
+    def test_only_guard_failures_are_retried_once(self):
+        with TemporaryDirectory() as tmp:
+            client = CodexProofFuzzerClient(workspace_root=tmp, log_events=True, technical_retries=1)
+            with patch.object(client, '_run_fresh_thread_once', side_effect=[
+                CodexCallTechnicalError('timeout'), FakeTurnResult()]) as calls:
+                self.assertEqual(client.complete('unchanged prompt'), 'final answer')
+                self.assertEqual(calls.call_count, 2)
+                self.assertEqual(calls.call_args_list[0], calls.call_args_list[1])
+            with patch.object(client, '_run_fresh_thread_once', side_effect=ValueError('schema')) as calls:
+                with self.assertRaises(ValueError):
+                    client.complete('prompt')
+                self.assertEqual(calls.call_count, 1)
+            with patch.object(client, '_run_fresh_thread_once', side_effect=CodexCallTechnicalError('timeout')) as calls:
+                with self.assertRaises(CodexCallTechnicalError):
+                    client.complete('prompt')
+                self.assertEqual(calls.call_count, 2)
+
+    def test_repetitive_stream_is_logged_and_interrupted(self):
+        from openai_codex.models import Notification
+        interrupted = []
+        def turn(thread, prompt, **kwargs):
+            return SimpleNamespace(id='turn', interrupt=lambda: interrupted.append(True),
+                stream=lambda: iter([Notification('item/agentMessage/delta',
+                                                  {'itemId': 'msg', 'delta': '\\u0000' * 400})]))
+        with TemporaryDirectory() as tmp, patch.object(FakeThread, 'turn', turn, create=True):
+            root = Path(tmp)
+            client = CodexProofFuzzerClient(workspace_root=root / 'workspaces',
+                log_events=True, detect_repetitive_output=True, call_timeout_seconds=1,
+                sdk=FakeSDK, codex_factory=FakeCodexContext)
+            with self.assertRaises(CodexCallTechnicalError):
+                client.complete('Review')
+            self.assertEqual(interrupted, [True])
+            trace = (root / 'codex_traces/call_000001/events.jsonl').read_text()
+            self.assertIn('client/guardInterrupt', trace)
+            self.assertIn('item/agentMessage/delta', trace)
+
     def test_file_mutation_outputs_and_permissions_are_call_local(self):
         from src.proof_fuzzer.llm_interface import NaturalLanguageProofFuzzerLLMInterface
         source = "Let n be even. Then n=2k.\nThe remaining text is unchanged."

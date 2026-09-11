@@ -19,6 +19,35 @@ Shared experiment logic belongs in `src/proof_fuzzer/`.
 
 ## Prompt and strategy experiments
 
+- `run_mechanism_strategy_transfer.py`: adaptive Olympiad transfer experiment that
+  scores discovery attempts for distinct, validated error mechanisms. It runs one
+  persistent session per proof, feeds validity/detection/novelty assessments back
+  after every attempt, deduplicates mechanisms during distillation, and compares
+  persistent generic and strategy-guided sessions on the held-out split. Discovery
+  and evaluation budgets are configurable; defaults are 25 and 5 attempts per
+  proof/arm. All prompts, responses, event streams, diffs, assessments, and summaries
+  are stored below `--storage-dir`.
+
+- `run_olympiad_strategy_transfer.py`: end-to-end problem-disjoint transfer experiment.
+  Select five `--discovery-folders` and five `--heldout-folders` under `--dataset-root`.
+  A selector such as `000184:1` chooses solution entry 1 rather than concatenating
+  alternative proofs. The loader rejects repeated problem IDs/questions and image-dependent
+  sources. Five persistent agents each make 25 discovery attempts, followed by fresh-agent
+  validity/matching audits, discovery-only strategy distillation, and a frozen 50-attempt
+  matched evaluation on held-out problems. All stages are logged under `--storage-dir`;
+  `status.json` tracks the active phase. `--dry-run` snapshots the split without model calls.
+  Budgets are adjustable with `--discovery-attempts` and `--evaluation-attempts-per-proof`.
+  This uses reference `original_data.solution` entries, not generated reasoning traces.
+  Fresh review/check calls have a 600-second streaming deadline, a long-repetitive-output
+  guard, and at most one technical retry; mathematical verdicts and schema failures do
+  not trigger retries. `--resume` supports interrupted discovery with an identical split
+  and budget: completed attempts are reused, a saved pending candidate is rejudged once,
+  and an ephemeral mutator restart is explicitly reconstructed from saved feedback/notes.
+  `--resume` also recovers a failed distillation from its latest saved response, checking
+  that discovery/audit evidence is unchanged and evaluation has not already started.
+  Plain and Markdown section headings are accepted; no new distillation call is needed
+  for a heading-format mismatch.
+
 Strategy libraries are local experiment inputs, not bundled source code. The local
 audited guidance from the persistent-agent runs can be found in
 `src/proof_fuzzer/data/audited_persistent_strategies_20260909.jsonl` (10 loader-compatible

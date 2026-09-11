@@ -790,7 +790,8 @@ def _validate_mutation_policy(prompt_text: str, *, max_chars: int) -> str:
             f"Mutation policy has {len(prompt)} characters; maximum is {max_chars}."
         )
     for heading in ("Strategies", "Do not", "Before returning"):
-        if re.search(rf"(?im)^\s*{re.escape(heading)}\s*:\s*$", prompt) is None:
+        # Accept plain headings and Markdown ATX headings, without changing the policy.
+        if re.search(rf"(?im)^[ \t]*(?:\#{{1,6}}[ \t]+)?{re.escape(heading)}[ \t]*:[ \t]*(?:\#+[ \t]*)?$", prompt) is None:
             raise ValueError(f"Mutation policy is missing the required {heading!r} section.")
     return prompt
 

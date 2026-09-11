@@ -5,9 +5,12 @@ from __future__ import annotations
 from dataclasses import dataclass, fields, is_dataclass
 from datetime import datetime, timezone
 from enum import Enum
+import hashlib
 import json
+import queue
 from pathlib import Path
 import threading
+import time
 from typing import Any, Mapping
 
 
@@ -34,6 +37,77 @@ class CodexChatResult:
     reasoning: str = ""
     finish_reason: str = ""
     raw_response: object | None = None
+
+
+class CodexCallTechnicalError(RuntimeError):
+    """A local timeout/output guard stopped a call, independent of its verdict."""
+
+
+class OutputRepetitionGuard:
+    """Detect long periodic suffixes in agent output, across streaming deltas."""
+
+    def __init__(self):
+        self.item_id = None
+        self.tail = ''
+        self.unchecked = 0
+
+    def update(self, item_id, delta):
+        if item_id != self.item_id:
+            self.item_id, self.tail, self.unchecked = item_id, '', 0
+        self.tail = (self.tail + delta)[-4096:]
+        self.unchecked += len(delta)
+        if len(self.tail) < 1024 or self.unchecked < 128:
+            return False
+        self.unchecked = 0
+        for width in range(1, 129):
+            repeats = max(32, 1024 // width + 1)
+            if self.tail.endswith(self.tail[-width:] * repeats):
+                return True
+        return False
+
+
+def _timed_events(turn, timeout_seconds):
+    """Use a reader thread so a silent stream cannot defeat the wall-clock limit."""
+    events = queue.Queue()
+    stopped = threading.Event()
+
+    def read():
+        stream = None
+        try:
+            stream = turn.stream()
+            for event in stream:
+                if stopped.is_set():
+                    break
+                events.put(('event', event))
+        except Exception as error:
+            events.put(('error', error))
+        finally:
+            try:
+                close = getattr(stream, 'close', None)
+                if close is not None:
+                    close()
+            finally:
+                events.put(('end', None))
+
+    reader = threading.Thread(target=read, daemon=True)
+    reader.start()
+    deadline = time.monotonic() + timeout_seconds
+    try:
+        while True:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise CodexCallTechnicalError(f'Call exceeded {timeout_seconds:g} seconds')
+            try:
+                kind, value = events.get(timeout=remaining)
+            except queue.Empty:
+                raise CodexCallTechnicalError(f'Call exceeded {timeout_seconds:g} seconds') from None
+            if kind == 'end':
+                return
+            if kind == 'error':
+                raise value
+            yield value
+    finally:
+        stopped.set()
 
 
 class CodexProofFuzzerClient:
@@ -67,6 +141,9 @@ class CodexProofFuzzerClient:
         ephemeral_threads: bool = True,
         log_events: bool = False,
         mutation_file_editing: bool = False,
+        call_timeout_seconds: float | None = None,
+        detect_repetitive_output: bool = False,
+        technical_retries: int = 0,
         codex_factory: Any | None = None,
         sdk: Any | None = None,
     ):
@@ -89,6 +166,15 @@ class CodexProofFuzzerClient:
         if mutation_file_editing and workspace_root is None:
             raise ValueError("Mutation file editing requires isolated per-call workspaces.")
         self.mutation_file_editing = mutation_file_editing
+        if call_timeout_seconds is not None and call_timeout_seconds <= 0:
+            raise ValueError('call_timeout_seconds must be positive')
+        if technical_retries < 0:
+            raise ValueError('technical_retries must be nonnegative')
+        if (call_timeout_seconds is not None or detect_repetitive_output or technical_retries) and not log_events:
+            raise ValueError('Call safeguards require event logging')
+        self.call_timeout_seconds = call_timeout_seconds
+        self.detect_repetitive_output = detect_repetitive_output
+        self.technical_retries = technical_retries
 
         self.model = model
         self.reasoning_effort = reasoning_effort
@@ -182,6 +268,23 @@ class CodexProofFuzzerClient:
             context.__exit__(None, None, None)
 
     def _run_fresh_thread(
+        self, prompt: str, *, files: Mapping[str, str] | None = None,
+        mutation_source: str | None = None,
+    ) -> object:
+        for attempt in range(self.technical_retries + 1):
+            try:
+                return self._run_fresh_thread_once(prompt, files=files, mutation_source=mutation_source)
+            except CodexCallTechnicalError as error:
+                # Never retry based on mathematical verdict or schema parsing.
+                if self.last_workspace is not None:
+                    (self.last_workspace / 'technical_retry.json').write_text(json.dumps({
+                        'attempt': attempt + 1, 'retry_scheduled': attempt < self.technical_retries,
+                        'error': str(error), 'prompt_sha256': hashlib.sha256(prompt.encode()).hexdigest(),
+                    }, indent=2))
+                if attempt >= self.technical_retries:
+                    raise
+
+    def _run_fresh_thread_once(
         self, prompt: str, *, files: Mapping[str, str] | None = None,
         mutation_source: str | None = None,
     ) -> object:
@@ -294,13 +397,20 @@ class CodexProofFuzzerClient:
             record("client/turnStart", {"input": prompt, "model": self.model,
                                         "reasoning_effort": self.reasoning_effort})
             stream = None
+            turn = None
             try:
                 turn = thread.turn(prompt, **kwargs)
-                stream = turn.stream()
+                stream = (_timed_events(turn, self.call_timeout_seconds)
+                          if self.call_timeout_seconds is not None else turn.stream())
+                repetition = OutputRepetitionGuard()
 
                 def logged_events():
                     for event in stream:
                         record(event.method, event.payload)
+                        if self.detect_repetitive_output and event.method == 'item/agentMessage/delta':
+                            payload = _event_jsonable(event.payload)
+                            if repetition.update(payload.get('itemId'), str(payload.get('delta', ''))):
+                                raise CodexCallTechnicalError('Sustained repetitive agent output detected')
                         yield event
 
                 result = _collect_turn_result(logged_events(), turn_id=turn.id)
@@ -309,6 +419,17 @@ class CodexProofFuzzerClient:
                 return result
             except Exception as exc:
                 record("client/error", {"type": type(exc).__name__, "message": str(exc)})
+                if isinstance(exc, CodexCallTechnicalError) and turn is not None:
+                    record('client/guardInterrupt', {'turn_id': turn.id, 'reason': str(exc)})
+                    # Do not let an unresponsive interrupt RPC prevent context cleanup.
+                    def interrupt():
+                        try:
+                            turn.interrupt()
+                        except Exception:
+                            pass
+                    cancellation = threading.Thread(target=interrupt, daemon=True)
+                    cancellation.start()
+                    cancellation.join(timeout=2)
                 raise
             finally:
                 if stream is not None:
@@ -384,6 +505,9 @@ class CodexProofFuzzerClient:
             "sandbox_compatibility_setting": sandbox or self.sandbox,
             "status": status,
             "event_logging": self.log_events,
+            "call_timeout_seconds": self.call_timeout_seconds,
+            "detect_repetitive_output": self.detect_repetitive_output,
+            "technical_retries": self.technical_retries,
             "event_trace_dir": str(self.workspace_root.parent / "codex_traces" / workspace.name)
             if self.log_events else None,
             "web_search": "disabled",
