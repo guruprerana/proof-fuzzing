@@ -68,8 +68,9 @@ class MutationValidator:
 Determine only whether the supplied introduced-error explanation identifies a genuine new logical
 or mathematical flaw in the mutated proof. The original may itself be wrong and is supplied only
 to distinguish pre-existing defects. A real local error counts even if the theorem remains true or
-another argument proves it. Return "correct" if the alleged flaw is valid, absent, or pre-existing;
-return "uncertain" if the text is insufficient. Do not audit unrelated parts.
+another argument proves it. Return "incorrect" exactly when the explanation identifies a genuine
+new flaw in the mutated proof. Return "correct" when the alleged flaw is absent, harmless, or
+pre-existing; return "uncertain" if the text is insufficient. Do not audit unrelated parts.
 
 Problem:\n{problem}\n
 Original proof:\n{original}\n

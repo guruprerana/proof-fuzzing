@@ -1,6 +1,9 @@
 import unittest
 
-from src.proof_fuzzer.judging import load_json_object, parse_judge_result, parse_match_result
+from src.proof_fuzzer.judging import (
+    MutationValidator, load_json_object, parse_judge_result, parse_match_result,
+)
+from src.proof_fuzzer.models import FuzzerMutationInstructions
 
 
 class JudgingTests(unittest.TestCase):
@@ -18,6 +21,12 @@ class JudgingTests(unittest.TestCase):
     def test_missing_json_is_rejected(self):
         with self.assertRaises(ValueError):
             load_json_object("no structured response")
+
+    def test_validator_verdict_polarity_matches_pipeline(self):
+        prompt = MutationValidator(None).prompt(original="valid", mutated="invalid",
+            instructions=FuzzerMutationInstructions(False, (), "new flaw"), problem="P")
+        self.assertIn('Return "incorrect" exactly when', prompt)
+        self.assertIn('Return "correct" when the alleged flaw is absent', prompt)
 
 
 if __name__ == "__main__":
