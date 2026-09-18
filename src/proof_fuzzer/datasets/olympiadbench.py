@@ -33,11 +33,10 @@ class OlympiadProof:
             "artifact": f"original_data.solution[{self.solution_index}]", "problem": self.problem}
 
 
-def load_split(root: Path, discovery_selectors: list[str], heldout_selectors: list[str]):
-    if len(discovery_selectors) != 5 or len(heldout_selectors) != 5:
-        raise ValueError("Select exactly five discovery and five held-out proofs")
+def load_examples(root: Path, selectors: list[str]) -> list[OlympiadProof]:
+    """Load a disjoint, text-only collection of selected proof artifacts."""
     examples, ids, questions = [], set(), set()
-    for selector in [*discovery_selectors, *heldout_selectors]:
+    for selector in selectors:
         if not re.fullmatch(r"\d{6}(?::\d+)?", selector):
             raise ValueError(f"Expected folder or folder:solution_index: {selector}")
         folder, _, raw_index = selector.partition(":")
@@ -59,4 +58,11 @@ def load_split(root: Path, discovery_selectors: list[str], heldout_selectors: li
         ids.add(problem_id); questions.add(normalized)
         examples.append(OlympiadProof(problem_id, question, proof, path,
             data.get("subfield", "unspecified"), selector, index))
+    return examples
+
+
+def load_split(root: Path, discovery_selectors: list[str], heldout_selectors: list[str]):
+    if len(discovery_selectors) != 5 or len(heldout_selectors) != 5:
+        raise ValueError("Select exactly five discovery and five held-out proofs")
+    examples = load_examples(root, [*discovery_selectors, *heldout_selectors])
     return examples[:5], examples[5:]

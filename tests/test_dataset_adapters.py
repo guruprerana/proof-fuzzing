@@ -4,7 +4,7 @@ from tempfile import TemporaryDirectory
 import unittest
 
 from src.proof_fuzzer.datasets import adapt_examples
-from src.proof_fuzzer.datasets.olympiadbench import load_split
+from src.proof_fuzzer.datasets.olympiadbench import load_examples, load_split
 from src.proof_fuzzer.datasets.json_split import load_json_split
 from src.proof_fuzzer.strategy_transfer import run_strategy_transfer
 
@@ -52,6 +52,13 @@ class OlympiadAdapterTests(unittest.TestCase):
             self.assertEqual(train[0].proof, "Alternative 0")
             self.assertEqual(train[0].metadata()["artifact"], "original_data.solution[1]")
             self.assertFalse({p.example_id for p in train} & {p.example_id for p in test})
+
+    def test_load_more_than_five_evaluation_examples(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            discovery, heldout = self.fixture(root)
+            loaded = load_examples(root, discovery + heldout)
+            self.assertEqual(len(loaded), 10)
 
     def test_generic_pipeline_dry_run_accepts_adapter_examples(self):
         with TemporaryDirectory() as tmp:
