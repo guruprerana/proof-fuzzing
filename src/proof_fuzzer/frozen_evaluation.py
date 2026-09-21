@@ -12,6 +12,10 @@ from .strategy_transfer import (
 )
 
 
+def selector_for(proof) -> str:
+    return str(getattr(proof, "selector", proof.example_id))
+
+
 def exact_mcnemar_one_sided(strategy_only: int, generic_only: int) -> float:
     """Exact P[X >= strategy_only] for discordant pairs under p=1/2."""
     if min(strategy_only, generic_only) < 0:
@@ -29,7 +33,8 @@ def _candidate_success(row: dict, required_missed_reviews: int) -> bool:
 
 
 def summarize_frozen(rows: list[dict], proofs: list, attempts_per_arm: int, alpha: float,
-                     required_missed_reviews: int = 2) -> dict:
+                     required_missed_reviews: int = 2,
+                     reviews_per_valid_candidate: int = 3) -> dict:
     outcomes = {}
     for proof in proofs:
         arms = {}
@@ -62,7 +67,8 @@ def summarize_frozen(rows: list[dict], proofs: list, attempts_per_arm: int, alph
         "completed_candidates": len(rows),
         "planned_candidates": 2 * len(proofs) * attempts_per_arm,
         "primary_endpoint": (
-            f"proof has >=1 valid candidate missed by >={required_missed_reviews} of 3 reviews"),
+            "proof has >=1 valid candidate missed by >="
+            f"{required_missed_reviews} of {reviews_per_valid_candidate} reviews"),
         "independent_unit": "proof",
         "alpha": alpha,
         "test": "exact one-sided paired McNemar/binomial test",
@@ -88,15 +94,21 @@ def run_frozen_evaluation(*, heldout: list, strategy_path: Path, storage_dir: Pa
                           seed: int = 20260913, attempts_per_arm: int = 3,
                           alpha: float = 0.01, workers: int = 5,
                           dry_run: bool = False,
+                          reviews_per_valid_candidate: int = 3,
+                          required_missed_reviews: int | None = None,
                           strategy_assignments: dict[str, list[str]] | None = None) -> None:
     if not heldout:
         raise ValueError("Held-out examples must be nonempty")
     proof_ids = [proof.example_id for proof in heldout]
-    selectors = [proof.selector for proof in heldout]
+    selectors = [selector_for(proof) for proof in heldout]
     if len(set(proof_ids)) != len(proof_ids) or len(set(selectors)) != len(selectors):
         raise ValueError("Held-out example IDs and selectors must be unique")
-    if attempts_per_arm < 1 or workers < 1:
-        raise ValueError("Attempt and worker counts must be positive")
+    if attempts_per_arm < 1 or workers < 1 or reviews_per_valid_candidate < 1:
+        raise ValueError("Attempt, worker, and review counts must be positive")
+    if required_missed_reviews is None:
+        required_missed_reviews = reviews_per_valid_candidate
+    if not 1 <= required_missed_reviews <= reviews_per_valid_candidate:
+        raise ValueError("Required missed reviews must be between one and the review count")
     if not 0 < alpha < 1:
         raise ValueError("alpha must be between zero and one")
     strategy = _validate_strategy(strategy_path.resolve().read_text())
@@ -126,8 +138,12 @@ def run_frozen_evaluation(*, heldout: list, strategy_path: Path, storage_dir: Pa
         "attempts_per_proof_per_arm": attempts_per_arm,
         "fresh_session_per_candidate": True,
         "evaluation_feedback_between_candidates": False,
-        "reviews_per_valid_candidate": 3,
-        "primary_endpoint": "proof has >=1 valid candidate missed by >=2 of 3 reviews",
+        "reviews_per_valid_candidate": reviews_per_valid_candidate,
+        "required_missed_reviews": required_missed_reviews,
+        "primary_endpoint": (
+            "proof has >=1 valid candidate missed by >="
+            f"{required_missed_reviews} of {reviews_per_valid_candidate} reviews"
+        ),
         "independent_unit": "proof",
         "primary_test": "exact one-sided paired McNemar/binomial test",
         "alpha": alpha,
@@ -179,16 +195,18 @@ def run_frozen_evaluation(*, heldout: list, strategy_path: Path, storage_dir: Pa
                 continue
             try:
                 record = run_session(session, job["proof"], 1, model, reasoning_effort,
-                    strategy if job["arm"] == "strategies" else None, 3,
+                    strategy if job["arm"] == "strategies" else None,
+                    reviews_per_valid_candidate,
                     extra_guidance=("\nAssigned strategy for this candidate:\n"
-                        + assignments[job["proof"].selector][job["candidate"] - 1]
+                        + assignments[selector_for(job["proof"])][job["candidate"] - 1]
                         + "\nImplement this assigned mechanism when mathematically applicable. "
                           "Do not substitute an unrelated generic arithmetic or typographical error.\n"
                         if job["arm"] == "strategies" and assignments else ""))[0]
                 assessment = record.get("assessment", {})
                 if (record.get("status") != "judged" or assessment.get("valid") is None
                         or (assessment.get("valid") is True
-                            and len(assessment.get("reviews", ())) != 3)):
+                            and len(assessment.get("reviews", ()))
+                            != reviews_per_valid_candidate)):
                     raise RuntimeError(f"Technical non-submission: {record.get('error', record)}")
                 return record
             except Exception as error:
@@ -212,7 +230,7 @@ def run_frozen_evaluation(*, heldout: list, strategy_path: Path, storage_dir: Pa
                            proof_id=job["proof"].example_id, candidate=job["candidate"],
                            session_index=index,
                            strategy_assignment=(
-                               assignments[job["proof"].selector][job["candidate"] - 1]
+                               assignments[selector_for(job["proof"])][job["candidate"] - 1]
                                if job["arm"] == "strategies" and assignments else None),
                            pipeline_status=record.get("status"),
                            elapsed_seconds=record.get("elapsed_seconds", 0))
@@ -220,7 +238,8 @@ def run_frozen_evaluation(*, heldout: list, strategy_path: Path, storage_dir: Pa
                 rows.sort(key=lambda value: value["session_index"])
                 save(root / "results.json", rows)
                 save(root / "summary.json", summarize_frozen(
-                    rows, heldout, attempts_per_arm, alpha))
+                    rows, heldout, attempts_per_arm, alpha, required_missed_reviews,
+                    reviews_per_valid_candidate))
                 state["sessions_completed"].append(index)
                 save(root / "status.json", state)
         state.update(phase="complete", complete=True)

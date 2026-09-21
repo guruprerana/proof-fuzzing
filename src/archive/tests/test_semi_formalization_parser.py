@@ -155,7 +155,7 @@ class SemiFormalizationParserTest(unittest.TestCase):
         self.assertIn("C99", issues[0].message)
 
     def test_parse_generated_artifact_when_available(self) -> None:
-        path = Path("logs/proof_semiformalization/imo_gradebench/000125/verification_autoformalization_parseable.txt")
+        path = Path("logs/archive/proof_semiformalization/imo_gradebench/000125/verification_autoformalization_parseable.txt")
         if not path.exists():
             self.skipTest("generated semi-formalization fixture is not available")
 

@@ -36,7 +36,7 @@ from src.proof_fuzzer.proof_bench_judge import (
 
 @dataclass(frozen=True)
 class StrategyBankExperimentConfig:
-    storage_dir: str | Path = "logs/strategy_bank_experiments"
+    storage_dir: str | Path = "logs/archive/strategy_bank_pipeline/experiments"
     proof_root: str | Path = DEFAULT_OPENAI_TEN_ADVANCES_ROOT
     model: str = "gpt-5.6-sol"
     reasoning_effort: str = "medium"

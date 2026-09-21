@@ -49,6 +49,24 @@ class FrozenEvaluationTests(unittest.TestCase):
         self.assertFalse(summary["complete"])
         self.assertFalse(summary["significant_strategy_transfer"])
 
+    def test_summary_supports_configurable_review_threshold(self):
+        proofs = [Example("a")]
+        rows = [
+            {"proof_id": "a", "arm": "generic", "valid": True,
+             "reviews": [{"detection": "missed"}, {"detection": "caught"}]},
+            {"proof_id": "a", "arm": "strategies", "valid": True,
+             "reviews": [{"detection": "missed"}, {"detection": "missed"}]},
+        ]
+        summary = summarize_frozen(
+            rows, proofs, attempts_per_arm=1, alpha=0.5,
+            required_missed_reviews=2, reviews_per_valid_candidate=2,
+        )
+        self.assertEqual(summary["strategy_successes"], 1)
+        self.assertEqual(
+            summary["primary_endpoint"],
+            "proof has >=1 valid candidate missed by >=2 of 2 reviews",
+        )
+
     def test_duplicate_heldout_ids_are_rejected(self):
         strategy = "# Strategies:\n\n- Check.\n\n# Do not:\n\n- Guess.\n\n# Before returning:\n\n- Verify.\n"
         with TemporaryDirectory() as tmp:

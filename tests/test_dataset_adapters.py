@@ -21,6 +21,19 @@ class OlympiadAdapterTests(unittest.TestCase):
             self.assertEqual(discovery[0].proof, "A")
             self.assertEqual(heldout[0].example_id, "b")
 
+    def test_discovery_only_json_split_requires_explicit_opt_in(self):
+        with TemporaryDirectory() as tmp:
+            path = Path(tmp) / "split.json"
+            path.write_text(json.dumps({
+                "discovery": [{"example_id": "a", "problem": "P", "proof": "A"}],
+                "heldout": [],
+            }))
+            with self.assertRaisesRegex(ValueError, "nonempty list"):
+                load_json_split(path)
+            discovery, heldout = load_json_split(path, allow_empty_heldout=True)
+            self.assertEqual([example.example_id for example in discovery], ["a"])
+            self.assertEqual(heldout, [])
+
     def test_generic_field_adapter(self):
         class Record:
             example_id = "imo-1"

@@ -184,7 +184,7 @@ def main():
     parser.add_argument("--attempts", type=int, default=None)
     parser.add_argument("--storage-dir", type=Path, required=True)
     parser.add_argument("--proof-root", type=Path,
-                        default=Path("logs/openai_ten_advances_2026/proofs_markdown"))
+                        default=Path("local_datasets/openai_ten_advances_2026/proofs_markdown"))
     parser.add_argument("--model", default="gpt-5.6-sol")
     parser.add_argument("--reasoning-effort", default="medium")
     selection = parser.add_mutually_exclusive_group()

@@ -1,5 +1,9 @@
 # Project memory
 
+## Analysis exclusions
+
+- Do not include the TORA dataset in future quantitative tables, comparisons, summaries, or analyses unless the user explicitly asks to restore it.
+
 ## Current best proof-fuzzing pipeline — 2026-09-10
 
 The user identifies the following as the **best pipeline we have discovered so far** and wants it retained as the default experimental direction:

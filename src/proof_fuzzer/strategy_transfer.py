@@ -196,7 +196,9 @@ No score or judge detection information is needed for this classification.'''
 
     def __call__(self, proof, archive):
         folder = self.root / archive.name
-        folder.mkdir(parents=True)
+        # A technical restart may resume an archived mutation whose assessment
+        # directory contains only partial request/response artifacts.
+        folder.mkdir(parents=True, exist_ok=True)
         mutated = (archive / 'mutated_proof.md').read_text()
         explanation = (archive / 'introduced_error.md').read_text()
         diff = (archive / 'mutation.diff').read_text()
@@ -344,8 +346,8 @@ def run_strategy_transfer(*, discovery: list[ProofExample], heldout: list[ProofE
                           dry_run: bool = False, profile=None,
                           run_evaluation: bool = True) -> None:
     """Run the active pipeline on examples supplied by any dataset adapter."""
-    if not discovery or not heldout:
-        raise ValueError("Discovery and held-out examples must both be nonempty")
+    if not discovery or (run_evaluation and not heldout):
+        raise ValueError("Discovery examples must be nonempty; evaluation also requires held-out examples")
     if min(discovery_attempts, evaluation_attempts_per_proof) < 1:
         raise ValueError("Attempt budgets must be positive")
     if {p.example_id for p in discovery} & {p.example_id for p in heldout}:
@@ -465,7 +467,8 @@ def main():
     if args.split_json:
         if args.discovery_folders or args.heldout_folders:
             parser.error('--split-json cannot be combined with folder selectors')
-        discovery, heldout = load_json_split(args.split_json.resolve())
+        discovery, heldout = load_json_split(
+            args.split_json.resolve(), allow_empty_heldout=args.discovery_only)
     else:
         if not args.discovery_folders or not args.heldout_folders:
             parser.error('--dataset-root requires both discovery and held-out folder selectors')

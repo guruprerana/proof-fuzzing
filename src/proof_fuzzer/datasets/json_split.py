@@ -6,13 +6,13 @@ from pathlib import Path
 from . import TextProofExample
 
 
-def load_json_split(path: Path) -> tuple[list[TextProofExample], list[TextProofExample]]:
+def load_json_split(path: Path, *, allow_empty_heldout: bool = False) -> tuple[list[TextProofExample], list[TextProofExample]]:
     """Load ``{"discovery": [...], "heldout": [...]}`` proof records."""
     data = json.loads(path.read_text())
 
     def convert(split: str) -> list[TextProofExample]:
         rows = data.get(split)
-        if not isinstance(rows, list) or not rows:
+        if not isinstance(rows, list) or (not rows and not (split == "heldout" and allow_empty_heldout)):
             raise ValueError(f"JSON split {split!r} must be a nonempty list")
         result = []
         for row in rows:

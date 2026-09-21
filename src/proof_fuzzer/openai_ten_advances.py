@@ -20,7 +20,7 @@ from src.proof_fuzzer.vllm_client import VLLMProofFuzzerClient
 
 
 DEFAULT_OPENAI_TEN_ADVANCES_ROOT = Path(
-    "logs/openai_ten_advances_2026/proofs_markdown"
+    "local_datasets/openai_ten_advances_2026/proofs_markdown"
 )
 
 

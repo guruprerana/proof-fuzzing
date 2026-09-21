@@ -24,6 +24,11 @@ def main() -> None:
     parser.add_argument("--attempts-per-arm", type=int, default=3)
     parser.add_argument("--alpha", type=float, default=0.01)
     parser.add_argument("--workers", type=int, default=5)
+    parser.add_argument("--reviews-per-valid-candidate", type=int, default=3)
+    parser.add_argument(
+        "--required-missed-reviews", type=int,
+        help="Successful candidate threshold; defaults to all blind reviews missing the error",
+    )
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--strategy-assignments", type=Path,
         help="JSON object mapping every held-out selector to one directive per candidate")
@@ -36,6 +41,8 @@ def main() -> None:
         reasoning_effort=args.reasoning_effort, seed=args.seed,
         attempts_per_arm=args.attempts_per_arm, alpha=args.alpha,
         workers=args.workers, dry_run=args.dry_run,
+        reviews_per_valid_candidate=args.reviews_per_valid_candidate,
+        required_missed_reviews=args.required_missed_reviews,
         strategy_assignments=assignments)
 
 

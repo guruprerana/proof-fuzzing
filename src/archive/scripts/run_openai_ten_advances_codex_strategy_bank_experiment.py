@@ -99,7 +99,8 @@ def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=DEFAULT_OPENAI_TEN_ADVANCES_ROOT)
     parser.add_argument(
-        "--storage-dir", type=Path, default=Path("logs/strategy_bank_experiments")
+        "--storage-dir", type=Path,
+        default=Path("logs/archive/strategy_bank_pipeline/experiments")
     )
     parser.add_argument("--run-name", default="")
     parser.add_argument("--model", default="gpt-5.6-sol")

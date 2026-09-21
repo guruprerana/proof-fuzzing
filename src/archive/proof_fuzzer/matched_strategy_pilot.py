@@ -171,7 +171,7 @@ def main():
     parser.add_argument('--strategies-file', required=True, type=Path,
                         help='Frozen Markdown strategy library (local, not bundled).')
     parser.add_argument('--proof-root', type=Path,
-                        default=Path('logs/openai_ten_advances_2026/proofs_markdown'))
+                        default=Path('local_datasets/openai_ten_advances_2026/proofs_markdown'))
     parser.add_argument('--proof-ids', nargs='+', help='Distinct proof IDs; defaults to 01, 02, 05, 06, 07.')
     parser.add_argument('--attempts-per-proof', type=int, default=5,
                         help='Generation attempts per proof per arm (default: 5).')
