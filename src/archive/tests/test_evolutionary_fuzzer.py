@@ -244,6 +244,19 @@ class EvolutionaryFuzzerTest(unittest.TestCase):
         self.assertEqual(empty.response_kind, "error_inventory")
         self.assertEqual(empty.detected_errors, ())
 
+    def test_parse_plaintext_error_inventory(self) -> None:
+        result = parse_judge_result(
+            "- **Lemma 9.1:** The claimed degrees collide.\n"
+            "- **Theorem 1.2:** The lower bound therefore does not follow."
+        )
+        self.assertEqual(result.response_kind, "error_inventory")
+        self.assertEqual(result.verdict, "incorrect")
+        self.assertEqual(len(result.detected_errors), 2)
+
+        empty = parse_judge_result("No concrete mathematical errors found.")
+        self.assertEqual(empty.verdict, "correct")
+        self.assertEqual(empty.detected_errors, ())
+
     def test_mutation_checker_prompt_requires_independent_proof_audit(self) -> None:
         instructions = parse_mutation_instructions(MUTATION_RESPONSE)
         prompt = ProofFuzzJudge(FakeLLM([])).judge_prompt(

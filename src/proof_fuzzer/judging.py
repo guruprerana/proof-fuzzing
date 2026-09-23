@@ -12,7 +12,29 @@ def load_json_object(text: str) -> dict[str, object]:
     candidate = fenced.group(1) if fenced else text[text.find("{"):text.rfind("}") + 1]
     if not candidate or not candidate.startswith("{"):
         raise ValueError("No JSON object was found in the LLM response.")
-    value = json.loads(candidate)
+    try:
+        value = json.loads(candidate)
+    except json.JSONDecodeError as error:
+        # Models sometimes put LaTeX such as \ge or \frac directly in JSON
+        # strings. Repair only backslashes that cannot begin a JSON escape;
+        # valid escapes and all other response text remain byte-for-byte intact.
+        repaired = re.sub(
+            r'\\(?!["\\/bfnrt]|u[0-9a-fA-F]{4})', r'\\\\', candidate)
+        # A few common TeX commands begin with a letter that is also a valid
+        # one-character JSON escape (for example, ``\frac`` starts with ``\f``).
+        # Handle those commands explicitly without rewriting genuine ``\n`` or
+        # ``\t`` JSON escapes.
+        repaired = re.sub(
+            r'\\(?=(?:bar|begin|beta|big|binom|bmatrix|bmod|boldsymbol|'
+            r'floor|forall|frac|nabla|neq|nmid|not|notin|nu|'
+            r'rangle|rceil|rfloor|rho|right|tau|text|tfrac|theta|times|to)\b)',
+            r'\\\\', repaired)
+        if repaired == candidate:
+            raise
+        try:
+            value = json.loads(repaired)
+        except json.JSONDecodeError:
+            raise error
     if not isinstance(value, dict):
         raise ValueError("Expected a JSON object.")
     return value
@@ -22,8 +44,44 @@ def _errors(value: object) -> tuple[dict[str, object], ...]:
     return tuple(dict(item) for item in value if isinstance(item, dict)) if isinstance(value, list) else ()
 
 
+def _plaintext_error_inventory(text: str) -> tuple[dict[str, object], ...]:
+    """Best-effort preservation of a non-JSON blind error inventory."""
+    cleaned = text.strip()
+    if not cleaned or cleaned.startswith(("{", "[")):
+        raise ValueError("No plaintext error inventory was found in the LLM response.")
+    no_error = re.fullmatch(
+        r"(?is)(?:[#>*_\s-]*)(?:i\s+(?:found|identify|see)\s+)?"
+        r"(?:no|none)(?:\s+concrete)?\s+(?:mathematical\s+|logical\s+)?"
+        r"errors?(?:\s+(?:were\s+)?found|\s+identified)?[.!\s]*",
+        cleaned,
+    )
+    if no_error:
+        return ()
+
+    items = [part.strip() for part in re.split(
+        r"(?m)(?=^\s*(?:[-*+]\s+|\d+[.)]\s+))", cleaned) if part.strip()]
+    if len(items) == 1:
+        items = [cleaned]
+    return tuple({
+        "location": f"unstructured report item {index}",
+        "root_cause": "",
+        "description": re.sub(r"^\s*(?:[-*+]\s+|\d+[.)]\s+)", "", item).strip(),
+        "consequence": "",
+        "severity": "major",
+        "confidence": 0.0,
+        "unstructured": True,
+    } for index, item in enumerate(items, 1))
+
+
 def parse_judge_result(text: str) -> JudgeResult:
-    data = load_json_object(text)
+    try:
+        data = load_json_object(text)
+    except (ValueError, json.JSONDecodeError):
+        errors = _plaintext_error_inventory(text)
+        return JudgeResult("incorrect" if errors else "correct", 0.0,
+            "Parsed from a non-JSON error inventory.",
+            "; ".join(str(error["description"]) for error in errors),
+            errors, "error_inventory", text)
     if "errors" in data and "verdict" not in data:
         errors = _errors(data.get("errors"))
         confidence = max((float(e.get("confidence", 0) or 0) for e in errors), default=0.0)
@@ -123,4 +181,6 @@ Return exactly one JSON object:
 
 def usage_limit_reached(value: object) -> bool:
     text = repr(value).lower()
-    return "usage limit" in text or "purchase more credits" in text
+    return any(marker in text for marker in (
+        "usage limit", "session limit", "purchase more credits",
+    ))

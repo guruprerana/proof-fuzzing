@@ -2,6 +2,7 @@
 
 from datetime import datetime, timezone
 import difflib
+import hashlib
 import json
 from pathlib import Path
 import time
@@ -102,14 +103,41 @@ def run_attempts(*, root, proof, total, mutator, thread, sdk, judge, proofs=None
             stage = "mutation"
             print(f"Attempt {index}/{total}: persistent mutator", flush=True)
             try:
-                result = mutator._run_thread(
-                    thread, sdk, "Read prompt.txt and carry out this attempt using the named files.",
-                    workspace=workspace, sandbox="workspace_write",
-                    trace_dir=root / "mutator_traces" / f"attempt_{index:03d}",
-                )
-                (archive / "mutator_response.txt").write_text(result.final_response or "")
-                stage = "artifact_validation"
-                _read_file_mutation(candidate, proof.proof)
+                turn_prompt = "Read prompt.txt and carry out this attempt using the named files."
+                artifact_failures = []
+                for artifact_call in range(2):
+                    if hasattr(mutator, "run_persistent_turn"):
+                        result = mutator.run_persistent_turn(thread, turn_prompt)
+                        response_text = result.content
+                    else:
+                        trace_name = (f"attempt_{index:03d}" if artifact_call == 0 else
+                                      f"attempt_{index:03d}_artifact_retry_{artifact_call}")
+                        result = mutator._run_thread(
+                            thread, sdk, turn_prompt,
+                            workspace=workspace, sandbox="workspace_write",
+                            trace_dir=root / "mutator_traces" / trace_name,
+                        )
+                        response_text = result.final_response or ""
+                    response_name = ("mutator_response.txt" if artifact_call == 0 else
+                                     f"mutator_response_artifact_retry_{artifact_call}.txt")
+                    (archive / response_name).write_text(response_text)
+                    stage = "artifact_validation"
+                    try:
+                        _read_file_mutation(candidate, proof.proof)
+                        break
+                    except FileNotFoundError as error:
+                        artifact_failures.append({
+                            "call": artifact_call + 1,
+                            "error": f"{type(error).__name__}: {error}",
+                            "prompt_sha256": hashlib.sha256(turn_prompt.encode()).hexdigest(),
+                            "retry_scheduled": artifact_call == 0,
+                        })
+                        write_json(archive / "artifact_technical_retries.json", artifact_failures)
+                        if artifact_call:
+                            record["artifact_technical_retries"] = len(artifact_failures)
+                            raise
+                if artifact_failures:
+                    record["artifact_technical_retries"] = len(artifact_failures)
                 mutated = (candidate / "mutated_proof.md").read_text()
                 explanation = (candidate / "introduced_error.md").read_text()
                 if profile is not None:

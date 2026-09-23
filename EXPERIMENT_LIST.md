@@ -6,3 +6,6 @@
 4. Ablation with length of proof. Are longer proofs easier to break?
 5. Reporting average size of mutations, number of lines changed etc.
 6. Reporting span of influence of the mutations.
+7. Transfer strategies across datasets.
+8. Control for proof length: if length is the main driver, a generic agent should
+   break the judge at a similar rate on length-matched proofs.

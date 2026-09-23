@@ -91,6 +91,7 @@ def summarize_frozen(rows: list[dict], proofs: list, attempts_per_arm: int, alph
 
 def run_frozen_evaluation(*, heldout: list, strategy_path: Path, storage_dir: Path,
                           model: str = "gpt-5.6-luna", reasoning_effort: str = "medium",
+                          provider: str = "codex",
                           seed: int = 20260913, attempts_per_arm: int = 3,
                           alpha: float = 0.01, workers: int = 5,
                           dry_run: bool = False,
@@ -105,6 +106,8 @@ def run_frozen_evaluation(*, heldout: list, strategy_path: Path, storage_dir: Pa
         raise ValueError("Held-out example IDs and selectors must be unique")
     if attempts_per_arm < 1 or workers < 1 or reviews_per_valid_candidate < 1:
         raise ValueError("Attempt, worker, and review counts must be positive")
+    if provider not in {"codex", "claude-code", "gemini-cli"}:
+        raise ValueError("Provider must be 'codex', 'claude-code', or 'gemini-cli'")
     if required_missed_reviews is None:
         required_missed_reviews = reviews_per_valid_candidate
     if not 1 <= required_missed_reviews <= reviews_per_valid_candidate:
@@ -129,8 +132,14 @@ def run_frozen_evaluation(*, heldout: list, strategy_path: Path, storage_dir: Pa
     manifest = {
         "created_at": datetime.now(timezone.utc).isoformat(),
         "design": "frozen strategy, paired fresh-proof evaluation",
+        "provider": provider,
         "model": model,
-        "reasoning_effort": reasoning_effort,
+        "reasoning_effort": reasoning_effort if provider != "gemini-cli" else None,
+        "requested_reasoning_effort": reasoning_effort,
+        "provider_supports_reasoning_effort": provider != "gemini-cli",
+        "role_providers": {role: provider for role in (
+            "mutator", "blind_judge", "validity_checker",
+            "introduced_error_matcher", "novelty_classifier")},
         "seed": seed,
         "strategy_source": str(strategy_path.resolve()),
         "strategy_sha256": digest(strategy),
@@ -188,15 +197,20 @@ def run_frozen_evaluation(*, heldout: list, strategy_path: Path, storage_dir: Pa
 
     def execute(index, job):
         errors = []
-        for retry in range(5):
+        retry = 0
+        fresh_attempts = 0
+        while fresh_attempts < 5:
             suffix = "" if retry == 0 else f"_retry{retry}"
+            retry += 1
             session = root / "sessions" / f"{index:04d}{suffix}"
             if session.exists():
                 continue
+            fresh_attempts += 1
             try:
                 record = run_session(session, job["proof"], 1, model, reasoning_effort,
                     strategy if job["arm"] == "strategies" else None,
                     reviews_per_valid_candidate,
+                    provider=provider,
                     extra_guidance=("\nAssigned strategy for this candidate:\n"
                         + assignments[selector_for(job["proof"])][job["candidate"] - 1]
                         + "\nImplement this assigned mechanism when mathematically applicable. "
@@ -214,6 +228,7 @@ def run_frozen_evaluation(*, heldout: list, strategy_path: Path, storage_dir: Pa
         raise RuntimeError(f"Job {index} failed all available fresh retries: {errors}")
 
     try:
+        state.pop("error", None)
         state["phase"] = "evaluation"
         save(root / "status.json", state)
         with ThreadPoolExecutor(max_workers=min(workers, len(jobs))) as pool:

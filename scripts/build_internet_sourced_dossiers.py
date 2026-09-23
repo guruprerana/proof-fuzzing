@@ -130,11 +130,11 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--source-dir", type=Path,
-        default=Path("local_datasets/internet_sourced_dossiers_v1_sources"),
+        default=Path("local_datasets/archive/superseded_proof_datasets_2026-09-21/source_materials/internet_sourced_dossiers_v1_sources"),
     )
     parser.add_argument(
         "--output", type=Path,
-        default=Path("local_datasets/generated_proof_datasets/internet_sourced_dossiers_v1.json"),
+        default=Path("local_datasets/archive/superseded_proof_datasets_2026-09-21/generated_proof_datasets/internet_sourced_dossiers_v1.json"),
     )
     args = parser.parse_args()
     payload = build(args.source_dir)

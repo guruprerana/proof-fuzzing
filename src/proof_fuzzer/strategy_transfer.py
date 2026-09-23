@@ -9,7 +9,8 @@ import random
 import re
 
 from .codex_client import CodexProofFuzzerClient, _load_codex_sdk
-from .datasets.olympiadbench import load_split
+from .agent_cli_client import ClaudeCodeProofFuzzerClient, GeminiCLIProofFuzzerClient
+from .datasets.olympiadbench import load_split, load_split_manifest
 from .datasets.json_split import load_json_split
 from .judging import (
     BlindErrorFinder, IntroducedErrorMatcher, MutationValidator, load_json_object,
@@ -27,11 +28,18 @@ def digest(text: str) -> str:
     return hashlib.sha256(text.encode()).hexdigest()
 
 
-def client(root: Path, model: str, effort: str, *, safeguards: bool = True):
-    return CodexProofFuzzerClient(model=model, reasoning_effort=effort,
-        workspace_root=root / "workspaces", log_events=True,
+def client(root: Path, model: str, effort: str, *, provider: str = "codex",
+           safeguards: bool = True):
+    options = dict(model=model, workspace_root=root / "workspaces", log_events=True,
         call_timeout_seconds=600 if safeguards else None,
         detect_repetitive_output=safeguards, technical_retries=1 if safeguards else 0)
+    if provider == "codex":
+        return CodexProofFuzzerClient(reasoning_effort=effort, **options)
+    if provider == "claude-code":
+        return ClaudeCodeProofFuzzerClient(reasoning_effort=effort, **options)
+    if provider == "gemini-cli":
+        return GeminiCLIProofFuzzerClient(**options)
+    raise ValueError(f"Unknown provider: {provider}")
 
 
 def proof_key(proof: ProofExample) -> str:
@@ -86,8 +94,10 @@ def _validate_strategy(text: str) -> str:
 
 
 def distill(root: Path, discovery: list[ProofExample], evidence: dict[str, list[dict[str, object]]],
-            model: str, effort: str, profile=None) -> str:
-    root.mkdir(parents=True)
+            model: str, effort: str, profile=None, provider: str = "codex") -> str:
+    # A quota-limited distillation may leave this directory behind. Reusing it
+    # is safe because every response and the final manifest are content-hashed.
+    root.mkdir(parents=True, exist_ok=True)
     files = {}
     for proof in discovery:
         key = proof_key(proof)
@@ -104,7 +114,7 @@ instructions with applicability conditions and concrete validity checks. Never i
 proof-specific names or numbers, held-out claims, or instructions to embed in a proof. Return only
 Markdown of at most 20,000 characters with headings Strategies:, Do not:, and Before returning:.''')
     (root / "prompt.txt").write_text(prompt)
-    llm = client(root, model, effort)
+    llm = client(root, model, effort, provider=provider)
     try:
         for attempt in range(2):
             response = llm.complete_with_files(prompt, files)
@@ -117,7 +127,11 @@ Markdown of at most 20,000 characters with headings Strategies:, Do not:, and Be
                     raise
                 prompt += f"\nCorrect this formatting failure: {error}.\n"
         (root / "strategies.md").write_text(strategy)
-        save(root / "manifest.json", {"strategy_sha256": digest(strategy),
+        save(root / "manifest.json", {"provider": provider, "model": model,
+            "reasoning_effort": effort if provider != "gemini-cli" else None,
+            "requested_reasoning_effort": effort,
+            "provider_supports_reasoning_effort": provider != "gemini-cli",
+            "strategy_sha256": digest(strategy),
             "input_hashes": {name: digest(text) for name, text in files.items()},
             "heldout_access": False})
         return strategy
@@ -290,25 +304,38 @@ def assign_reward(mechanism, novelty, detection):
 
 
 def run_session(root, proof, attempts, model, effort, strategy=None, reviews=1, profile=None,
-                extra_guidance=''):
+                extra_guidance='', provider='codex'):
     root.mkdir(parents=True)
     workspace = root / 'mutator_workspace'
     workspace.mkdir()
     save(root / 'source.json', example_metadata(proof))
-    mutator = client(root / 'mutator', model, effort, safeguards=False)
-    judge = client(root / 'judge', model, effort)
-    auditor = client(root / 'assessments', model, effort)
+    mutator = client(root / 'mutator', model, effort, provider=provider, safeguards=False)
+    judge = client(root / 'judge', model, effort, provider=provider)
+    auditor = client(root / 'assessments', model, effort, provider=provider)
     assessor = MechanismAssessor(root / 'assessments', auditor, reviews, profile)
     try:
-        sdk = _load_codex_sdk()
-        with mutator._make_codex_context(sdk, cwd=str(workspace)) as codex:
-            thread = mutator._start_thread(codex, sdk, cwd=str(workspace), sandbox='workspace_write')
-            save(root / 'thread.json', dict(thread_id=thread.id, model=model, reasoning_effort=effort))
+        if provider in {'claude-code', 'gemini-cli'}:
+            sdk = None
+            thread = mutator.start_persistent_session(workspace)
+            save(root / 'thread.json', dict(thread_id=thread.id, provider=provider,
+                model=model, reasoning_effort=(effort if provider != 'gemini-cli' else None),
+                requested_reasoning_effort=effort))
             records = run_attempts(root=root, proof=proof, total=attempts, mutator=mutator,
                 thread=thread, sdk=sdk, judge=judge, strategy_text=strategy,
                 assessor=assessor, extra_guidance=(profile.novelty_guidance if profile is not None
                                                    else NOVELTY_GUIDANCE) + extra_guidance,
                 profile=profile)
+        else:
+            sdk = _load_codex_sdk()
+            with mutator._make_codex_context(sdk, cwd=str(workspace)) as codex:
+                thread = mutator._start_thread(codex, sdk, cwd=str(workspace), sandbox='workspace_write')
+                save(root / 'thread.json', dict(thread_id=thread.id, provider=provider,
+                                                model=model, reasoning_effort=effort))
+                records = run_attempts(root=root, proof=proof, total=attempts, mutator=mutator,
+                    thread=thread, sdk=sdk, judge=judge, strategy_text=strategy,
+                    assessor=assessor, extra_guidance=(profile.novelty_guidance if profile is not None
+                                                       else NOVELTY_GUIDANCE) + extra_guidance,
+                    profile=profile)
         if len(records) != attempts:
             raise RuntimeError(f'Session ended early: {len(records)}/{attempts}')
         return records
@@ -341,7 +368,9 @@ def evaluation_summary(jobs, total, attempts_per_session):
 def run_strategy_transfer(*, discovery: list[ProofExample], heldout: list[ProofExample],
                           storage_dir: Path, model: str = "gpt-5.6-terra",
                           reasoning_effort: str = "medium", seed: int = 20260911,
+                          provider: str = "codex",
                           discovery_attempts: int = 25,
+                          discovery_workers: int = 5,
                           evaluation_attempts_per_proof: int = 5,
                           dry_run: bool = False, profile=None,
                           run_evaluation: bool = True) -> None:
@@ -350,15 +379,26 @@ def run_strategy_transfer(*, discovery: list[ProofExample], heldout: list[ProofE
         raise ValueError("Discovery examples must be nonempty; evaluation also requires held-out examples")
     if min(discovery_attempts, evaluation_attempts_per_proof) < 1:
         raise ValueError("Attempt budgets must be positive")
+    if discovery_workers < 1:
+        raise ValueError("Discovery workers must be positive")
+    if provider not in {"codex", "claude-code", "gemini-cli"}:
+        raise ValueError("Provider must be 'codex', 'claude-code', or 'gemini-cli'")
     if {p.example_id for p in discovery} & {p.example_id for p in heldout}:
         raise ValueError("Discovery and held-out example IDs must be disjoint")
     root = storage_dir.resolve()
     root.mkdir(parents=True, exist_ok=False)
     save(root / 'manifest.json', dict(created_at=datetime.now(timezone.utc).isoformat(),
-        model=model, reasoning_effort=reasoning_effort, seed=seed,
+        provider=provider, model=model,
+        reasoning_effort=reasoning_effort if provider != 'gemini-cli' else None,
+        requested_reasoning_effort=reasoning_effort, seed=seed,
+        provider_supports_reasoning_effort=provider != 'gemini-cli',
+        role_providers={role: provider for role in (
+            'mutator', 'blind_judge', 'validity_checker', 'introduced_error_matcher',
+            'novelty_classifier', 'distiller')},
         artifact_profile=getattr(profile, 'name', 'mathematical_proof'),
         run_mode='full' if run_evaluation else 'discovery_and_distillation_only',
         discovery_attempts_per_proof=discovery_attempts,
+        discovery_workers=discovery_workers,
         evaluation_attempts_per_proof_per_arm=evaluation_attempts_per_proof,
         discovery=[example_metadata(p) for p in discovery],
         heldout=[example_metadata(p) for p in heldout],
@@ -382,9 +422,10 @@ def run_strategy_transfer(*, discovery: list[ProofExample], heldout: list[ProofE
         state['phase'] = 'discovery'
         save(root / 'status.json', state)
         audited = {}
-        with ThreadPoolExecutor(max_workers=min(5, len(discovery))) as pool:
+        with ThreadPoolExecutor(max_workers=min(discovery_workers, len(discovery))) as pool:
             futures = {pool.submit(run_session, root / 'discovery' / proof_key(p), p,
-                discovery_attempts, model, reasoning_effort, profile=profile): p for p in discovery}
+                discovery_attempts, model, reasoning_effort, profile=profile,
+                provider=provider): p for p in discovery}
             for future in as_completed(futures):
                 proof = futures[future]
                 records = future.result()
@@ -403,7 +444,8 @@ def run_strategy_transfer(*, discovery: list[ProofExample], heldout: list[ProofE
             bank = json.loads((root / 'discovery' / key / 'assessments/mechanisms.json').read_text())
             audited[key].append(dict(mechanism_bank=bank,
                 instruction='Weight each mechanism once, not by repeated wins; merge cross-proof equivalents.'))
-        strategy = distill(root / 'distillation', discovery, audited, model, reasoning_effort, profile)
+        strategy = distill(root / 'distillation', discovery, audited, model, reasoning_effort,
+                           profile, provider)
         if not run_evaluation:
             state.update(phase='distilled', complete=True,
                          strategy_sha256=digest(strategy))
@@ -420,13 +462,17 @@ def run_strategy_transfer(*, discovery: list[ProofExample], heldout: list[ProofE
             persistent_session_per_proof_per_arm=True,
             attempts_per_session=evaluation_attempts_per_proof,
             total_attempts=evaluation_total,
-            model=model, reasoning_effort=reasoning_effort, reviews_per_valid_mutation=3))
+            provider=provider, model=model,
+            reasoning_effort=(reasoning_effort if provider != 'gemini-cli' else None),
+            requested_reasoning_effort=reasoning_effort,
+            reviews_per_valid_mutation=3))
         (evaluation / 'strategies.md').write_text(strategy)
         completed = []
         with ThreadPoolExecutor(max_workers=min(5, len(jobs))) as pool:
             futures = {pool.submit(run_session, evaluation / f'{i:02d}', job['proof'],
                 evaluation_attempts_per_proof, model, reasoning_effort,
-                strategy if job['arm'] == 'strategies' else None, 3, profile): (i, job)
+                strategy if job['arm'] == 'strategies' else None, 3, profile,
+                provider=provider): (i, job)
                 for i, job in enumerate(jobs, 1)}
             for future in as_completed(futures):
                 i, job = futures[future]
@@ -453,31 +499,47 @@ def main():
     source.add_argument('--split-json', type=Path,
                         help='Dataset-neutral JSON containing discovery and heldout lists.')
     parser.add_argument('--storage-dir', required=True, type=Path)
-    parser.add_argument('--discovery-folders', nargs=5)
-    parser.add_argument('--heldout-folders', nargs=5)
-    parser.add_argument('--model', default='gpt-5.6-terra')
+    parser.add_argument('--discovery-folders', nargs=20)
+    parser.add_argument('--heldout-folders', nargs=20)
+    parser.add_argument('--olympiad-split-manifest', type=Path,
+                        help='Balanced 20/20 Olympiad selector manifest; use with --dataset-root.')
+    parser.add_argument('--provider', choices=('codex', 'claude-code', 'gemini-cli'),
+                        default='codex')
+    parser.add_argument('--model', help=('Provider model; defaults to gpt-5.6-terra, sonnet, '
+                                         'or gemini-3.5-flash.'))
     parser.add_argument('--reasoning-effort', default='medium')
     parser.add_argument('--seed', type=int, default=20260911)
     parser.add_argument('--discovery-attempts', type=int, default=25)
+    parser.add_argument('--discovery-workers', type=int, default=5)
     parser.add_argument('--evaluation-attempts-per-proof', type=int, default=5)
     parser.add_argument('--dry-run', action='store_true')
     parser.add_argument('--discovery-only', action='store_true',
                         help='Run discovery and distillation, then stop before evaluation.')
     args = parser.parse_args()
+    defaults = {'codex': 'gpt-5.6-terra', 'claude-code': 'sonnet',
+                'gemini-cli': 'gemini-3.5-flash'}
+    model = args.model or defaults[args.provider]
     if args.split_json:
-        if args.discovery_folders or args.heldout_folders:
-            parser.error('--split-json cannot be combined with folder selectors')
+        if args.discovery_folders or args.heldout_folders or args.olympiad_split_manifest:
+            parser.error('--split-json cannot be combined with Olympiad selectors or manifest')
         discovery, heldout = load_json_split(
             args.split_json.resolve(), allow_empty_heldout=args.discovery_only)
     else:
-        if not args.discovery_folders or not args.heldout_folders:
-            parser.error('--dataset-root requires both discovery and held-out folder selectors')
-        discovery, heldout = load_split(args.dataset_root.resolve(),
-            args.discovery_folders, args.heldout_folders)
+        if args.olympiad_split_manifest:
+            if args.discovery_folders or args.heldout_folders:
+                parser.error('--olympiad-split-manifest cannot be combined with folder selectors')
+            discovery, heldout = load_split_manifest(
+                args.dataset_root.resolve(), args.olympiad_split_manifest.resolve())
+        else:
+            if not args.discovery_folders or not args.heldout_folders:
+                parser.error('--dataset-root requires a split manifest or both selector lists')
+            discovery, heldout = load_split(args.dataset_root.resolve(),
+                args.discovery_folders, args.heldout_folders)
     run_strategy_transfer(discovery=discovery, heldout=heldout,
-        storage_dir=args.storage_dir, model=args.model,
+        storage_dir=args.storage_dir, provider=args.provider, model=model,
         reasoning_effort=args.reasoning_effort, seed=args.seed,
         discovery_attempts=args.discovery_attempts,
+        discovery_workers=args.discovery_workers,
         evaluation_attempts_per_proof=args.evaluation_attempts_per_proof,
         dry_run=args.dry_run, run_evaluation=not args.discovery_only)
 

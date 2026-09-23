@@ -91,13 +91,42 @@ class FrozenEvaluationTests(unittest.TestCase):
             strategy_path.write_text(strategy)
             output = root / "run"
             kwargs = dict(heldout=[Example("a")], strategy_path=strategy_path,
-                storage_dir=output, attempts_per_arm=1, workers=1)
+                storage_dir=output, attempts_per_arm=1, workers=1,
+                provider="claude-code", model="claude-opus-5")
             run_frozen_evaluation(**kwargs, dry_run=True)
             with patch("src.proof_fuzzer.frozen_evaluation.run_session",
                        return_value=[fake_record]) as mocked:
                 run_frozen_evaluation(**kwargs)
             self.assertEqual(mocked.call_count, 2)
+            self.assertTrue(all(call.kwargs["provider"] == "claude-code"
+                                for call in mocked.call_args_list))
+            manifest = json.loads((output / "manifest.json").read_text())
+            self.assertEqual(manifest["provider"], "claude-code")
+            self.assertEqual(manifest["model"], "claude-opus-5")
             self.assertTrue(json.loads((output / "status.json").read_text())["complete"])
+
+    def test_resume_uses_fresh_retry_names_after_prior_slots_exist(self):
+        strategy = "# Strategies:\n\n- Check a claim.\n\n# Do not:\n\n- Guess.\n\n# Before returning:\n\n- Verify.\n"
+        fake_record = {"attempt": 1, "status": "judged", "assessment": {"valid": True,
+            "reviews": [{"detection": "caught"}] * 3}, "elapsed_seconds": 0}
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            strategy_path = root / "strategy.md"
+            strategy_path.write_text(strategy)
+            output = root / "run"
+            kwargs = dict(heldout=[Example("a")], strategy_path=strategy_path,
+                storage_dir=output, attempts_per_arm=1, workers=1)
+            run_frozen_evaluation(**kwargs, dry_run=True)
+            for index in (1, 2):
+                for retry in range(5):
+                    suffix = "" if retry == 0 else f"_retry{retry}"
+                    (output / "sessions" / f"{index:04d}{suffix}").mkdir(parents=True)
+            with patch("src.proof_fuzzer.frozen_evaluation.run_session",
+                       return_value=[fake_record]) as mocked:
+                run_frozen_evaluation(**kwargs)
+            self.assertEqual(mocked.call_count, 2)
+            retry_paths = {call.args[0].name for call in mocked.call_args_list}
+            self.assertEqual(retry_paths, {"0001_retry5", "0002_retry5"})
 
     def test_strategy_assignment_is_preregistered_and_only_sent_to_treatment(self):
         strategy = "# Strategies:\n\n- Check a claim.\n\n# Do not:\n\n- Guess.\n\n# Before returning:\n\n- Verify.\n"

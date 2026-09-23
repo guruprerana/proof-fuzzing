@@ -13,6 +13,8 @@ import threading
 import time
 from typing import Any, Mapping
 
+from .usage import LLMUsage
+
 
 DEFAULT_CODEX_MODEL = "gpt-5.5"
 DEFAULT_CODEX_REASONING_EFFORT = "medium"
@@ -37,6 +39,7 @@ class CodexChatResult:
     reasoning: str = ""
     finish_reason: str = ""
     raw_response: object | None = None
+    usage: LLMUsage | None = None
 
 
 class CodexCallTechnicalError(RuntimeError):
@@ -206,11 +209,14 @@ class CodexProofFuzzerClient:
     def complete_with_reasoning(self, prompt: str) -> CodexChatResult:
         """Return final content plus available raw Codex turn data."""
 
+        started = time.monotonic()
+        effective_sandbox = self.sandbox
         if self.fresh_thread_per_call:
             if self.mutation_file_editing and prompt.startswith(
                 "You are introducing a subtle mathematical error into a proof."
             ):
                 instructions, source = _file_mutation_task(prompt)
+                effective_sandbox = "workspace_write"
                 result = self._run_fresh_thread(
                     instructions, files={"original_proof.md": source}, mutation_source=source,
                 )
@@ -218,12 +224,21 @@ class CodexProofFuzzerClient:
                 result = self._run_fresh_thread(prompt)
         else:
             result = self._run_reused_thread(prompt)
+        usage = _codex_usage(result, elapsed_seconds=time.monotonic() - started)
         chat_result = CodexChatResult(
             content=str(getattr(result, "final_response", None) or ""),
             reasoning="",
             finish_reason=str(getattr(result, "status", "") or ""),
             raw_response=result,
+            usage=usage,
         )
+        if self.last_workspace is not None and self.workspace_root is not None:
+            self._write_workspace_metadata(
+                self.last_workspace,
+                status=chat_result.finish_reason or "completed",
+                sandbox=effective_sandbox,
+                usage=usage,
+            )
         self.last_result = chat_result
         self.last_reasoning = chat_result.reasoning
         return chat_result
@@ -247,13 +262,23 @@ class CodexProofFuzzerClient:
         if self.workspace_root is None:
             raise ValueError("File-backed completions require workspace_root.")
         normalized_files = _validate_workspace_files(files)
+        started = time.monotonic()
         result = self._run_fresh_thread(prompt, files=normalized_files)
+        usage = _codex_usage(result, elapsed_seconds=time.monotonic() - started)
         chat_result = CodexChatResult(
             content=str(getattr(result, "final_response", None) or ""),
             reasoning="",
             finish_reason=str(getattr(result, "status", "") or ""),
             raw_response=result,
+            usage=usage,
         )
+        if self.last_workspace is not None:
+            self._write_workspace_metadata(
+                self.last_workspace,
+                status=chat_result.finish_reason or "completed",
+                sandbox=self.sandbox,
+                usage=usage,
+            )
         self.last_result = chat_result
         self.last_reasoning = chat_result.reasoning
         return chat_result
@@ -288,6 +313,7 @@ class CodexProofFuzzerClient:
         self, prompt: str, *, files: Mapping[str, str] | None = None,
         mutation_source: str | None = None,
     ) -> object:
+        started = time.monotonic()
         sdk = self.sdk or _load_codex_sdk()
         call_cwd = self.cwd
         workspace = None
@@ -303,14 +329,20 @@ class CodexProofFuzzerClient:
                 thread = self._start_thread(codex, sdk, cwd=call_cwd, sandbox=sandbox)
                 result = self._run_thread(thread, sdk, run_prompt, workspace=workspace, sandbox=sandbox)
             if workspace is not None:
-                self._record_workspace_result(workspace, result, sandbox=sandbox)
+                self._record_workspace_result(
+                    workspace, result, sandbox=sandbox,
+                    usage=_codex_usage(result, elapsed_seconds=time.monotonic() - started),
+                )
             if mutation_source is not None:
                 from types import SimpleNamespace
                 content = _read_file_mutation(workspace, mutation_source)
                 result = SimpleNamespace(final_response=content, status=result.status, agent_result=result)
         except Exception as exc:
             if workspace is not None:
-                self._record_workspace_failure(workspace, exc, sandbox=sandbox)
+                self._record_workspace_failure(
+                    workspace, exc, sandbox=sandbox,
+                    usage=LLMUsage(elapsed_seconds=time.monotonic() - started),
+                )
             raise
         return result
 
@@ -457,16 +489,23 @@ class CodexProofFuzzerClient:
         self._write_workspace_metadata(workspace, status="running")
         return workspace
 
-    def _record_workspace_result(self, workspace: Path, result: object, *, sandbox: str | None = None) -> None:
+    def _record_workspace_result(
+        self, workspace: Path, result: object, *, sandbox: str | None = None,
+        usage: LLMUsage | None = None,
+    ) -> None:
         response = str(getattr(result, "final_response", None) or "")
         (workspace / "response.txt").write_text(response, encoding="utf-8")
         self._write_workspace_metadata(
             workspace,
             status=str(getattr(result, "status", None) or "completed"),
             sandbox=sandbox,
+            usage=usage,
         )
 
-    def _record_workspace_failure(self, workspace: Path, exc: Exception, *, sandbox: str | None = None) -> None:
+    def _record_workspace_failure(
+        self, workspace: Path, exc: Exception, *, sandbox: str | None = None,
+        usage: LLMUsage | None = None,
+    ) -> None:
         (workspace / "error.txt").write_text(
             f"{type(exc).__name__}: {exc}\n",
             encoding="utf-8",
@@ -476,6 +515,7 @@ class CodexProofFuzzerClient:
             status="failed",
             error_type=type(exc).__name__,
             sandbox=sandbox,
+            usage=usage,
         )
 
     def _write_workspace_metadata(
@@ -485,6 +525,7 @@ class CodexProofFuzzerClient:
         status: str,
         error_type: str = "",
         sandbox: str | None = None,
+        usage: LLMUsage | None = None,
     ) -> None:
         metadata = {
             "approval_mode": self.approval_mode,
@@ -508,6 +549,8 @@ class CodexProofFuzzerClient:
             "call_timeout_seconds": self.call_timeout_seconds,
             "detect_repetitive_output": self.detect_repetitive_output,
             "technical_retries": self.technical_retries,
+            "elapsed_seconds": usage.elapsed_seconds if usage is not None else None,
+            "usage": usage.to_dict() if usage is not None else None,
             "event_trace_dir": str(self.workspace_root.parent / "codex_traces" / workspace.name)
             if self.log_events else None,
             "web_search": "disabled",
@@ -531,6 +574,53 @@ def _event_jsonable(value):
     if isinstance(value, (list, tuple)):
         return [_event_jsonable(item) for item in value]
     return value
+
+
+def _usage_number(value: object, *, integer: bool = True):
+    if value is None or isinstance(value, bool):
+        return None
+    try:
+        return int(value) if integer else float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _codex_usage(result: object, *, elapsed_seconds: float) -> LLMUsage:
+    """Normalize the cumulative usage exposed by a Codex turn result."""
+
+    underlying = getattr(result, "agent_result", result)
+    data = _event_jsonable(underlying)
+    if not isinstance(data, dict):
+        data = {
+            "duration_ms": getattr(underlying, "duration_ms", None),
+            "usage": getattr(underlying, "usage", None),
+        }
+    usage = data.get("usage")
+    if not isinstance(usage, dict):
+        usage = _event_jsonable(usage)
+    usage = usage if isinstance(usage, dict) else {}
+    total = usage.get("total", usage)
+    if not isinstance(total, dict):
+        total = _event_jsonable(total)
+    total = total if isinstance(total, dict) else {}
+
+    def token(*names: str) -> int | None:
+        for name in names:
+            if name in total:
+                return _usage_number(total[name])
+        return None
+
+    duration_ms = _usage_number(data.get("duration_ms"), integer=False)
+    return LLMUsage(
+        elapsed_seconds=elapsed_seconds,
+        provider_elapsed_seconds=duration_ms / 1000 if duration_ms is not None else None,
+        input_tokens=token("inputTokens", "input_tokens"),
+        cached_input_tokens=token("cachedInputTokens", "cached_input_tokens"),
+        cache_write_input_tokens=token("cacheWriteInputTokens", "cache_write_input_tokens"),
+        output_tokens=token("outputTokens", "output_tokens"),
+        reasoning_output_tokens=token("reasoningOutputTokens", "reasoning_output_tokens"),
+        total_tokens=token("totalTokens", "total_tokens"),
+    )
 
 
 @dataclass(frozen=True)

@@ -35,6 +35,17 @@ class FakeCodexConfig:
 class FakeTurnResult:
     final_response = "final answer"
     status = "completed"
+    duration_ms = 2500
+    usage = {
+        "total": {
+            "inputTokens": 120,
+            "cachedInputTokens": 40,
+            "cacheWriteInputTokens": 10,
+            "outputTokens": 35,
+            "reasoningOutputTokens": 12,
+            "totalTokens": 155,
+        }
+    }
 
 
 class FakeThread:
@@ -269,6 +280,14 @@ class CodexClientTest(unittest.TestCase):
         self.assertEqual(context.thread.run_kwargs["model"], "gpt-5.5")
         self.assertEqual(result.content, "final answer")
         self.assertEqual(result.finish_reason, "completed")
+        self.assertGreater(result.usage.elapsed_seconds, 0)
+        self.assertEqual(result.usage.provider_elapsed_seconds, 2.5)
+        self.assertEqual(result.usage.input_tokens, 120)
+        self.assertEqual(result.usage.cached_input_tokens, 40)
+        self.assertEqual(result.usage.cache_write_input_tokens, 10)
+        self.assertEqual(result.usage.output_tokens, 35)
+        self.assertEqual(result.usage.reasoning_output_tokens, 12)
+        self.assertEqual(result.usage.total_tokens, 155)
         self.assertIs(client.last_result, result)
 
     def test_persistent_threads_can_be_requested_explicitly(self) -> None:
@@ -332,6 +351,13 @@ class CodexClientTest(unittest.TestCase):
             self.assertEqual(metadata["permission_profile"], "")
             self.assertEqual(metadata["web_search"], "disabled")
             self.assertEqual(metadata["input_files"], ["prompt.txt"])
+            self.assertGreater(metadata["elapsed_seconds"], 0)
+            self.assertEqual(metadata["usage"]["input_tokens"], 120)
+            self.assertEqual(metadata["usage"]["cached_input_tokens"], 40)
+            self.assertEqual(metadata["usage"]["output_tokens"], 35)
+            self.assertEqual(metadata["usage"]["reasoning_output_tokens"], 12)
+            self.assertEqual(metadata["usage"]["total_tokens"], 155)
+            self.assertEqual(metadata["usage"]["provider_elapsed_seconds"], 2.5)
             instructions = context.thread_start_kwargs["developer_instructions"]
             self.assertIn("Return JSON only.", instructions)
             self.assertIn("Treat the current working directory", instructions)

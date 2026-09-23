@@ -8,6 +8,41 @@ from src.proof_fuzzer.persistent_fuzzing import run_attempts
 
 
 class PersistentFuzzingTests(unittest.TestCase):
+    def test_missing_artifact_gets_one_identical_prompt_retry(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            workspace = root / "mutator_workspace"
+            workspace.mkdir()
+            proof = SimpleNamespace(example_id="p", proof="Original", problem="Problem")
+            thread = SimpleNamespace(id="persistent-thread")
+            received_prompts = []
+
+            class Mutator:
+                def run_persistent_turn(self, received_thread, prompt):
+                    self.assertIs(received_thread, thread)
+                    received_prompts.append(prompt)
+                    if len(received_prompts) == 2:
+                        candidate = workspace / "attempts/001"
+                        (candidate / "mutated_proof.md").write_text("Mutation")
+                        (candidate / "introduced_error.md").write_text("Explanation")
+                    return SimpleNamespace(content="Saved")
+
+                assertIs = self.assertIs
+
+            records = run_attempts(
+                root=root, proof=proof, total=1, mutator=Mutator(), thread=thread,
+                sdk=None, judge=SimpleNamespace(complete=lambda prompt:
+                    '{"errors": [], "review_summary": "Reviewed"}'),
+            )
+            self.assertEqual(len(received_prompts), 2)
+            self.assertEqual(received_prompts[0], received_prompts[1])
+            self.assertEqual(records[0]["artifact_technical_retries"], 1)
+            retries = json.loads(
+                (root / "attempts/001/artifact_technical_retries.json").read_text())
+            self.assertEqual(len(retries), 1)
+            self.assertTrue(retries[0]["retry_scheduled"])
+            self.assertTrue((root / "attempts/001/mutated_proof.md").exists())
+
     def test_strategy_guided_one_attempt_per_proof(self):
         with TemporaryDirectory() as tmp:
             root = Path(tmp)

@@ -1992,7 +1992,43 @@ def load_mined_strategies(path: str | Path | None = None) -> tuple[FuzzStrategy,
 
 
 def parse_judge_result(text: str) -> JudgeResult:
-    data = _load_json_object(text)
+    try:
+        data = _load_json_object(text)
+    except (ValueError, json.JSONDecodeError):
+        cleaned = text.strip()
+        if not cleaned or cleaned.startswith(("{", "[")):
+            raise
+        if re.fullmatch(
+            r"(?is)(?:[#>*_\s-]*)(?:i\s+(?:found|identify|see)\s+)?"
+            r"(?:no|none)(?:\s+concrete)?\s+(?:mathematical\s+|logical\s+)?"
+            r"errors?(?:\s+(?:were\s+)?found|\s+identified)?[.!\s]*",
+            cleaned,
+        ):
+            errors = ()
+        else:
+            items = [part.strip() for part in re.split(
+                r"(?m)(?=^\s*(?:[-*+]\s+|\d+[.)]\s+))", cleaned) if part.strip()]
+            if len(items) == 1:
+                items = [cleaned]
+            errors = tuple({
+                "location": f"unstructured report item {index}",
+                "root_cause": "",
+                "description": re.sub(
+                    r"^\s*(?:[-*+]\s+|\d+[.)]\s+)", "", item).strip(),
+                "consequence": "",
+                "severity": "major",
+                "confidence": 0.0,
+                "unstructured": True,
+            } for index, item in enumerate(items, 1))
+        return JudgeResult(
+            verdict="incorrect" if errors else "correct",
+            confidence=0.0,
+            rationale="Parsed from a non-JSON error inventory.",
+            detected_flaw="; ".join(str(error["description"]) for error in errors),
+            detected_errors=errors,
+            response_kind="error_inventory",
+            raw_response=text,
+        )
     if "errors" in data and "verdict" not in data:
         errors = _error_inventory(data.get("errors"))
         descriptions = [
