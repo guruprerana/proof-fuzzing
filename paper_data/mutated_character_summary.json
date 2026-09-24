@@ -1,0 +1,118 @@
+{
+  "all": {
+    "successful": {
+      "n": 55,
+      "mean": 43.70909090909091,
+      "median": 14.0,
+      "standard_deviation": 71.71230400325,
+      "bootstrap_95_ci": [
+        26.418181818181818,
+        64.01818181818182
+      ]
+    },
+    "unsuccessful": {
+      "n": 137,
+      "mean": 59.43795620437956,
+      "median": 13.0,
+      "standard_deviation": 131.7228519475795,
+      "bootstrap_95_ci": [
+        39.54726277372263,
+        83.38704379562044
+      ]
+    }
+  },
+  "graduate_course": {
+    "successful": {
+      "n": 18,
+      "mean": 24.0,
+      "median": 11.5,
+      "standard_deviation": 39.34313603338169,
+      "bootstrap_95_ci": [
+        9.10972222222223,
+        43.666666666666664
+      ]
+    },
+    "unsuccessful": {
+      "n": 80,
+      "mean": 47.5875,
+      "median": 13.0,
+      "standard_deviation": 95.60767589411122,
+      "bootstrap_95_ci": [
+        29.0871875,
+        70.7375
+      ]
+    }
+  },
+  "tcs": {
+    "successful": {
+      "n": 15,
+      "mean": 94.26666666666667,
+      "median": 33.0,
+      "standard_deviation": 110.70066890149353,
+      "bootstrap_95_ci": [
+        43.46666666666667,
+        151.33333333333334
+      ]
+    },
+    "unsuccessful": {
+      "n": 29,
+      "mean": 119.0,
+      "median": 12.0,
+      "standard_deviation": 228.83322061523947,
+      "bootstrap_95_ci": [
+        46.724137931034484,
+        208.41379310344828
+      ]
+    }
+  },
+  "recent_math": {
+    "successful": {
+      "n": 22,
+      "mean": 25.363636363636363,
+      "median": 6.5,
+      "standard_deviation": 35.91464146920406,
+      "bootstrap_95_ci": [
+        12.136363636363637,
+        41.13636363636363
+      ]
+    },
+    "unsuccessful": {
+      "n": 28,
+      "mean": 31.607142857142858,
+      "median": 15.5,
+      "standard_deviation": 36.30359566490705,
+      "bootstrap_95_ci": [
+        19.107142857142858,
+        45.464285714285715
+      ]
+    }
+  },
+  "comparisons": {
+    "all": {
+      "mean_difference_successful_minus_unsuccessful": -15.72886529528865,
+      "two_sided_permutation_p": 0.41881790591047047
+    },
+    "graduate_course": {
+      "mean_difference_successful_minus_unsuccessful": -23.5875,
+      "two_sided_permutation_p": 0.3120084399578002
+    },
+    "tcs": {
+      "mean_difference_successful_minus_unsuccessful": -24.733333333333334,
+      "two_sided_permutation_p": 0.7121114394428028
+    },
+    "recent_math": {
+      "mean_difference_successful_minus_unsuccessful": -6.243506493506494,
+      "two_sided_permutation_p": 0.5496522517387413
+    }
+  },
+  "method": {
+    "metric": "character-level Levenshtein distance over changed diff blocks",
+    "substitution_cost": 1,
+    "insertion_cost": 1,
+    "deletion_cost": 1,
+    "newline_cost": 1,
+    "permutation_samples": 200000,
+    "bootstrap_samples_per_group": 50000,
+    "random_seed": 20260924
+  }
+}

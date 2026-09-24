@@ -1,3 +1,4 @@
 # Python dependency for GPT-5.6 runs through Codex.
 # Claude Opus 5 runs use the separately installed and authenticated `claude` CLI.
 openai-codex==0.156.1
+matplotlib==3.10.9

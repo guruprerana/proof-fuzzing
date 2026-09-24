@@ -1,0 +1,113 @@
+{
+  "all": {
+    "successful": {
+      "n": 55,
+      "mean": 64.54545454545455,
+      "median": 8.0,
+      "standard_deviation": 221.5046039302334,
+      "bootstrap_95_ci": [
+        14.327272727272728,
+        130.16363636363636
+      ]
+    },
+    "unsuccessful": {
+      "n": 137,
+      "mean": 80.45255474452554,
+      "median": 11.0,
+      "standard_deviation": 228.0758378389199,
+      "bootstrap_95_ci": [
+        45.605839416058394,
+        121.27755474452556
+      ]
+    }
+  },
+  "graduate_course": {
+    "successful": {
+      "n": 18,
+      "mean": 10.0,
+      "median": 8.5,
+      "standard_deviation": 6.019575908454603,
+      "bootstrap_95_ci": [
+        7.333333333333333,
+        12.666666666666666
+      ]
+    },
+    "unsuccessful": {
+      "n": 80,
+      "mean": 34.5125,
+      "median": 9.0,
+      "standard_deviation": 113.60000821781925,
+      "bootstrap_95_ci": [
+        16.275,
+        63.4125
+      ]
+    }
+  },
+  "tcs": {
+    "successful": {
+      "n": 15,
+      "mean": 164.53333333333333,
+      "median": 16.0,
+      "standard_deviation": 383.9436094507828,
+      "bootstrap_95_ci": [
+        16.8,
+        372.40166666666676
+      ]
+    },
+    "unsuccessful": {
+      "n": 29,
+      "mean": 266.2758620689655,
+      "median": 41.0,
+      "standard_deviation": 412.45154663926667,
+      "bootstrap_95_ci": [
+        127.72413793103448,
+        420.58620689655174
+      ]
+    }
+  },
+  "recent_math": {
+    "successful": {
+      "n": 22,
+      "mean": 41.0,
+      "median": 7.5,
+      "standard_deviation": 132.6226296857437,
+      "bootstrap_95_ci": [
+        6.590909090909091,
+        102.27272727272727
+      ]
+    },
+    "unsuccessful": {
+      "n": 28,
+      "mean": 19.25,
+      "median": 9.0,
+      "standard_deviation": 24.856067148164733,
+      "bootstrap_95_ci": [
+        11.071428571428571,
+        29.071428571428573
+      ]
+    }
+  },
+  "comparisons": {
+    "all": {
+      "mean_difference_successful_minus_unsuccessful": -15.907100199070996,
+      "two_sided_permutation_p": 0.6704216478917605
+    },
+    "graduate_course": {
+      "mean_difference_successful_minus_unsuccessful": -24.512500000000003,
+      "two_sided_permutation_p": 0.23975380123099385
+    },
+    "tcs": {
+      "mean_difference_successful_minus_unsuccessful": -101.74252873563219,
+      "two_sided_permutation_p": 0.43599782001089993
+    },
+    "recent_math": {
+      "mean_difference_successful_minus_unsuccessful": 21.75,
+      "two_sided_permutation_p": 0.6254018729906351
+    }
+  },
+  "method": {
+    "permutation_samples": 200000,
+    "bootstrap_samples_per_group": 50000,
+    "random_seed": 20260924
+  }
+}

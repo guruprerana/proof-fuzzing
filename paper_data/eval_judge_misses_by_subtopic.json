@@ -1,0 +1,160 @@
+{
+  "scope": "Frozen GPT-5.6-sol evaluation only; discovery excluded.",
+  "unit": "Individual blind-judge review",
+  "miss_definition": "review.detection == 'missed'; ambiguous reviews are not misses",
+  "rows": [
+    {
+      "dataset": "olympiad",
+      "dataset_label": "Olympiad",
+      "subtopic": "Algebra",
+      "valid_mutations": 50,
+      "review_slots": 150,
+      "judge_misses": 1,
+      "ambiguous_reviews": 0
+    },
+    {
+      "dataset": "olympiad",
+      "dataset_label": "Olympiad",
+      "subtopic": "Combinatorics",
+      "valid_mutations": 50,
+      "review_slots": 150,
+      "judge_misses": 0,
+      "ambiguous_reviews": 0
+    },
+    {
+      "dataset": "olympiad",
+      "dataset_label": "Olympiad",
+      "subtopic": "Geometry",
+      "valid_mutations": 50,
+      "review_slots": 150,
+      "judge_misses": 1,
+      "ambiguous_reviews": 0
+    },
+    {
+      "dataset": "olympiad",
+      "dataset_label": "Olympiad",
+      "subtopic": "Number Theory",
+      "valid_mutations": 50,
+      "review_slots": 150,
+      "judge_misses": 2,
+      "ambiguous_reviews": 0
+    },
+    {
+      "dataset": "graduate_course",
+      "dataset_label": "Graduate course dossiers",
+      "subtopic": "Algebra and number theory",
+      "valid_mutations": 39,
+      "review_slots": 117,
+      "judge_misses": 17,
+      "ambiguous_reviews": 9
+    },
+    {
+      "dataset": "graduate_course",
+      "dataset_label": "Graduate course dossiers",
+      "subtopic": "Analysis",
+      "valid_mutations": 29,
+      "review_slots": 87,
+      "judge_misses": 7,
+      "ambiguous_reviews": 2
+    },
+    {
+      "dataset": "graduate_course",
+      "dataset_label": "Graduate course dossiers",
+      "subtopic": "Geometry and topology",
+      "valid_mutations": 30,
+      "review_slots": 90,
+      "judge_misses": 10,
+      "ambiguous_reviews": 4
+    },
+    {
+      "dataset": "tcs_open_problems",
+      "dataset_label": "TCS open problems",
+      "subtopic": "Discrete geometry (sphere packing)",
+      "valid_mutations": 9,
+      "review_slots": 27,
+      "judge_misses": 9,
+      "ambiguous_reviews": 2
+    },
+    {
+      "dataset": "tcs_open_problems",
+      "dataset_label": "TCS open problems",
+      "subtopic": "Coding theory",
+      "valid_mutations": 8,
+      "review_slots": 24,
+      "judge_misses": 14,
+      "ambiguous_reviews": 1
+    },
+    {
+      "dataset": "tcs_open_problems",
+      "dataset_label": "TCS open problems",
+      "subtopic": "Algebraic complexity",
+      "valid_mutations": 10,
+      "review_slots": 30,
+      "judge_misses": 1,
+      "ambiguous_reviews": 2
+    },
+    {
+      "dataset": "tcs_open_problems",
+      "dataset_label": "TCS open problems",
+      "subtopic": "Quantum information",
+      "valid_mutations": 8,
+      "review_slots": 24,
+      "judge_misses": 1,
+      "ambiguous_reviews": 1
+    },
+    {
+      "dataset": "tcs_open_problems",
+      "dataset_label": "TCS open problems",
+      "subtopic": "Lattice complexity",
+      "valid_mutations": 9,
+      "review_slots": 27,
+      "judge_misses": 2,
+      "ambiguous_reviews": 1
+    },
+    {
+      "dataset": "recent_math",
+      "dataset_label": "Recent mathematical research",
+      "subtopic": "Algebra and number theory",
+      "valid_mutations": 10,
+      "review_slots": 30,
+      "judge_misses": 19,
+      "ambiguous_reviews": 1
+    },
+    {
+      "dataset": "recent_math",
+      "dataset_label": "Recent mathematical research",
+      "subtopic": "Geometry and topology",
+      "valid_mutations": 10,
+      "review_slots": 30,
+      "judge_misses": 4,
+      "ambiguous_reviews": 0
+    },
+    {
+      "dataset": "recent_math",
+      "dataset_label": "Recent mathematical research",
+      "subtopic": "Analysis and PDE",
+      "valid_mutations": 10,
+      "review_slots": 30,
+      "judge_misses": 0,
+      "ambiguous_reviews": 0
+    },
+    {
+      "dataset": "recent_math",
+      "dataset_label": "Recent mathematical research",
+      "subtopic": "Probability and combinatorics",
+      "valid_mutations": 10,
+      "review_slots": 30,
+      "judge_misses": 11,
+      "ambiguous_reviews": 1
+    },
+    {
+      "dataset": "recent_math",
+      "dataset_label": "Recent mathematical research",
+      "subtopic": "Logic and dynamics",
+      "valid_mutations": 10,
+      "review_slots": 30,
+      "judge_misses": 10,
+      "ambiguous_reviews": 0
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+dataset,dataset_label,subtopic,valid_mutations,review_slots,judge_misses,ambiguous_reviews
+olympiad,Olympiad,Algebra,50,150,1,0
+olympiad,Olympiad,Combinatorics,50,150,0,0
+olympiad,Olympiad,Geometry,50,150,1,0
+olympiad,Olympiad,Number Theory,50,150,2,0
+graduate_course,Graduate course dossiers,Algebra and number theory,39,117,17,9
+graduate_course,Graduate course dossiers,Analysis,29,87,7,2
+graduate_course,Graduate course dossiers,Geometry and topology,30,90,10,4
+tcs_open_problems,TCS open problems,Discrete geometry (sphere packing),9,27,9,2
+tcs_open_problems,TCS open problems,Coding theory,8,24,14,1
+tcs_open_problems,TCS open problems,Algebraic complexity,10,30,1,2
+tcs_open_problems,TCS open problems,Quantum information,8,24,1,1
+tcs_open_problems,TCS open problems,Lattice complexity,9,27,2,1
+recent_math,Recent mathematical research,Algebra and number theory,10,30,19,1
+recent_math,Recent mathematical research,Geometry and topology,10,30,4,0
+recent_math,Recent mathematical research,Analysis and PDE,10,30,0,0
+recent_math,Recent mathematical research,Probability and combinatorics,10,30,11,1
+recent_math,Recent mathematical research,Logic and dynamics,10,30,10,0

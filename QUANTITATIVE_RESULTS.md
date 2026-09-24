@@ -6,7 +6,7 @@
 
 | Discovery dataset | Mutation model | Source proofs / traces | Mutations generated per proof / trace | Planned attempts | Completed attempts | Independently assessed attempts | Verified misses | Miss rate among assessed | Distinct successful mechanisms within sessions | Distilled strategies |
 |---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| Olympiad | GPT-6-sol (medium) | 20 | 25 | 500 | 500 | 489 | 8 | 1.6% | 8 | 8 |
+| Olympiad | GPT-5.6-sol (medium) | 20 | 25 | 500 | 500 | 489 | 8 | 1.6% | 8 | 8 |
 | Graduate course dossiers | GPT-5.6-sol (medium) | 10 | 25 | 250 | 250 | 250 | 46 | 18.4% | 45 | 25 |
 | TCS open problems | GPT-5.6-sol (medium) | 5 | 25 | 125 | 125 | 100 audited | 29 | 29.0% | 10 audited groups | 10‡ |
 | Recent mathematical research | GPT-5.6-sol (medium) | 5 | 25 | 125 | 125 | 102 | 29 | 28.4% | 29 | 24† |
@@ -24,7 +24,7 @@
 
 | Evaluation dataset | Mutation model | Proofs / traces | Mutations generated per proof / trace (generic / strategy) | Completed candidates (generic / strategy) | Judges per valid mutation | Valid mutations (generic / strategy) | Judges missing error, generic, mean (SD) | Judges missing error, strategy, mean (SD) | Change in mean |
 |---|---|---:|---:|---:|---:|---:|---:|---:|---:|
-| Olympiad | GPT-6-sol (medium) | 20 | 5 / 5 | 100 / 100 | 3 | 100 / 100 | 0.02 (0.14) | 0.02 (0.14) | 0.00 |
+| Olympiad | GPT-5.6-sol (medium) | 20 | 5 / 5 | 100 / 100 | 3 | 100 / 100 | 0.02 (0.14) | 0.02 (0.14) | 0.00 |
 | Graduate course dossiers | GPT-5.6-sol (medium) | 10 | 5 / 5 | 50 / 50 | 3 | 49 / 49 | 0.33 (0.77) | **0.37 (0.83)** | **+0.04** |
 | TCS open problems | GPT-5.6-sol (medium) | 5 | 5 / 5 | 25 / 25 | 3 | 21 / 23 | 0.33 (0.73) | **0.87 (1.14)** | **+0.54** |
 | Recent mathematical research | GPT-5.6-sol (medium) | 5 | 5 / 5 | 25 / 25 | 3 | 25 / 25 | 0.76 (1.13) | **1.00 (1.22)** | **+0.24** |
@@ -56,7 +56,7 @@ The complete Claude frozen evaluation had a +0.15 proof-level paired risk differ
 (3 strategy-only versus 0 generic-only successes), but did not meet its preregistered
 one-sided significance threshold (exact p = 0.125, alpha = 0.01).
 
-The completed GPT-6-sol Olympiad rerun used the same balanced 20/20 discovery and
+The completed GPT-5.6-sol Olympiad rerun used the same balanced 20/20 discovery and
 evaluation split and the same 25-attempt discovery and 5-per-arm frozen-evaluation
 budgets. Discovery generated all 500 planned mutations; 489 completed the blind
 judgment and independent matching pipeline, yielding 8 verified misses and 8
@@ -110,6 +110,36 @@ one was generic-only, one succeeded in both arms, and seven succeeded in neither
 The paired risk difference was 0.00 and the exact one-sided p value was 0.75, so the
 run did not meet the preregistered alpha = 0.01 threshold.
 
+## Higher-reasoning judge stress test
+
+Twelve valid GPT-5.6-sol strategy-guided evaluation mutations were rejudged once by
+fresh GPT-5.6-sol judges at ultra reasoning effort. Six came from TCS open problems
+and six from recent mathematical research. The initial batch contained the three
+strongest mutations from each dataset, all missed by all three original
+medium-reasoning judges. The extension used the next three per dataset; five had
+been missed by two of three medium judges and one by all three. Each call reused the
+candidate's exact archived blind-judge prompt and ran in a fresh session without a
+timeout.
+
+| Dataset | Selected mutations | Original medium-reasoning reviews missing error | Ultra judges detecting error | Ultra judges missing error |
+|---|---:|---:|---:|---:|
+| TCS open problems | 6 | 15 / 18 | 2 / 6 | 4 / 6 |
+| Recent mathematical research | 6 | 16 / 18 | 3 / 6 | 3 / 6 |
+| **Overall** | **12** | **31 / 36** | **5 / 12** | **7 / 12** |
+
+Exact manual matching found that the ultra judge caught five of the twelve planted
+errors: two TCS errors and all three added recent-research errors. The initial six
+strongest mutations all remained undetected, while five of the six next-ranked
+mutations were caught. This deliberately difficult, post-hoc stress test was
+selected conditional on prior misses, so it is neither a representative sample nor
+a controlled estimate of the causal effect of reasoning effort.
+Primary artifacts: initial-batch [run manifest](logs/by_dataset/reasoning_budget/gpt56sol_ultra_top_misses_20260924/manifest.json),
+[candidate judge records](logs/by_dataset/reasoning_budget/gpt56sol_ultra_top_misses_20260924/candidates/),
+and [matching results](logs/by_dataset/reasoning_budget/gpt56sol_ultra_top_misses_20260924/matching_results.json);
+extension [run manifest](logs/by_dataset/reasoning_budget/gpt56sol_ultra_next_misses_20260924/manifest.json),
+[candidate judge records](logs/by_dataset/reasoning_budget/gpt56sol_ultra_next_misses_20260924/candidates/),
+and [matching results](logs/by_dataset/reasoning_budget/gpt56sol_ultra_next_misses_20260924/matching_results.json).
+
 ## Appendix: Additional strategy-discovery results
 
 | Discovery dataset | Mutation model | Source proofs / traces | Mutations generated per proof / trace | Planned attempts | Completed attempts | Independently assessed attempts | Verified misses | Miss rate among assessed | Distinct successful mechanisms within sessions | Distilled strategies |
@@ -150,8 +180,8 @@ The paths below are relative to the repository root.
 | Olympiad | Frozen evaluation (partial) | [Run manifest](logs/by_dataset/olympiad/olympiad_frozen_transfer_terra_medium_v1_clean_20260913/manifest.json) · [Run summary](logs/by_dataset/olympiad/olympiad_frozen_transfer_terra_medium_v1_clean_20260913/summary.json) · [Candidate-level results](logs/by_dataset/olympiad/olympiad_frozen_transfer_terra_medium_v1_clean_20260913/results.json) |
 | Olympiad (Claude Code) | Discovery and distillation | [Run directory](logs/by_dataset/olympiad/olympiad_20_discovery_claude_opus5_default_20260921/) · [Run manifest](logs/by_dataset/olympiad/olympiad_20_discovery_claude_opus5_default_20260921/manifest.json) · [Discovery summaries](logs/by_dataset/olympiad/olympiad_20_discovery_claude_opus5_default_20260921/discovery/) · [Distilled strategies](logs/by_dataset/olympiad/olympiad_20_discovery_claude_opus5_default_20260921/distillation/strategies.md) |
 | Olympiad (Claude Code) | Frozen evaluation | [Evaluation manifest](logs/by_dataset/olympiad/olympiad_20_frozen_eval_claude_opus5_default_5x3_20260922/manifest.json) · [Evaluation summary](logs/by_dataset/olympiad/olympiad_20_frozen_eval_claude_opus5_default_5x3_20260922/summary.json) · [Candidate-level results](logs/by_dataset/olympiad/olympiad_20_frozen_eval_claude_opus5_default_5x3_20260922/results.json) |
-| Olympiad | Discovery and distillation (GPT-6-sol) | [Run directory](logs/by_dataset/olympiad/olympiad_20_discovery_gpt6sol_medium_25x_20260924/) · [Run manifest](logs/by_dataset/olympiad/olympiad_20_discovery_gpt6sol_medium_25x_20260924/manifest.json) · [Discovery records](logs/by_dataset/olympiad/olympiad_20_discovery_gpt6sol_medium_25x_20260924/discovery/) · [Distillation manifest](logs/by_dataset/olympiad/olympiad_20_discovery_gpt6sol_medium_25x_20260924/distillation/manifest.json) · [Distilled strategies](logs/by_dataset/olympiad/olympiad_20_discovery_gpt6sol_medium_25x_20260924/distillation/strategies.md) |
-| Olympiad | Frozen evaluation (GPT-6-sol) | [Evaluation manifest](logs/by_dataset/olympiad/olympiad_20_frozen_eval_gpt6sol_medium_5x3_20260924/manifest.json) · [Evaluation summary](logs/by_dataset/olympiad/olympiad_20_frozen_eval_gpt6sol_medium_5x3_20260924/summary.json) · [Candidate-level results](logs/by_dataset/olympiad/olympiad_20_frozen_eval_gpt6sol_medium_5x3_20260924/results.json) |
+| Olympiad | Discovery and distillation (GPT-5.6-sol) | [Run directory](logs/by_dataset/olympiad/olympiad_20_discovery_gpt56sol_medium_25x_20260924/) · [Run manifest](logs/by_dataset/olympiad/olympiad_20_discovery_gpt56sol_medium_25x_20260924/manifest.json) · [Discovery records](logs/by_dataset/olympiad/olympiad_20_discovery_gpt56sol_medium_25x_20260924/discovery/) · [Distillation manifest](logs/by_dataset/olympiad/olympiad_20_discovery_gpt56sol_medium_25x_20260924/distillation/manifest.json) · [Distilled strategies](logs/by_dataset/olympiad/olympiad_20_discovery_gpt56sol_medium_25x_20260924/distillation/strategies.md) |
+| Olympiad | Frozen evaluation (GPT-5.6-sol) | [Evaluation manifest](logs/by_dataset/olympiad/olympiad_20_frozen_eval_gpt56sol_medium_5x3_20260924/manifest.json) · [Evaluation summary](logs/by_dataset/olympiad/olympiad_20_frozen_eval_gpt56sol_medium_5x3_20260924/summary.json) · [Candidate-level results](logs/by_dataset/olympiad/olympiad_20_frozen_eval_gpt56sol_medium_5x3_20260924/results.json) |
 | Graduate course dossiers (Claude Code) | Discovery and distillation | [Run directory](logs/by_dataset/graduate_course/graduate_course_10_discovery_claude_opus5_medium_25x_20260922/) · [Run manifest](logs/by_dataset/graduate_course/graduate_course_10_discovery_claude_opus5_medium_25x_20260922/manifest.json) · [Discovery records](logs/by_dataset/graduate_course/graduate_course_10_discovery_claude_opus5_medium_25x_20260922/discovery/) · [Distillation manifest](logs/by_dataset/graduate_course/graduate_course_10_discovery_claude_opus5_medium_25x_20260922/distillation/manifest.json) · [Distilled strategies](logs/by_dataset/graduate_course/graduate_course_10_discovery_claude_opus5_medium_25x_20260922/distillation/strategies.md) |
 | Graduate course dossiers (Claude Code) | Frozen evaluation (amended to 5 per arm) | [Evaluation manifest](logs/by_dataset/graduate_course/graduate_course_10_frozen_eval_claude_opus5_medium_5x3_20260923_amended/manifest.json) · [Protocol/import provenance](logs/by_dataset/graduate_course/graduate_course_10_frozen_eval_claude_opus5_medium_5x3_20260923_amended/import_provenance.json) · [Evaluation summary](logs/by_dataset/graduate_course/graduate_course_10_frozen_eval_claude_opus5_medium_5x3_20260923_amended/summary.json) · [Candidate-level results](logs/by_dataset/graduate_course/graduate_course_10_frozen_eval_claude_opus5_medium_5x3_20260923_amended/results.json) |
 | Graduate course dossiers | Discovery and distillation (GPT-5.6-sol) | [Run directory](logs/by_dataset/graduate_course/graduate_course_10_discovery_gpt56sol_medium_25x_20260923/) · [Run manifest](logs/by_dataset/graduate_course/graduate_course_10_discovery_gpt56sol_medium_25x_20260923/manifest.json) · [Discovery records](logs/by_dataset/graduate_course/graduate_course_10_discovery_gpt56sol_medium_25x_20260923/discovery/) · [Distillation manifest](logs/by_dataset/graduate_course/graduate_course_10_discovery_gpt56sol_medium_25x_20260923/distillation/manifest.json) · [Distilled strategies](logs/by_dataset/graduate_course/graduate_course_10_discovery_gpt56sol_medium_25x_20260923/distillation/strategies.md) |

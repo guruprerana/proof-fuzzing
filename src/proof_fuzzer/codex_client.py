@@ -20,7 +20,7 @@ from .usage import LLMUsage
 DEFAULT_CODEX_MODEL = "gpt-5.5"
 DEFAULT_CODEX_REASONING_EFFORT = "medium"
 DEFAULT_CODEX_SANDBOX = "read_only"
-VALID_CODEX_REASONING_EFFORTS = {"low", "medium", "high", "xhigh"}
+VALID_CODEX_REASONING_EFFORTS = {"low", "medium", "high", "xhigh", "max", "ultra"}
 VALID_CODEX_SANDBOXES = {"read_only", "workspace_write", "full_access"}
 ISOLATED_WORKSPACE_INSTRUCTIONS = """This Codex call runs in a dedicated per-call workspace.
 Treat the current working directory and its descendants as the entire available filesystem.

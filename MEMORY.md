@@ -11,8 +11,12 @@ The headline study covers exactly four datasets:
 3. TCS open problems
 4. Recent mathematical research
 
-Do not add other datasets to the headline quantitative tables, comparisons, summaries,
-active code, or bundled inputs unless the user explicitly changes the scope.
+These are the only datasets whose results should be used in the paper's analyses,
+quantitative tables, comparisons, and summaries. Historical datasets may remain in
+the repository for archival context, but their results are outside the paper's active
+analysis and should not be introduced unless the user explicitly changes the scope.
+Do not add other datasets to active code or bundled inputs unless the user explicitly
+changes the scope.
 
 The current planned extension is to run Claude Opus 5 on the TCS open-problems setup
 used for the GPT-5.6-sol headline result, including discovery and frozen evaluation as
