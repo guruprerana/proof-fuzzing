@@ -17,10 +17,11 @@ The active headline study covers exactly four datasets:
 3. TCS open problems
 4. Recent mathematical research
 
-Canonical run inputs are version-controlled under `local_datasets/`. Do not add raw
-downloads, source PDFs, extraction workspaces, cloned benchmark repositories, caches,
-or superseded datasets there. The exact tracked paths are documented in `MEMORY.md`
-and allowlisted in `.gitignore`.
+Canonical run inputs are version-controlled under `local_datasets/`. The original
+graduate-course, recent-research, and TCS PDFs approved for provenance are tracked
+there as well. Do not add other raw downloads, generated walkthroughs, extraction
+workspaces, cloned benchmark repositories, caches, or superseded datasets. The exact
+tracked paths are documented in `MEMORY.md` and allowlisted in `.gitignore`.
 
 Historical adapters and results for other datasets may remain in code or appendices,
 but they are not part of the current headline study. Do not restore their local data

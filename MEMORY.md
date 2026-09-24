@@ -20,7 +20,7 @@ appropriate. Work may be parallelized across machines.
 
 ## Canonical version-controlled inputs
 
-Only self-contained inputs needed by the current runs belong in Git:
+The self-contained inputs needed by the current runs belong in Git:
 
 - `local_datasets/olympiadbench_balanced_40_v1.json`
 - `local_datasets/olympiadbench_balanced_40_v1_manifest.json`
@@ -30,8 +30,20 @@ Only self-contained inputs needed by the current runs belong in Git:
 
 The three split JSON files contain both discovery and held-out examples. The TCS
 directory contains the ten Markdown proofs; the reported GPT-5.6-sol study used five
-of them. Do not reintroduce raw PDFs, downloaded source archives, extraction and
-cleaning workspaces, nested benchmark repositories, caches, or superseded splits.
+of them.
+
+Original PDFs retained for source provenance also belong in Git:
+
+- `local_datasets/graduate_course_dossiers_v1_sources/**/*.pdf`: only the 57 PDFs
+  explicitly cited, with hashes, by the graduate-course dossier JSON.
+- `local_datasets/recent_math_research_dossiers_clean_v1_sources/*.pdf`: the ten
+  arXiv papers referenced by the recent-research dossier JSON.
+- `local_datasets/openai_ten_advances_2026/source/ten-proofs-oai.pdf`: the source of
+  the ten TCS Markdown proofs.
+
+These PDFs are provenance material, not runtime inputs. Do not add unrelated course
+files, generated walkthroughs, extraction and cleaning workspaces, nested benchmark
+repositories, caches, or superseded splits.
 
 ## Preferred proof-fuzzing pipeline
 

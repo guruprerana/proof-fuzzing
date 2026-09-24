@@ -157,15 +157,27 @@ ENV/
 env.bak/
 venv.bak/
 # Local datasets are ignored by default. Version-control only the canonical,
-# self-contained inputs for the four datasets reported in QUANTITATIVE_RESULTS.md.
+# self-contained inputs and approved original-source PDFs for the four datasets
+# reported in QUANTITATIVE_RESULTS.md.
 /local_datasets/*
+!/local_datasets/README.md
 !/local_datasets/graduate_course_dossiers_v1.json
+!/local_datasets/graduate_course_dossiers_v1_sources/
+/local_datasets/graduate_course_dossiers_v1_sources/**
+!/local_datasets/graduate_course_dossiers_v1_sources/**/
+!/local_datasets/graduate_course_dossiers_v1_sources/**/*.pdf
 !/local_datasets/olympiadbench_balanced_40_v1.json
 !/local_datasets/olympiadbench_balanced_40_v1_manifest.json
 !/local_datasets/recent_math_research_dossiers_clean_v1.json
+!/local_datasets/recent_math_research_dossiers_clean_v1_sources/
+/local_datasets/recent_math_research_dossiers_clean_v1_sources/*
+!/local_datasets/recent_math_research_dossiers_clean_v1_sources/*.pdf
 !/local_datasets/openai_ten_advances_2026/
 /local_datasets/openai_ten_advances_2026/*
 !/local_datasets/openai_ten_advances_2026/proofs_markdown/
+!/local_datasets/openai_ten_advances_2026/source/
+/local_datasets/openai_ten_advances_2026/source/*
+!/local_datasets/openai_ten_advances_2026/source/ten-proofs-oai.pdf
 
 # Spyder project settings
 .spyderproject

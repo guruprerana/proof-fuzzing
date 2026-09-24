@@ -33,10 +33,12 @@ library or influencing later candidates.
   discovery runs.
 - `tests/`: tests for the active pipeline only.
 - `src/archive/`: unsupported historical code retained outside the active surface.
-- `local_datasets/`: version-controlled inputs for the four datasets.
+- `local_datasets/`: version-controlled inputs for the four datasets plus the
+  original source PDFs retained for provenance.
 - `logs/`: ignored, machine-local run state and generated artifacts.
 
-The canonical dataset paths and artifact boundaries are recorded in `MEMORY.md`.
+The canonical dataset paths, original-source coverage, and artifact boundaries are
+recorded in `local_datasets/README.md` and `MEMORY.md`.
 
 ## Installation
 
