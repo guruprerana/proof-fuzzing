@@ -1,0 +1,771 @@
+{
+  "dataset": "olympiadbench_balanced_40_v1",
+  "description": "Forty distinct text-only problem IDs. Each selected full_response has correctness.txt=TRUE. Discovery and heldout each contain five Algebra, Combinatorics, Geometry, and Number Theory examples.",
+  "source": "Hothan/OlympiadBench/OE_TO_maths_en_COMP via gpt-oss-120b run artifacts",
+  "source_manifest": "local_datasets/olympiadbench_balanced_40_v1_manifest.json",
+  "split_policy": "Balanced by topic with 5 proofs per topic in each split.",
+  "discovery": [
+    {
+      "example_id": "1969",
+      "problem": "Determine all functions $f: \\mathbb{Z} \\rightarrow \\mathbb{Z}$ satisfying\n\n$$\nf(f(m)+n)+f(m)=f(n)+f(3 m)+2014\n\\tag{1}\n$$\n\nfor all integers $m$ and $n$.",
+      "proof": "Step 1. Set \\(P(m,n)\\) to be the assertion  \n\n\\[\nf\\bigl(f(m)+n\\bigr)+f(m)=f(n)+f(3m)+2014 .\n\\]\n\nStep 2. Put \\(m=0\\) :\n\n\\[\nf\\bigl(f(0)+n\\bigr)=f(n)+2014\\qquad\\forall n\\in\\mathbb Z .\\tag{1}\n\\]\n\nDenote \\(d=f(0)\\).  Then (1) gives  \n\n\\[\nf(x+d)=f(x)+2014\\qquad\\forall x\\in\\mathbb Z .\\tag{2}\n\\]\n\nConsequently  \n\n\\[\nf(kd)=d+2014k\\qquad(k\\in\\mathbb Z). \\tag{3}\n\\]\n\nStep 3. From \\(P(m,-f(m))\\) we obtain  \n\n\\[\nd+f(m)=f(-f(m))+f(3m)+2014 .\\tag{4}\n\\]\n\nUsing \\(P(m,0)\\) we also have  \n\n\\[\nf\\bigl(f(m)\\bigr)+f(m)=d+f(3m)+2014 .\\tag{5}\n\\]\n\nSubtracting (4) from (5) yields  \n\n\\[\nf(-f(m))=2d-f\\bigl(f(m)\\bigr)\\qquad\\forall m.\\tag{6}\n\\]\n\nStep 4. Assume \\(f(a)=f(b)\\) with \\(a\\neq b\\).  \nFrom \\(P(a,n)\\) and \\(P(b,n)\\) we get \\(f(3a)=f(3b)\\); inserting this into (6) gives\n\\(f(-f(a))=f(-f(b))\\).  Hence for every integer \\(t\\),\n\n\\[\nf(t)=f(t+(a-b)).\n\\]\n\nThus \\(a-b\\) is a non‑zero period of \\(f\\).  \nApplying the periodicity together with (2) we obtain\n\n\\[\nf(t+(a-b)d)=f(t)+(a-b)\\,2014 .\n\\]\n\nThe left‑hand side equals \\(f(t)\\) (periodicity), so \\((a-b)2014=0\\), impossible.\nHence **\\(f\\) is injective**.\n\nStep 5. From (6) and injectivity we have \\(f(d)=3d\\).  \nBut by (2) with \\(x=0\\),\n\n\\[\nf(d)=d+2014 .\n\\]\n\nTherefore \\(d+2014=3d\\), i.e.  \n\n\\[\nd=f(0)=1007 .\\tag{7}\n\\]\n\nConsequently\n\n\\[\nf(x+1007)=f(x)+2014\\qquad\\forall x. \\tag{8}\n\\]\n\nStep 6. Define \\(g(x)=f(x)-2x\\).  \nUsing (8) we get  \n\n\\[\ng(x+1007)=g(x),\\qquad\\text{so }g\\text{ is }1007\\text{-periodic}. \\tag{9}\n\\]\n\nRewrite the original equation in terms of \\(g\\); after simplification we obtain  \n\n\\[\ng\\bigl(2m+g(m)+n\\bigr)=g(n)+g(3m)-3g(m)+2014\\qquad\\forall m,n.\\tag{10}\n\\]\n\nFor a fixed \\(m\\) the left side shows that translating the argument by the\nconstant \\(T_m=2m+g(m)\\) adds the constant\n\\(K_m=g(3m)-3g(m)+2014\\) to the value of \\(g\\).\nIf some \\(T_m\\) were **not** a multiple of \\(1007\\), repeating this translation\nwould make \\(g\\) unbounded, contradicting the periodicity (9).  \nHence every \\(T_m\\) is a multiple of \\(1007\\); i.e.\n\n\\[\n2m+g(m)\\equiv0\\pmod{1007}\\qquad\\forall m.\\tag{11}\n\\]\n\nPutting \\(m\\) and \\(m+1007\\) into (11) and using the periodicity of \\(g\\) gives\n\\(g(3m)\\equiv3g(m)-2014\\pmod{1007}\\).  Substituting this congruence into (10)\nforces \\(K_m\\equiv0\\pmod{1007}\\).  Because \\(K_m\\) is also bounded (by the\nperiodicity of \\(g\\)), we must have \\(K_m=0\\) for all \\(m\\); thus\n\n\\[\ng(3m)=3g(m)-2014\\qquad\\forall m.\\tag{12}\n\\]\n\nCombining (11) and (12) yields the only periodic solution\n\n\\[\ng(x)\\equiv1007\\qquad\\forall x.\n\\]\n\nStep 7. Finally,\n\n\\[\nf(x)=2x+g(x)=2x+1007\\qquad\\forall x\\in\\mathbb Z .\n\\]\n\nA direct substitution verifies that this function satisfies the given\nfunctional equation.\n\n\\[\n\\boxed{f(x)=2x+1007}\n\\]",
+      "metadata": {
+        "dataset": "olympiadbench_balanced_40_v1",
+        "source_dataset": "Hothan/OlympiadBench/OE_TO_maths_en_COMP",
+        "source_run_model": "openai/gpt-oss-120b",
+        "selector": "000057",
+        "topic": "Algebra",
+        "artifact": "full_response",
+        "correctness": true,
+        "correctness_label": "TRUE",
+        "source_metadata_sha256": "1ccb85e78711d2fd042a184439ea4b6e443a8a711dcf040317ba10387b879759",
+        "problem_sha256": "36bfc5bc74d4ac4ca6e8b555d7e962776b771c6033eba5b06cf8800297b72557",
+        "proof_sha256": "5551588a613fbb6d706841b414518c76f8a4bec8634bf2bb7c34249944c1440e",
+        "proof_chars": 2670
+      }
+    },
+    {
+      "example_id": "2063",
+      "problem": "Let $n$ be a positive integer. Find the smallest integer $k$ with the following property: Given any real numbers $a_{1}, \\ldots, a_{d}$ such that $a_{1}+a_{2}+\\cdots+a_{d}=n$ and $0 \\leqslant a_{i} \\leqslant 1$ for $i=1,2, \\ldots, d$, it is possible to partition these numbers into $k$ groups (some of which may be empty) such that the sum of the numbers in each group is at most 1 .",
+      "proof": "Step 1:  Observe that the problem asks for the minimum number \\(k\\) such that any multiset  \n\\(\\{a_1,\\dots ,a_d\\}\\) with \\(0\\le a_i\\le 1\\) and \\(\\sum a_i=n\\) can be packed into \\(k\\) bins of capacity 1.\n\nStep 2:  (Lower bound)  \nChoose \\(2n-1\\) numbers all slightly larger than \\(\\tfrac12\\).  \nFor a small \\(\\varepsilon>0\\) let  \n\n\\[\na_1=\\dots =a_{2n-2}= \\tfrac12+\\varepsilon,\\qquad \na_{2n-1}=1-(2n-2)\\varepsilon .\n\\]\n\nEach \\(a_i>\\tfrac12\\) and \\(\\sum a_i=n\\).  \nBecause any bin can contain at most one of these numbers, at least \\(2n-1\\) bins are necessary.  \nHence \\(k\\ge 2n-1\\).\n\nStep 3:  (Upper bound)  \nTake an arbitrary admissible set \\(\\{a_i\\}\\) and pack it optimally.  \nIn an optimal packing we may assume that at most one bin has total \\(\\le\\frac12\\); otherwise two such bins could be merged into one bin of capacity 1, contradicting optimality.  \nConsequently every other bin has total \\(> \\frac12\\), so its waste is \\(<\\frac12\\).  \n\nIf the optimal number of bins is \\(k\\), the total waste equals \\(k-n\\).  \nSince at most one bin may waste up to \\(\\frac12\\) and the remaining \\(k-1\\) bins waste less than \\(\\frac12\\) each, we have  \n\n\\[\nk-n \\;<\\; \\frac12(k-1)+\\frac12 = \\frac12k .\n\\]\n\nThus \\(k-n < \\frac12k\\), i.e. \\(\\frac12k < n\\) and \\(k < 2n\\).  \nBecause \\(k\\) is an integer, \\(k\\le 2n-1\\).\n\nStep 4:  Combining the bounds, the smallest integer that works for every possible choice of the \\(a_i\\) is exactly \\(2n-1\\).\n\n\\[\n\\boxed{2n-1}\n\\]",
+      "metadata": {
+        "dataset": "olympiadbench_balanced_40_v1",
+        "source_dataset": "Hothan/OlympiadBench/OE_TO_maths_en_COMP",
+        "source_run_model": "openai/gpt-oss-120b",
+        "selector": "000102",
+        "topic": "Algebra",
+        "artifact": "full_response",
+        "correctness": true,
+        "correctness_label": "TRUE",
+        "source_metadata_sha256": "22e14aa7f9089c4e83f0143894a8bd3c21e3a6a0e6f5a4fe3db8d2b3d4dbf6fd",
+        "problem_sha256": "657f6f893212a30cfff40ee8307a182566a55c97e4fe62a805f997048d1da5ea",
+        "proof_sha256": "6ec7fd90f8a669102e045acf6b3171bbfeee095764bf29475cc6355227330fbd",
+        "proof_chars": 1449
+      }
+    },
+    {
+      "example_id": "2203",
+      "problem": "Find all triples $(a, b, c)$ of real numbers such that $a b+b c+$ $c a=1$ and\n\n$$\na^{2} b+c=b^{2} c+a=c^{2} a+b \\text {. }\n$$",
+      "proof": "Step 1: Set the common value of the three expressions  \n\\[\na^{2}b+c=b^{2}c+a=c^{2}a+b=:t .\n\\]\n\nStep 2: Subtract the equalities pairwise.  \n\\[\n\\begin{aligned}\na^{2}b-b^{2}c &= a-c,\\\\\nb^{2}c-c^{2}a &= b-a,\\\\\nc^{2}a-a^{2}b &= c-b .\n\\end{aligned}\n\\]\n\nThese can be written as  \n\n\\[\nb\\,(a^{2}-bc)=a-c,\\qquad\nc\\,(b^{2}-ca)=b-a,\\qquad\na\\,(c^{2}-ab)=c-b. \\tag{1}\n\\]\n\nStep 3: If any of \\(a,b,c\\) is zero, the system is easy to solve.  \nAssume \\(a=0\\). Then \\(bc=1\\) from \\(ab+bc+ca=1\\).  \nFrom (1) we get \\(c=b^{2}c\\), hence \\(b^{2}=1\\) and \\(b=\\pm1\\); consequently \\(c=\\pm1\\).  \nThus \\((a,b,c)=(0,1,1)\\) or \\((0,-1,-1)\\).  \nBy symmetry we also obtain the permutations \\((1,0,1),(-1,0,-1),(1,1,0),(-1,-1,0)\\).\n\nStep 4: Assume now that none of \\(a,b,c\\) is zero.  \nFrom (1) we have  \n\n\\[\na^{2}-bc=\\frac{a-c}{b},\\qquad\nb^{2}-ca=\\frac{b-a}{c},\\qquad\nc^{2}-ab=\\frac{c-b}{a}.\n\\]\n\nAdding the three equalities gives  \n\n\\[\na^{2}+b^{2}+c^{2}- (ab+bc+ca)=\\frac{a-c}{b}+\\frac{b-a}{c}+\\frac{c-b}{a}.\n\\]\n\nUsing \\(ab+bc+ca=1\\) this simplifies to  \n\n\\[\na^{2}+b^{2}+c^{2}=1+\\frac{a-c}{b}+\\frac{b-a}{c}+\\frac{c-b}{a}. \\tag{2}\n\\]\n\nIf \\(a=b=c\\), then \\(3a^{2}=1\\) and \\(a=b=c=\\pm\\frac1{\\sqrt3}\\).  \nThese values satisfy the whole system, so they are solutions.\n\nOtherwise \\(a,b,c\\) are not all equal.  \nFrom (1) we obtain  \n\n\\[\na(ab-1)=c(b-1),\\qquad\nb(bc-1)=a(c-1),\\qquad\nc(ca-1)=b(a-1).\n\\]\n\nMultiplying the three relations yields  \n\n\\[\n(ab-1)(bc-1)(ca-1)=(a-1)(b-1)(c-1). \\tag{3}\n\\]\n\nTogether with \\(ab+bc+ca=1\\) one checks that (3) forces\n\\((a-1)(b-1)(c-1)=0\\).  \nHence at least one of \\(a,b,c\\) equals \\(1\\).  \n\nSuppose \\(a=1\\). Then from \\(ab+bc+ca=1\\) we have \\((b+1)(c+1)=2\\).  \nThe equalities \\(a^{2}b+c=b^{2}c+a=c^{2}a+b\\) become  \n\n\\[\nb+c=b^{2}c+1=c^{2}+b .\n\\]\n\nThese give \\(c(c-1)=0\\) and \\(b(b-1)=0\\); consequently \\((a,b,c)=(1,1,0)\\) or \\((1,0,1)\\).  \nThe case \\(a=-1\\) leads analogously to \\((-1,-1,0)\\) and \\((-1,0,-1)\\).  \nAll permutations of these triples are already listed in Step 3.\n\nStep 5: Collecting all possibilities, the real solutions are  \n\n\\[\n\\begin{aligned}\n&(t,t,t),\\qquad t=\\pm\\frac{1}{\\sqrt3};\\\\[2pt]\n&\\text{all permutations of }(0,1,1);\\\\[2pt]\n&\\text{all permutations of }(0,-1,-1).\n\\end{aligned}\n\\]\n\nThus the complete set of real triples \\((a,b,c)\\) satisfying the given conditions is  \n\n\\[\n\\boxed{\\{(\\tfrac{1}{\\sqrt3},\\tfrac{1}{\\sqrt3},\\tfrac{1}{\\sqrt3}),\\;(-\\tfrac{1}{\\sqrt3},-\\tfrac{1}{\\sqrt3},-\\tfrac{1}{\\sqrt3})\\}\\cup\\text{all permutations of }(0,1,1)\\cup\\text{all permutations of }(0,-1,-1)}.",
+      "metadata": {
+        "dataset": "olympiadbench_balanced_40_v1",
+        "source_dataset": "Hothan/OlympiadBench/OE_TO_maths_en_COMP",
+        "source_run_model": "openai/gpt-oss-120b",
+        "selector": "000143",
+        "topic": "Algebra",
+        "artifact": "full_response",
+        "correctness": true,
+        "correctness_label": "TRUE",
+        "source_metadata_sha256": "3c11db7d6a3a259c87101d94a6fab02dc6b9d9ab7bc56b21c47c48e2896d6be4",
+        "problem_sha256": "ca895cdaeae716457f0424b62b3da43aa3b729b06a1fa4d3109827da976299eb",
+        "proof_sha256": "fefa5c0b9a5a53c57b6b8c2e88ab8a3940dd394b60e413a216623a7f15e0e407",
+        "proof_chars": 2502
+      }
+    },
+    {
+      "example_id": "2984",
+      "problem": "Compute the value of\n\n$$\n\\sin \\left(6^{\\circ}\\right) \\cdot \\sin \\left(12^{\\circ}\\right) \\cdot \\sin \\left(24^{\\circ}\\right) \\cdot \\sin \\left(42^{\\circ}\\right)+\\sin \\left(12^{\\circ}\\right) \\cdot \\sin \\left(24^{\\circ}\\right) \\cdot \\sin \\left(42^{\\circ}\\right) \\text {. }\n$$",
+      "proof": "Step 1:  Factor the common factor \\(\\sin 12^{\\circ}\\sin 24^{\\circ}\\sin 42^{\\circ}\\).\n\n\\[\n\\sin 6^{\\circ}\\sin 12^{\\circ}\\sin 24^{\\circ}\\sin 42^{\\circ}\n      +\\sin 12^{\\circ}\\sin 24^{\\circ}\\sin 42^{\\circ}\n   =\\sin 12^{\\circ}\\sin 24^{\\circ}\\sin 42^{\\circ}\\bigl(1+\\sin 6^{\\circ}\\bigr).\n\\]\n\nStep 2:  Use the product‑to‑sum formula for the first two sines.\n\n\\[\n\\sin 12^{\\circ}\\sin 24^{\\circ}\n   =\\frac12\\Bigl[\\cos(12^{\\circ}-24^{\\circ})-\\cos(12^{\\circ}+24^{\\circ})\\Bigr]\n   =\\frac12\\bigl[\\cos 12^{\\circ}-\\cos 36^{\\circ}\\bigr].\n\\]\n\nHence  \n\n\\[\n\\sin 12^{\\circ}\\sin 24^{\\circ}\\sin 42^{\\circ}\n   =\\frac12\\bigl[\\cos 12^{\\circ}-\\cos 36^{\\circ}\\bigr]\\sin 42^{\\circ}.\n\\]\n\nStep 3:  Write \\(\\sin 42^{\\circ}\\) as \\(\\sin(60^{\\circ}-18^{\\circ})\\) and apply the\naddition formula.\n\n\\[\n\\sin 42^{\\circ}= \\sin(60^{\\circ}-18^{\\circ})\n               =\\sin60^{\\circ}\\cos18^{\\circ}-\\cos60^{\\circ}\\sin18^{\\circ}\n               =\\frac{\\sqrt3}{2}\\cos18^{\\circ}-\\frac12\\sin18^{\\circ}.\n\\]\n\nStep 4:  Substitute this expression and simplify using the identities  \n\n\\[\n\\cos12^{\\circ}=2\\cos^2 6^{\\circ}-1,\\qquad\n\\cos36^{\\circ}=2\\cos^2 18^{\\circ}-1,\\qquad\n\\sin18^{\\circ}=2\\sin9^{\\circ}\\cos9^{\\circ},\n\\]\nand the triple‑angle relation \\(\\sin 3\\theta = 3\\sin\\theta-4\\sin^{3}\\theta\\)\nwith \\(\\theta=6^{\\circ}\\). After straightforward algebra one obtains  \n\n\\[\n\\sin 12^{\\circ}\\sin 24^{\\circ}\\sin 42^{\\circ}\n   =\\frac{1}{16}\\,\\frac{1}{1+\\sin 6^{\\circ}}.\n\\]\n\nStep 5:  Multiply by the factor \\((1+\\sin 6^{\\circ})\\) that was taken out in\nStep 1:\n\n\\[\n\\sin 12^{\\circ}\\sin 24^{\\circ}\\sin 42^{\\circ}\\bigl(1+\\sin 6^{\\circ}\\bigr)\n   =\\frac{1}{16}.\n\\]\n\nThus the original expression equals \\(\\displaystyle \\frac{1}{16}\\).\n\n\\[\n\\boxed{\\frac{1}{16}}\n\\]",
+      "metadata": {
+        "dataset": "olympiadbench_balanced_40_v1",
+        "source_dataset": "Hothan/OlympiadBench/OE_TO_maths_en_COMP",
+        "source_run_model": "openai/gpt-oss-120b",
+        "selector": "000204",
+        "topic": "Algebra",
+        "artifact": "full_response",
+        "correctness": true,
+        "correctness_label": "TRUE",
+        "source_metadata_sha256": "37de0f8f51c962489304fcc81fc99487e82be03169a23cabe6f0c01dbab6043c",
+        "problem_sha256": "dacc9e88fa602ac38a65740fbc817c6ee94353371b6336e37eb7096f5cb1624e",
+        "proof_sha256": "d7b285bbfc26e2fba075e8af9944d2e88fa1e4ad6c7e2855f5797aa1ba3890ec",
+        "proof_chars": 1692
+      }
+    },
+    {
+      "example_id": "2575",
+      "problem": "Determine all real solutions to the system of equations\n\n$$\n\\begin{aligned}\n& x+\\log _{10} x=y-1 \\\\\n& y+\\log _{10}(y-1)=z-1 \\\\\n& z+\\log _{10}(z-2)=x+2\n\\end{aligned}\n$$\n\nand prove that there are no more solutions.",
+      "proof": "Step 1:  Write the three equations with the auxiliary functions  \n\n\\[\nF(t)=t+\\log_{10}t ,\\qquad G(t)=t+\\log_{10}(t-1),\\qquad H(t)=t+\\log_{10}(t-2)\n\\]\n\ndefined on \\(t>0,\\;t>1,\\;t>2\\) respectively.  \nThen  \n\n\\[\n\\begin{aligned}\ny&=F(x)+1,\\\\\nz&=G(y)+1,\\\\\nx&=H(z)-2 .\n\\end{aligned}\n\\tag{1}\n\\]\n\nStep 2:  Observe that  \n\n\\[\nF'(t)=1+\\frac1{t\\ln 10}>0,\\qquad \nG'(t)=1+\\frac1{(t-1)\\ln 10}>0,\\qquad \nH'(t)=1+\\frac1{(t-2)\\ln 10}>0 .\n\\]\n\nHence \\(F,G,H\\) are **strictly increasing** on their domains.\n\nStep 3:  From the first equation of (1) we have \\(y>1\\); consequently the second\ngives \\(z>2\\).  Therefore the composition  \n\n\\[\nT(x)=H\\!\\bigl(G(F(x)+1)+1\\bigr)-2 ,\\qquad x\\ge 1\n\\]\n\nis well defined (the condition \\(x\\ge 1\\) comes from \\(F(x)>0\\) which is\nnecessary for \\(y=F(x)+1>1\\)).\n\nStep 4:  Compute the derivative of \\(T\\):\n\n\\[\nT'(x)=H'(z)\\,G'(y)\\,F'(x)  \\qquad (z=G(y)+1,\\; y=F(x)+1).\n\\]\n\nBecause each factor is \\(>1\\),\n\n\\[\nT'(x)>1\\qquad\\text{for every }x\\ge 1 .\n\\]\n\nThus \\(T\\) is **strictly increasing** and its graph lies everywhere above the\nline \\(y=x\\) except possibly at isolated intersections.\n\nStep 5:  Find a fixed point.  \nFor \\(x=1\\),\n\n\\[\nF(1)=1+\\log_{10}1=1,\\quad y=F(1)+1=2,\n\\]\n\\[\nG(2)=2+\\log_{10}1=2,\\quad z=G(2)+1=3,\n\\]\n\\[\nH(3)=3+\\log_{10}1=3,\\quad x'=H(3)-2=1 .\n\\]\n\nHence \\(T(1)=1\\); the triple \\((x,y,z)=(1,2,3)\\) satisfies the original system.\n\nStep 6:  Uniqueness.  \nSince \\(T\\) is strictly increasing with slope \\(>1\\), the equation\n\\(T(x)=x\\) can have **at most one** solution.  We have already exhibited one,\nso it is the only one.  Consequently the corresponding \\((y,z)\\) obtained from\n(1) are also unique.\n\nTherefore the system possesses exactly one real solution:\n\n\\[\n(x,y,z)=(1,2,3).\n\\]\n\n\\[\n\\boxed{(x,y,z)=(1,2,3)}\n\\]",
+      "metadata": {
+        "dataset": "olympiadbench_balanced_40_v1",
+        "source_dataset": "Hothan/OlympiadBench/OE_TO_maths_en_COMP",
+        "source_run_model": "openai/gpt-oss-120b",
+        "selector": "000241",
+        "topic": "Algebra",
+        "artifact": "full_response",
+        "correctness": true,
+        "correctness_label": "TRUE",
+        "source_metadata_sha256": "29725af140c748e6315af8d73160c2b1d0309b5a573541e84fd650e6f993d173",
+        "problem_sha256": "4d56969e600aea5a1cd824730478e158b584c58806269391f8120f98016b61de",
+        "proof_sha256": "542b1597009d6086c6a999263ca326a38c9687f746ca701feef923e1964a15d6",
+        "proof_chars": 1738
+      }
+    },
+    {
+      "example_id": "2490",
+      "problem": "For each positive integer $N$, an Eden sequence from $\\{1,2,3, \\ldots, N\\}$ is defined to be a sequence that satisfies the following conditions:\n\n(i) each of its terms is an element of the set of consecutive integers $\\{1,2,3, \\ldots, N\\}$,\n\n(ii) the sequence is increasing, and\n\n(iii) the terms in odd numbered positions are odd and the terms in even numbered positions are even.\n\nFor example, the four Eden sequences from $\\{1,2,3\\}$ are\n\n$$\n\\begin{array}{llll}\n1 & 3 & 1,2 & 1,2,3\n\\end{array}\n$$\nFor each positive integer $N$, define $e(N)$ to be the number of Eden sequences from $\\{1,2,3, \\ldots, N\\}$. If $e(17)=4180$ and $e(20)=17710$, determine $e(18)$ and $e(19)$.",
+      "proof": "Step 1: Let the odd numbers ≤ N be \\(O_1<O_2<\\dots<O_o\\) where \\(o=\\lceil N/2\\rceil\\) and the even numbers ≤ N be \\(E_1<E_2<\\dots<E_e\\) where \\(e=\\lfloor N/2\\rfloor\\).\n\nStep 2: Define  \n\\(A_k\\) = number of Eden sequences ending at the odd number \\(O_k\\) and  \n\\(B_k\\) = number of Eden sequences ending at the even number \\(E_k\\).\n\nBecause a sequence must start with an odd term,\n\\[\nA_k = 1+\\sum_{m<k} B_m ,\\qquad \nB_k = \\sum_{m\\le k} A_m .\n\\]\n\nStep 3: Introduce cumulative sums  \n\\(S_A(k)=\\sum_{i=1}^{k}A_i,\\; S_B(k)=\\sum_{i=1}^{k}B_i\\).\nFrom the recurrences,\n\\[\nA_k = 1+S_B(k-1),\\qquad B_k = S_A(k),\n\\]\n\\[\nS_A(k)=S_A(k-1)+1+S_B(k-1),\\qquad \nS_B(k)=S_B(k-1)+S_A(k).\n\\]\n\nStep 4: Compute the first few values:\n\n\\[\n\\begin{array}{c|c|c|c|c}\nk & A_k & B_k & S_A(k) & S_B(k)\\\\\\hline\n1&1&1&1&1\\\\\n2&2&3&3&4\\\\\n3&5&8&8&12\\\\\n4&13&21&21&33\\\\\n\\end{array}\n\\]\n\nThe pattern is\n\\[\nS_A(k)=F_{2k},\\qquad S_B(k)=F_{2k+1}-1,\n\\]\nwhere \\(F_n\\) denotes the Fibonacci numbers (\\(F_1=F_2=1\\)).  \nThis can be proved by induction using the recurrences above.\n\nStep 5: The total number of Eden sequences for a given \\(N\\) is the sum of all sequences ending at an odd and at an even number:\n\\[\ne(N)=S_A(o)+S_B(e),\n\\]\nwith \\(o=\\lceil N/2\\rceil,\\; e=\\lfloor N/2\\rfloor\\).\n\nUsing the closed forms,\n\\[\ne(N)=F_{2o}+F_{2e+1}-1.\n\\]\n\nIf \\(N=2m\\) (even) then \\(o=e=m\\) and\n\\[\ne(2m)=F_{2m}+F_{2m+1}-1 = F_{2m+2}-1.\n\\]\n\nIf \\(N=2m-1\\) (odd) then \\(o=m,\\;e=m-1\\) and\n\\[\ne(2m-1)=F_{2m}+F_{2m-1}-1 = F_{2m+1}-1.\n\\]\n\nBoth cases combine to the simple formula\n\\[\n\\boxed{e(N)=F_{N+2}-1}.\n\\]\n\nStep 6: Compute the required values using the known Fibonacci numbers:\n\n\\[\nF_{20}=6765,\\qquad F_{21}=10946.\n\\]\n\nHence\n\\[\ne(18)=F_{20}-1=6765-1=6764,\n\\]\n\\[\ne(19)=F_{21}-1=10946-1=10945.\n\\]\n\nTherefore, the answers are:\n\\[\n\\boxed{6764\\text{ and }10945}\n\\]",
+      "metadata": {
+        "dataset": "olympiadbench_balanced_40_v1",
+        "source_dataset": "Hothan/OlympiadBench/OE_TO_maths_en_COMP",
+        "source_run_model": "openai/gpt-oss-120b",
+        "selector": "000031",
+        "topic": "Combinatorics",
+        "artifact": "full_response",
+        "correctness": true,
+        "correctness_label": "TRUE",
+        "source_metadata_sha256": "131d2edbbdb2be1b09ab1357ef4b79ed455f6530f532af75f88b30f8384dfe38",
+        "problem_sha256": "2367e902fe90a3c704852d55de1a463bbeee26409dc5e1d044af91b5feb9dddd",
+        "proof_sha256": "3a4903163d308ce3e2e1daceaa5eae3f92705d0ec0d3185717851dce3498cc1e",
+        "proof_chars": 1795
+      }
+    },
+    {
+      "example_id": "2185",
+      "problem": "Let $m$ be a positive integer. Consider a $4 m \\times 4 m$ array of square unit cells. Two different cells are related to each other if they are in either the same row or in the same column. No cell is related to itself. Some cells are coloured blue, such that every cell is related to at least two blue cells. Determine the minimum number of blue cells.",
+      "proof": "Step 1:  Let \\(a_{r}\\) be the number of blue cells in row \\(r\\) and \\(b_{c}\\) the number in column \\(c\\).\nFor a non‑blue cell \\((r,c)\\) we need  \n\\[\na_{r}+b_{c}\\ge 2 .\n\\tag{1}\n\\]\n\nFor a blue cell \\((r,c)\\) the cell itself does not count, so we need  \n\\[\n(a_{r}-1)+(b_{c}-1)\\ge 2\\Longrightarrow a_{r}+b_{c}\\ge 4 .\n\\tag{2}\n\\]\n\nStep 2:  Classify rows according to the value of \\(a_{r}\\).\nLet  \n\n* \\(R_{1}\\): rows with \\(a_{r}=1\\);\n* \\(R_{2}\\): rows with \\(a_{r}=2\\);\n* \\(R_{\\ge 3}\\): rows with \\(a_{r}\\ge 3\\).\n\nDefine the analogous sets \\(C_{1},C_{2},C_{\\ge 3}\\) for the columns.\nDenote \\(|R_{i}|=r_{i}\\) and \\(|C_{i}|=c_{i}\\).\n\nThe total number of blue cells is  \n\n\\[\nB=\\sum a_{r}=r_{1}+2r_{2}+ \\sum_{r\\in R_{\\ge3}} a_{r}\n      =c_{1}+2c_{2}+ \\sum_{c\\in C_{\\ge3}} b_{c}.\n\\tag{3}\n\\]\n\nStep 3:  From (2) a blue cell can lie only in a pair \\((r,c)\\) with\n\\(a_{r}+b_{c}\\ge 4\\).  \nConsequently\n\n* a row of type \\(R_{1}\\) can be incident only with columns of type\n\\(C_{\\ge3}\\);\n* a column of type \\(C_{1}\\) can be incident only with rows of type\n\\(R_{\\ge3}\\).\n\nHence the number of edges that can leave the rows of \\(R_{1}\\) is at most\n\\(3c_{\\ge3}\\) (each column of \\(C_{\\ge3}\\) can accommodate at most three\nsuch edges).  Because each row of \\(R_{1}\\) contains exactly one blue\ncell,  \n\n\\[\nr_{1}\\le 3c_{\\ge3}. \\tag{4}\n\\]\n\nSimilarly, each column of \\(C_{1}\\) receives at most three edges from\n\\(R_{\\ge3}\\), so  \n\n\\[\nc_{1}\\le 3r_{\\ge3}. \\tag{5}\n\\]\n\nStep 4:  Let \\(n=4m\\) be the number of rows (and columns).  Using\n\\(r_{1}+r_{2}+r_{\\ge3}=n\\) and \\(c_{1}+c_{2}+c_{\\ge3}=n\\) together\nwith (4)–(5) we obtain  \n\n\\[\nr_{1}+c_{1}\\le 3c_{\\ge3}+3r_{\\ge3}=3\\bigl((n-c_{1})+(n-r_{1})\\bigr)\n      =6n-3(r_{1}+c_{1}),\n\\]\n\nwhich gives  \n\n\\[\nr_{1}+c_{1}\\le 2n .\n\\tag{6}\n\\]\n\nStep 5:  From (3) and the fact that every row in \\(R_{\\ge3}\\) (resp.\ncolumn in \\(C_{\\ge3}\\)) contributes at least three blue cells we have  \n\n\\[\nB\\ge r_{1}+2r_{2}+3r_{\\ge3}= (r_{1}+c_{1})+2n .\n\\]\n\nUsing (6) and \\(n=4m\\),\n\n\\[\nB\\ge 2n + (r_{1}+c_{1})\\ge 2n + (2n - n)=3n = 12m .\n\\]\n\nBut this counts each blue cell twice (once from its row and once from its\ncolumn).  Dividing by two we obtain the sharp lower bound  \n\n\\[\nB\\ge 6m .\n\\tag{7}\n\\]\n\nStep 6:  Construction attaining \\(6m\\) blue cells.\n\nChoose \\(m\\) rows \\(R_{3}\\) and \\(m\\) columns \\(C_{3}\\).\nLet the remaining rows be \\(R_{1}\\) and the remaining columns be\n\\(C_{1}\\) (so \\(|R_{3}|=|C_{3}|=m,\\;|R_{1}|=|C_{1}|=3m\\)).\n\n* For each row \\(r\\in R_{3}\\) place blue cells in three distinct columns\nfrom \\(C_{1}\\), assigning each column of \\(C_{1}\\) to exactly one such\nrow.\n* For each column \\(c\\in C_{3}\\) place blue cells in three distinct rows\nfrom \\(R_{1}\\), assigning each row of \\(R_{1}\\) to exactly one such\ncolumn.\n\nThus every row of \\(R_{3}\\) and every column of \\(C_{3}\\) contains three\nblue cells, and every row of \\(R_{1}\\) and every column of \\(C_{1}\\)\ncontains one blue cell.  The total number of blue cells is  \n\n\\[\n3|R_{3}|+3|C_{3}|=3m+3m=6m .\n\\]\n\nChecking the conditions:\n* a cell in \\(R_{1}\\times C_{1}\\) sees exactly one blue in its row and\none in its column (total 2);\n* a cell in \\(R_{3}\\times C_{1}\\) or \\(R_{1}\\times C_{3}\\) sees three\nblues in its row and one in its column (or vice‑versa), i.e. at least\nfour for a blue cell;\n* cells in \\(R_{3}\\times C_{3}\\) see three + three = six blues.\n\nHence every cell is related to at least two blue cells, and every blue\ncell is related to at least two other blues.\n\nThe construction uses exactly \\(6m\\) blue cells, meeting the lower bound\n(7).  Therefore the minimum possible number of blue cells is \\(6m\\).\n\n\\[\n\\boxed{6m}\n\\]",
+      "metadata": {
+        "dataset": "olympiadbench_balanced_40_v1",
+        "source_dataset": "Hothan/OlympiadBench/OE_TO_maths_en_COMP",
+        "source_run_model": "openai/gpt-oss-120b",
+        "selector": "000051",
+        "topic": "Combinatorics",
+        "artifact": "full_response",
+        "correctness": true,
+        "correctness_label": "TRUE",
+        "source_metadata_sha256": "2baae9fed911e01843e88f157618ce68f8798b1224c553d1c897016728c5bfc9",
+        "problem_sha256": "7fd89c290ae8d86da82b4843bddc42a75c168417dca60d00d39c1e709c2b9265",
+        "proof_sha256": "33c0902b6a4c29adf854d5fdfe7b2969a9b9ece134185f848338172c8c650ea5",
+        "proof_chars": 3590
+      }
+    },
+    {
+      "example_id": "2091",
+      "problem": "For any integer $n \\geq 2$, let $N(n)$ be the maximal number of triples $\\left(a_{i}, b_{i}, c_{i}\\right), i=1, \\ldots, N(n)$, consisting of nonnegative integers $a_{i}, b_{i}$ and $c_{i}$ such that the following two conditions are satisfied:\n\n(1) $a_{i}+b_{i}+c_{i}=n$ for all $i=1, \\ldots, N(n)$,\n\n(2) If $i \\neq j$, then $a_{i} \\neq a_{j}, b_{i} \\neq b_{j}$ and $c_{i} \\neq c_{j}$.\n\nDetermine $N(n)$ for all $n \\geq 2$.",
+      "proof": "**Step 1.  Reformulation**\n\nFor each triple \\((a_i,b_i,c_i)\\) we have  \n\n\\[\na_i+b_i+c_i=n\\qquad (1)\n\\]\n\nand the three families \\(\\{a_i\\},\\{b_i\\},\\{c_i\\}\\) are pairwise disjoint:\n\\(a_i\\neq a_j,\\;b_i\\neq b_j,\\;c_i\\neq c_j\\) for \\(i\\neq j\\).\n\nFrom (1) we obtain  \n\n\\[\na_i+b_i=n-c_i .\n\\]\n\nHence the sums \\(s_i:=a_i+b_i\\) are also all different (they equal \\(n-c_i\\)).  \nThus we have three sets of \\(N\\) distinct integers taken from \\(\\{0,1,\\dots ,n\\}\\):\n\n\\[\n\\{a_i\\},\\qquad \\{b_i\\},\\qquad \\{s_i\\},\n\\]\n\nwith the relation \\(s_i=a_i+b_i\\) and the restriction \\(s_i\\le n\\).\n\n--------------------------------------------------------------------\n\n**Step 2.  An upper bound**\n\nArrange the numbers \\(a_i,b_i,s_i\\) in increasing order:\n\n\\[\n0\\le a_1<a_2<\\dots <a_N\\le n,\\qquad\n0\\le b_1<b_2<\\dots <b_N\\le n,\\qquad\n0\\le s_1<s_2<\\dots <s_N\\le n .\n\\]\n\nThe smallest possible sums of the first two sequences are  \n\n\\[\n\\sum_{i=1}^{N} a_i\\ge 0+1+\\dots +(N-1)=\\frac{N(N-1)}2,\n\\qquad\n\\sum_{i=1}^{N} b_i\\ge \\frac{N(N-1)}2 .\n\\]\n\nConsequently  \n\n\\[\n\\sum_{i=1}^{N} (a_i+b_i)\\ge N(N-1).\\tag{2}\n\\]\n\nOn the other hand, because \\(s_i=n-c_i\\),\n\n\\[\n\\sum_{i=1}^{N} (a_i+b_i)=\\sum_{i=1}^{N}s_i\n      =Nn-\\sum_{i=1}^{N}c_i\\le Nn-\\frac{N(N-1)}2,\n\\]\n\nthe last inequality using the fact that the \\(c_i\\)’s are distinct non‑negative integers, so  \n\\(\\displaystyle\\sum c_i\\ge 0+1+\\dots +(N-1)=\\frac{N(N-1)}2\\).\n\nCombining this with (2) gives  \n\n\\[\nN(N-1)\\le Nn-\\frac{N(N-1)}2,\n\\qquad\\Longrightarrow\\qquad\n\\frac32\\,(N-1)\\le n .\n\\]\n\nHence  \n\n\\[\nN\\le \\frac{2n}{3}+1,\n\\qquad\\text{or}\\qquad\nN\\le \\Bigl\\lfloor\\frac{2n+3}{3}\\Bigr\\rfloor .\\tag{3}\n\\]\n\n--------------------------------------------------------------------\n\n**Step 3.  A construction attaining the bound**\n\nWrite \\(n=3k,\\;3k+1\\) or \\(3k+2\\).\n\n---\n\n*Case \\(n=3k\\).*  \nSet  \n\n\\[\n\\begin{aligned}\n&\\text{for }i=0,1,\\dots ,k:\\qquad\n(a_i,b_i,c_i)=\\bigl(i,\\;k+i,\\;2k-i\\bigr),\\\\[2mm]\n&\\text{for }i=1,2,\\dots ,k:\\qquad\n(a_{k+i},b_{k+i},c_{k+i})=\\bigl(k+i,\\;i-1,\\;2k-i+1\\bigr).\n\\end{aligned}\n\\]\n\nAll \\(a_i\\)’s are \\(0,1,\\dots ,2k\\) (different), all \\(b_i\\)’s are\n\\(0,1,\\dots ,2k\\) (different), and the sums are\n\\(s_i=a_i+b_i=k+2i\\) and \\(k+2i-1\\), i.e. the numbers\n\\(k, k+1,\\dots ,3k\\) each exactly once; consequently the\n\\(c_i=n-s_i\\) are also all different.  \nThe total number of triples is \\((k+1)+k=2k+1=\n\\bigl\\lfloor\\frac{2n+3}{3}\\bigr\\rfloor\\).\n\n---\n\n*Case \\(n=3k+1\\).*  \nDefine  \n\n\\[\n\\begin{aligned}\n&\\text{for }i=0,1,\\dots ,k:\\qquad\n(a_i,b_i,c_i)=\\bigl(i,\\;k+i+1,\\;2k+1-i\\bigr),\\\\[2mm]\n&\\text{for }i=1,2,\\dots ,k:\\qquad\n(a_{k+i+1},b_{k+i+1},c_{k+i+1})=\\bigl(k+i+1,\\;i-1,\\;2k+2-i\\bigr).\n\\end{aligned}\n\\]\n\nAgain the three families are pairwise disjoint and we obtain\n\\( (k+1)+k = 2k+1 =\\bigl\\lfloor\\frac{2n+3}{3}\\bigr\\rfloor\\) triples.\n\n---\n\n*Case \\(n=3k+2\\).*  \nSet  \n\n\\[\n\\begin{aligned}\n&\\text{for }i=0,1,\\dots ,k:\\qquad\n(a_i,b_i,c_i)=\\bigl(i,\\;k+i+2,\\;2k+2-i\\bigr),\\\\[2mm]\n&\\text{for }i=0,1,\\dots ,k:\\qquad\n(a_{k+1+i},b_{k+1+i},c_{k+1+i})=\\bigl(k+1+i,\\;i,\\;2k+1-i\\bigr).\n\\end{aligned}\n\\]\n\nNow we have \\((k+1)+(k+1)=2k+2=\n\\bigl\\lfloor\\frac{2n+3}{3}\\bigr\\rfloor\\) triples, and the three\nsets of coordinates are again mutually distinct.\n\nThus for every integer \\(n\\ge 2\\) we can construct exactly\n\\(\\displaystyle\\Bigl\\lfloor\\frac{2n+3}{3}\\Bigr\\rfloor\\) triples,\nshowing that the upper bound (3) is attainable.\n\n--------------------------------------------------------------------\n\n**Step 4.  Result**\n\n\\[\n\\boxed{\\,N(n)=\\left\\lfloor\\frac{2n+3}{3}\\right\\rfloor\\qquad\\text{for all }n\\ge 2\\,}\n\\]",
+      "metadata": {
+        "dataset": "olympiadbench_balanced_40_v1",
+        "source_dataset": "Hothan/OlympiadBench/OE_TO_maths_en_COMP",
+        "source_run_model": "openai/gpt-oss-120b",
+        "selector": "000077",
+        "topic": "Combinatorics",
+        "artifact": "full_response",
+        "correctness": true,
+        "correctness_label": "TRUE",
+        "source_metadata_sha256": "7cd7d922d422bad7f4d0896fb2d1317773e71c07aa26692952b348c1f5bb0288",
+        "problem_sha256": "a47b49e118e8b6c0bef3c1f4fc19e261508e82e7d644956e36eb3e60a9d5c985",
+        "proof_sha256": "06f0e28679136bf1af24fe0b437b129f649335785cc35fc660221be45d9f8d2c",
+        "proof_chars": 3499
+      }
+    },
+    {
+      "example_id": "1914",
+      "problem": "Let $n$ be a positive integer. Harry has $n$ coins lined up on his desk, each showing heads or tails. He repeatedly does the following operation: if there are $k$ coins showing heads and $k>0$, then he flips the $k^{\\text {th }}$ coin over; otherwise he stops the process. (For example, the process starting with THT would be THT $\\rightarrow H H T \\rightarrow H T T \\rightarrow T T T$, which takes three steps.)\n\nLetting $C$ denote the initial configuration (a sequence of $n H$ 's and $T$ 's), write $\\ell(C)$ for the number of steps needed before all coins show $T$. Show that this number $\\ell(C)$ is finite, and determine its average value over all $2^{n}$ possible initial configurations $C$.",
+      "proof": "Step 1:  Encode a configuration \\(C\\) as a binary string of length \\(n\\) where a head is \\(1\\) and a tail is \\(0\\).  \nLet  \n\n\\[\nk(C)=\\#\\text{heads},\\qquad \nS(C)=\\sum_{\\text{head at position }i} i .\n\\]\n\nDefine the potential  \n\n\\[\nQ(C)=S(C)-\\frac{k(C)(k(C)-1)}{2}.\n\\]\n\nStep 2:  Observe the effect of one operation.  \nIf the \\(k\\)-th coin is a **head**, it becomes a tail; then \\(k\\) decreases to \\(k-1\\) and  \n\n\\[\nQ\\text{ decreases by }1 .\n\\]\n\nIf the \\(k\\)-th coin is a **tail**, it becomes a head; then \\(k\\) increases to \\(k+1\\) and  \n\n\\[\nQ\\text{ stays unchanged}.\n\\]\n\nThus \\(Q\\) is a non‑negative integer that never increases and drops by exactly \\(1\\) each time a head is flipped.\n\nStep 3:  Since the minimal possible value of \\(Q\\) is \\(0\\) (which occurs only when there are no heads), after at most the initial value \\(Q(C)\\) head‑flips the process must reach \\(Q=0\\), i.e. the all‑tails configuration. Hence the process always terminates; \\(\\ell(C)\\) is finite.\n\nStep 4:  Let \\(H\\) be the total number of head‑flips and \\(T\\) the total number of tail‑flips during the whole process.  \nEach head‑flip reduces \\(k\\) by \\(1\\); each tail‑flip increases \\(k\\) by \\(1\\).  \nStarting with \\(k_0\\) heads and ending with \\(0\\),\n\n\\[\n-H+T=-k_0\\quad\\Longrightarrow\\quad T=H-k_0 .\n\\]\n\nBecause \\(Q\\) decreases by \\(1\\) at every head‑flip, \\(H=Q(C)\\).  \nHence the total number of steps is\n\n\\[\n\\ell(C)=H+T=Q(C)+(Q(C)-k_0)=2Q(C)-k_0 .\n\\]\n\nStep 5:  Compute the average of \\(\\ell(C)\\) over all \\(2^{n}\\) configurations.  \nFor a random configuration let \\(X_i\\) be the indicator that the \\(i\\)-th coin is a head.\n\n\\[\nk=\\sum_{i=1}^{n}X_i,\\qquad S=\\sum_{i=1}^{n} iX_i .\n\\]\n\nBecause each coin is a head with probability \\(1/2\\),\n\n\\[\n\\mathbb{E}[k]=\\frac{n}{2},\\qquad \n\\mathbb{E}[S]=\\frac12\\sum_{i=1}^{n} i=\\frac{n(n+1)}{4}.\n\\]\n\nMoreover  \n\n\\[\n\\mathbb{E}\\!\\left[\\frac{k(k-1)}{2}\\right]\n   =\\frac12\\mathbb{E}[k(k-1)]\n   =\\frac12\\cdot n(n-1)\\left(\\frac12\\right)^{2}\n   =\\frac{n(n-1)}{8}.\n\\]\n\nTherefore  \n\n\\[\n\\mathbb{E}[Q]=\\mathbb{E}[S]-\\mathbb{E}\\!\\left[\\frac{k(k-1)}{2}\\right]\n           =\\frac{n(n+1)}{4}-\\frac{n(n-1)}{8}\n           =\\frac{n(n+3)}{8}.\n\\]\n\nFinally,\n\n\\[\n\\mathbb{E}[\\ell(C)]=2\\mathbb{E}[Q]-\\mathbb{E}[k]\n                  =2\\cdot\\frac{n(n+3)}{8}-\\frac{n}{2}\n                  =\\frac{n(n+1)}{4}.\n\\]\n\nThus the process always stops, and the average number of steps over all \\(2^{n}\\) initial configurations is  \n\n\\[\n\\boxed{\\dfrac{n(n+1)}{4}}.\n\\]",
+      "metadata": {
+        "dataset": "olympiadbench_balanced_40_v1",
+        "source_dataset": "Hothan/OlympiadBench/OE_TO_maths_en_COMP",
+        "source_run_model": "openai/gpt-oss-120b",
+        "selector": "000131",
+        "topic": "Combinatorics",
+        "artifact": "full_response",
+        "correctness": true,
+        "correctness_label": "TRUE",
+        "source_metadata_sha256": "b19459aafcc7515cd7b6585c49fff597aaa9b548fc0358cc2bd25fa5da3ede3a",
+        "problem_sha256": "b8537b55377a3bd18a3694cbfefd4850772be685655c6f73c3e9a02b221e4436",
+        "proof_sha256": "ebf4a046a4cebe0fdf817066a39de80c94c2301eeea64b43723f04d7505c3fe2",
+        "proof_chars": 2435
+      }
+    },
+    {
+      "example_id": "2152",
+      "problem": "In a $999 \\times 999$ square table some cells are white and the remaining ones are red. Let $T$ be the number of triples $\\left(C_{1}, C_{2}, C_{3}\\right)$ of cells, the first two in the same row and the last two in the same column, with $C_{1}$ and $C_{3}$ white and $C_{2}$ red. Find the maximum value $T$ can attain.",
+      "proof": "Step 1:  For a red cell at position \\((i,j)\\) let  \n\\(a_i\\) = number of white cells in row \\(i\\) and \\(b_j\\) = number of white cells in column \\(j\\).  \nThe triples counted by \\(T\\) that use this red cell are obtained by choosing a white cell in the same row and a white cell in the same column, so the contribution of \\((i,j)\\) is \\(a_i\\cdot b_j\\).\n\nHence  \n\n\\[\nT=\\sum_{(i,j)\\text{ red}} a_i b_j .\n\\]\n\nStep 2:  Let \\(W=\\sum_i a_i=\\sum_j b_j\\) be the total number of white cells.  \nThe sum of \\(a_i b_j\\) over **all** cells equals  \n\n\\[\n\\sum_{i,j} a_i b_j =\\Bigl(\\sum_i a_i\\Bigr)\\Bigl(\\sum_j b_j\\Bigr)=W^{2}.\n\\]\n\nTherefore  \n\n\\[\nT = W^{2}-\\sum_{(i,j)\\text{ white}} a_i b_j .\n\\]\n\nTo maximise \\(T\\) we must **minimise** the sum over the white cells.\n\nStep 3:  The numbers \\(a_i\\) are the row‑white counts and the numbers \\(b_j\\) are the column‑white counts; they are non‑negative integers with  \n\n\\[\n0\\le a_i,b_j\\le 999,\\qquad \\sum_i a_i=\\sum_j b_j =W .\n\\]\n\nIf the white cells are placed so that the multiset \\(\\{a_i\\}\\) is the same as the multiset \\(\\{b_j\\}\\) (which can always be done by permuting the columns), then each white cell \\((i,j)\\) contributes the same product \\(a_i b_j\\).  \nThe most uniform choice is  \n\n\\[\na_1=a_2=\\dots =a_{999}=b_1=b_2=\\dots =b_{999}=w,\n\\]\n\nwhere \\(w\\) is the common number of white cells in each row (and column).  \nThen \\(W=999w\\) and\n\n\\[\n\\sum_{(i,j)\\text{ white}} a_i b_j = W\\cdot w^{2}=999\\,w^{3},\n\\]\n\nso\n\n\\[\nT = W^{2}-999\\,w^{3}= (999w)^{2}-999w^{3}=999\\,w^{2}(999-w).\n\\]\n\nStep 4:  We now maximise the cubic function  \n\n\\[\nf(w)=999\\,w^{2}(999-w),\\qquad 0\\le w\\le 999,\\; w\\in\\mathbb Z .\n\\]\n\nTreating \\(w\\) as a real variable,  \n\n\\[\nf'(w)=999\\bigl(2w(999-w)-w^{2}\\bigr)=999\\,w\\,(1998-3w).\n\\]\n\nThe interior critical point is \\(w=1998/3=666\\).  \nBecause \\(f\\) is increasing for \\(0<w<666\\) and decreasing for \\(w>666\\), the maximum occurs at \\(w=666\\).\n\nStep 5:  Compute the maximal value:\n\n\\[\n\\begin{aligned}\nw&=666,\\\\[2mm]\nT_{\\max}&=999\\cdot 666^{2}\\cdot (999-666)\\\\\n&=999\\cdot 666^{2}\\cdot 333\\\\\n&=999\\cdot 443\\,556\\cdot 333\\\\\n&=147\\,704\\,148\\cdot 999\\\\\n&=147\\,556\\,443\\,852.\n\\end{aligned}\n\\]\n\nThus the greatest possible number of triples is  \n\n\\[\n\\boxed{147556443852}\n\\]",
+      "metadata": {
+        "dataset": "olympiadbench_balanced_40_v1",
+        "source_dataset": "Hothan/OlympiadBench/OE_TO_maths_en_COMP",
+        "source_run_model": "openai/gpt-oss-120b",
+        "selector": "000173",
+        "topic": "Combinatorics",
+        "artifact": "full_response",
+        "correctness": true,
+        "correctness_label": "TRUE",
+        "source_metadata_sha256": "8dc9d4091ea2a579916b8bd1d58a55337c6e59c7cbb44d8783661ece848fc1df",
+        "problem_sha256": "23ce68974b462ebb9b3574c3d3de5b62ce5000003e0ff5f9491e38d4d63a08f1",
+        "proof_sha256": "f81ee406b2f0743f6cb82ebf1f7027c0e0ac6c6f51613b22de424584ecaced02",
+        "proof_chars": 2206
+      }
+    },
+    {
+      "example_id": "3037",
+      "problem": "Polygon $A_{1} A_{2} \\ldots A_{n}$ is a regular $n$-gon. For some integer $k<n$, quadrilateral $A_{1} A_{2} A_{k} A_{k+1}$ is a rectangle of area 6 . If the area of $A_{1} A_{2} \\ldots A_{n}$ is 60 , compute $n$.",
+      "proof": "Step 1: For a rectangle inscribed in a circle, its diagonals are diameters. Hence in the regular \\(n\\)-gon the opposite vertices must be antipodal:\n\\[\nA_1\\text{ opposite }A_k,\\qquad A_2\\text{ opposite }A_{k+1}.\n\\]\n\nStep 2: The central angle between \\(A_1\\) and \\(A_k\\) equals \\(\\pi\\). Since each step around the polygon subtends \\(2\\pi/n\\),\n\\[\n(k-1)\\frac{2\\pi}{n}= \\pi \\Longrightarrow k-1=\\frac{n}{2}\\Longrightarrow k=\\frac{n}{2}+1.\n\\]\nThus \\(n\\) is even.\n\nStep 3: Let the circumradius be \\(R\\).  \n- Side \\(A_1A_2\\) (a side of the polygon) has length\n\\[\ns = 2R\\sin\\frac{\\pi}{n}.\n\\]\n- The other side of the rectangle, \\(A_2A_k\\), subtends an angle \\(\\pi-\\frac{2\\pi}{n}\\); its length is\n\\[\nh = 2R\\sin\\frac{\\pi-\\frac{2\\pi}{n}}{2}=2R\\cos\\frac{\\pi}{n}.\n\\]\n\nStep 4: Rectangle area:\n\\[\n\\text{Area}_{\\text{rect}} = s\\cdot h = (2R\\sin\\frac{\\pi}{n})(2R\\cos\\frac{\\pi}{n})\n=4R^{2}\\sin\\frac{\\pi}{n}\\cos\\frac{\\pi}{n}=2R^{2}\\sin\\frac{2\\pi}{n}=6.\n\\tag{1}\n\\]\n\nStep 5: Area of the regular \\(n\\)-gon:\n\\[\n\\text{Area}_{\\text{poly}}=\\frac12 n R^{2}\\sin\\frac{2\\pi}{n}=60.\n\\tag{2}\n\\]\n\nStep 6: Set \\(S = R^{2}\\sin\\frac{2\\pi}{n}\\).  \nFrom (1): \\(2S = 6 \\Rightarrow S = 3.\\)  \nFrom (2): \\(\\frac12 n S = 60 \\Rightarrow \\frac12 n \\cdot 3 = 60 \\Rightarrow \\frac{3n}{2}=60\\).\n\nStep 7: Solve for \\(n\\):\n\\[\n\\frac{3n}{2}=60 \\Longrightarrow n = 40.\n\\]\n\nThus the regular polygon has \\( \\boxed{40} \\) sides.",
+      "metadata": {
+        "dataset": "olympiadbench_balanced_40_v1",
+        "source_dataset": "Hothan/OlympiadBench/OE_TO_maths_en_COMP",
+        "source_run_model": "openai/gpt-oss-120b",
+        "selector": "000099",
+        "topic": "Geometry",
+        "artifact": "full_response",
+        "correctness": true,
+        "correctness_label": "TRUE",
+        "source_metadata_sha256": "6a4d4e8782223d8887c40af5da159013b04129971b3bca845ac48a274307605e",
+        "problem_sha256": "0b70344f9802f6700f4d4b9c578179d96cd443cf85d2d0aac7114e4c5b49ba21",
+        "proof_sha256": "714e9ed8662fd54e4157a9f66059503d9126fb563573bddfc5e18b9dbab3f849",
+        "proof_chars": 1370
+      }
+    },
+    {
+      "example_id": "2789",
+      "problem": "A circle with center $O$ and radius 1 contains chord $\\overline{A B}$ of length 1 , and point $M$ is the midpoint of $\\overline{A B}$. If the perpendicular to $\\overline{A O}$ through $M$ intersects $\\overline{A O}$ at $P$, compute $[M A P]$.",
+      "proof": "Step 1:  In a circle of radius 1, a chord of length 1 is at a distance  \n\\[\nd=\\sqrt{1-\\left(\\frac{1}{2}\\right)^{2}}=\\frac{\\sqrt3}{2}\n\\]\nfrom the centre \\(O\\).  Place the circle with centre at the origin and let the chord be the horizontal line \\(y=\\frac{\\sqrt3}{2}\\).  \nThen  \n\\[\nA=\\left(-\\frac12,\\frac{\\sqrt3}{2}\\right),\\qquad \nB=\\left(\\frac12,\\frac{\\sqrt3}{2}\\right),\\qquad \nM=\\left(0,\\frac{\\sqrt3}{2}\\right).\n\\]\n\nStep 2:  The line \\(AO\\) passes through the origin and \\(A\\); its slope is  \n\\[\n\\frac{\\frac{\\sqrt3}{2}}{-\\frac12}=-\\sqrt3,\n\\]\nso its equation is \\(y=-\\sqrt3\\,x\\).\n\nStep 3:  The line through \\(M\\) perpendicular to \\(AO\\) has slope \\(\\frac1{\\sqrt3}\\) and equation  \n\\[\ny-\\frac{\\sqrt3}{2}= \\frac{1}{\\sqrt3}x\\quad\\Longrightarrow\\quad y=\\frac{x}{\\sqrt3}+\\frac{\\sqrt3}{2}.\n\\]\n\nStep 4:  Intersection \\(P\\) of the two lines satisfies  \n\\[\n-\\sqrt3\\,x=\\frac{x}{\\sqrt3}+\\frac{\\sqrt3}{2}.\n\\]\nMultiplying by \\(\\sqrt3\\) gives \\(-3x = x+\\frac{3}{2}\\), so \\(x=-\\frac{3}{8}\\) and  \n\\[\ny=-\\sqrt3\\,x=\\frac{3\\sqrt3}{8}.\n\\]\nThus \\(P=\\left(-\\frac{3}{8},\\frac{3\\sqrt3}{8}\\right)\\).\n\nStep 5:  Triangle \\(MAP\\) has base \\(MA\\) (horizontal) of length  \n\\[\nMA = \\frac12,\n\\]\nand height equal to the vertical distance from \\(P\\) to the line \\(y=\\frac{\\sqrt3}{2}\\):\n\\[\n\\frac{\\sqrt3}{2}-\\frac{3\\sqrt3}{8}= \\frac{\\sqrt3}{8}.\n\\]\n\nStep 6:  Its area is  \n\\[\n[MAP]=\\frac12\\cdot MA\\cdot\\text{height}\n      =\\frac12\\cdot\\frac12\\cdot\\frac{\\sqrt3}{8}\n      =\\frac{\\sqrt3}{32}.\n\\]\n\n\\[\n\\boxed{\\frac{\\sqrt{3}}{32}}\n\\]",
+      "metadata": {
+        "dataset": "olympiadbench_balanced_40_v1",
+        "source_dataset": "Hothan/OlympiadBench/OE_TO_maths_en_COMP",
+        "source_run_model": "openai/gpt-oss-120b",
+        "selector": "000107",
+        "topic": "Geometry",
+        "artifact": "full_response",
+        "correctness": true,
+        "correctness_label": "TRUE",
+        "source_metadata_sha256": "614749ed3cc89a90fa737690c1dca09ac37e7a7a0a7c1cb7c9bb929046c4a7d6",
+        "problem_sha256": "4138a8299c3877126bc19b4129173084499465295d03f33b809b2d8a089f463a",
+        "proof_sha256": "90efbbe068b0480ceebf201c9c8742a6fef9e257daee2125d6971e01012e0f31",
+        "proof_chars": 1490
+      }
+    },
+    {
+      "example_id": "2794",
+      "problem": "On the complex plane, the parallelogram formed by the points $0, z, \\frac{1}{z}$, and $z+\\frac{1}{z}$ has area $\\frac{35}{37}$, and the real part of $z$ is positive. If $d$ is the smallest possible value of $\\left|z+\\frac{1}{z}\\right|$, compute $d^{2}$.",
+      "proof": "Step 1:  The parallelogram has adjacent sides represented by the complex numbers \\(z\\) and \\(\\frac1z\\).  \nIts area equals \\(\\bigl|\\,\\operatorname{Im}\\!\\bigl(z\\overline{\\frac1z}\\bigr)\\bigr|\n   =\\bigl|\\,\\operatorname{Im}\\!\\bigl(\\frac{z}{\\overline z}\\bigr)\\bigr|\n   =\\frac{2|xy|}{x^{2}+y^{2}}\\), where \\(z=x+iy\\).\n\nStep 2:  Set this area to \\(\\frac{35}{37}\\):\n\\[\n\\frac{2|xy|}{x^{2}+y^{2}}=\\frac{35}{37}\n\\quad\\Longrightarrow\\quad |xy|=\\frac{35}{74}(x^{2}+y^{2}) .\n\\]\nLet \\(k=\\frac{35}{74}\\).\n\nStep 3:  Write \\(y=Cx\\).  Solving the relation \\(|xy|=k(x^{2}+y^{2})\\) gives a quadratic\n\\[\nkC^{2}x^{2}-x^{2}C+k=0 \\Longrightarrow\nC=\\frac{1\\pm\\sqrt{1-4k^{2}}}{2k}.\n\\]\nSince \\(k=\\frac{35}{74}\\), we obtain \\(\\sqrt{1-4k^{2}}=\\frac{12}{37}\\) and hence  \n\n\\[\nC_{1}=\\frac{7}{5},\\qquad C_{2}=\\frac{5}{7}.\n\\]\n\nStep 4:  For \\(w=z+\\frac1z\\) we have\n\\[\nw=x\\Bigl(1+\\frac1{x^{2}+y^{2}}\\Bigr)+i\\,y\\Bigl(1-\\frac1{x^{2}+y^{2}}\\Bigr),\n\\]\nso\n\\[\n|w|^{2}=x^{2}(1+t)^{2}+y^{2}(1-t)^{2},\n\\qquad t=\\frac1{x^{2}+y^{2}} .\n\\]\n\nStep 5:  Using \\(y=Cx\\) and \\(t=\\frac{1}{x^{2}(1+C^{2})}\\), set \\(u=x^{2}\\).  \nThe expression for \\(|w|^{2}\\) becomes\n\\[\n|w|^{2}= \\frac{(1+t)^{2}+C^{2}(1-t)^{2}}{t(1+C^{2})}\n        = t+\\frac1t+2\\frac{1-C^{2}}{1+C^{2}} .\n\\]\n\nStep 6:  For a fixed \\(C\\), the minimum of \\(t+\\frac1t\\) (for \\(t>0\\)) is \\(2\\) at \\(t=1\\).  \nThus the minimal possible \\(|w|^{2}\\) for a given \\(C\\) is\n\\[\n|w|_{\\min}^{2}= 2+2\\frac{1-C^{2}}{1+C^{2}}\n              =\\frac{4}{1+C^{2}} .\n\\]\n\nStep 7:  Evaluate for the two values of \\(C\\):\n\n* For \\(C=\\frac{7}{5}\\): \\(\\displaystyle |w|_{\\min}^{2}= \\frac{4}{1+\\frac{49}{25}}\n   =\\frac{4}{\\frac{74}{25}} =\\frac{100}{74}= \\frac{50}{37}\\).\n\n* For \\(C=\\frac{5}{7}\\): \\(\\displaystyle |w|_{\\min}^{2}= \\frac{4}{1+\\frac{25}{49}}\n   =\\frac{4}{\\frac{74}{49}} =\\frac{196}{74}= \\frac{98}{37}\\).\n\nThe smaller of these is \\(\\frac{50}{37}\\).\n\nStep 8:  Hence the smallest possible value of \\(\\bigl|z+\\frac1z\\bigr|\\) is \\(\\sqrt{\\frac{50}{37}}\\), so  \n\n\\[\nd^{2}= \\frac{50}{37}.\n\\]\n\n\\[\n\\boxed{\\frac{50}{37}}\n\\]",
+      "metadata": {
+        "dataset": "olympiadbench_balanced_40_v1",
+        "source_dataset": "Hothan/OlympiadBench/OE_TO_maths_en_COMP",
+        "source_run_model": "openai/gpt-oss-120b",
+        "selector": "000184",
+        "topic": "Geometry",
+        "artifact": "full_response",
+        "correctness": true,
+        "correctness_label": "TRUE",
+        "source_metadata_sha256": "fca91a6fd066f732e7350db660e2f3722846cf2daa117c0adc0fb8059698add4",
+        "problem_sha256": "bcaafb01d06e6cc2d3fc97393d9bd766f9126455c08cd4bb85756dc6575304d7",
+        "proof_sha256": "b4b9e39b3055a768507b5df4d5131e13d11d2417de53aed85edf2e7eae7dedbf",
+        "proof_chars": 2001
+      }
+    },
+    {
+      "example_id": "2469",
+      "problem": "A circle passes through the origin and the points of intersection of the parabolas $y=x^{2}-3$ and $y=-x^{2}-2 x+9$. Determine the coordinates of the centre of this circle.",
+      "proof": "Step 1: Find the intersection points of the two parabolas.  \nSet \\(x^{2}-3 = -x^{2}-2x+9\\).  \n\\(2x^{2}+2x-12=0 \\Rightarrow x^{2}+x-6=0\\).  \nThus \\(x=2\\) or \\(x=-3\\).  \nCorresponding \\(y\\) values are \\(y=1\\) and \\(y=6\\).  \nSo the intersection points are \\(A(2,1)\\) and \\(B(-3,6)\\).\n\nStep 2: Let the centre of the required circle be \\((h,k)\\) and its radius \\(r\\).  \nThe circle passes through the origin \\(O(0,0)\\), \\(A\\) and \\(B\\), giving  \n\\[\nh^{2}+k^{2}=r^{2} \\tag{1}\n\\]\n\\[\n(2-h)^{2}+(1-k)^{2}=r^{2} \\tag{2}\n\\]\n\\[\n(-3-h)^{2}+(6-k)^{2}=r^{2} \\tag{3}\n\\]\n\nStep 3: Subtract (1) from (2) and (3) to eliminate \\(r^{2}\\).\n\nFrom (2)–(1):\n\\[\n-4h-2k+5=0 \\quad\\Longrightarrow\\quad 4h+2k=5 \\quad\\Longrightarrow\\quad k=2.5-2h. \\tag{A}\n\\]\n\nFrom (3)–(1):\n\\[\n6h-12k+45=0 \\quad\\Longrightarrow\\quad 2h-4k=-15 \\quad\\Longrightarrow\\quad h=2k-7.5. \\tag{B}\n\\]\n\nStep 4: Solve the linear system (A) and (B).  \nSubstituting \\(k=2.5-2h\\) into (B):\n\\[\nh = 2(2.5-2h)-7.5 = 5-4h-7.5 = -4h-2.5,\n\\]\n\\[\n5h = -2.5 \\;\\Longrightarrow\\; h = -\\frac12.\n\\]\n\nThen \n\\[\nk = 2.5 - 2\\left(-\\frac12\\right)=2.5+1 = \\frac{7}{2}=3.5.\n\\]\n\nStep 5: Verify that the three points are equidistant from \\((-1/2,\\,7/2)\\); each distance squared equals \\(12.5\\), confirming the centre is correct.\n\nTherefore, the centre of the circle is  \n\n\\[\n\\boxed{\\left(-\\frac12,\\;\\frac{7}{2}\\right)}\n\\]",
+      "metadata": {
+        "dataset": "olympiadbench_balanced_40_v1",
+        "source_dataset": "Hothan/OlympiadBench/OE_TO_maths_en_COMP",
+        "source_run_model": "openai/gpt-oss-120b",
+        "selector": "000244",
+        "topic": "Geometry",
+        "artifact": "full_response",
+        "correctness": true,
+        "correctness_label": "TRUE",
+        "source_metadata_sha256": "5347f12110f558c87e7613e82ae403bc57fb41f68eb5ac92f932fe48b7c6ed55",
+        "problem_sha256": "0d14434d38473e726452b6dbb25948986a97abc303ccb9b21fad6e533e529ee0",
+        "proof_sha256": "faaf11624cda99dba1365e36f6bc96bcda7d0c6e7fb0b3cf631b7e692101d6a1",
+        "proof_chars": 1332
+      }
+    },
+    {
+      "example_id": "2788",
+      "problem": "Three non-overlapping squares of positive integer side lengths each have one vertex at the origin and sides parallel to the coordinate axes. Together, the three squares enclose a region whose area is 41 . Compute the largest possible perimeter of the region.",
+      "proof": "Step 1: Let the side lengths of the three squares be \\(a,b,c\\) (positive integers).  \nSince the squares do not overlap, the area of the region they enclose is the sum of their areas:\n\\[\na^{2}+b^{2}+c^{2}=41 .\n\\]\n\nStep 2: Find all triples of positive integers whose squares sum to 41.  \nChecking the possible squares \\(1,4,9,16,25,36\\):\n\n\\[\n36+4+1=41 \\quad\\Longrightarrow\\quad (a,b,c)=(6,2,1),\n\\]\n\\[\n16+9+16=41 \\quad\\Longrightarrow\\quad (a,b,c)=(4,4,3).\n\\]\n\nNo other triples work.\n\nStep 3: The three squares each have a vertex at the origin and sides parallel to the axes.  \nThus each square lies entirely in one of the four quadrants, with the origin as one corner.  \nTo avoid interior overlap, the three squares must occupy three different quadrants.\n\nStep 4: The perimeter of the union equals the sum of the perimeters of the three squares minus twice the total length of the edges that become interior (the edges they share along the coordinate axes).  \nIf two squares occupy adjacent quadrants, they share a segment on the common axis whose length equals the smaller side length of the two squares.\n\nHence, for a given assignment of the side lengths to quadrants,\n\\[\nP = 4(a+b+c) - 2\\bigl(\\min(\\text{adjacent pair}_1)+\\min(\\text{adjacent pair}_2)\\bigr).\n\\]\n\nStep 5: Maximize \\(P\\) for each triple.\n\n*For \\((6,2,1)\\):*  \nPlace the side‑6 square opposite the side‑2 square (so they share no edge) and put the side‑1 square adjacent to both.  \nThe two shared lengths are \\(\\min(6,1)=1\\) and \\(\\min(2,1)=1\\).  \n\\[\nP = 4(6+2+1)-2(1+1)=36-4=32.\n\\]\n\nAny other placement gives larger shared lengths and a smaller perimeter.\n\n*For \\((4,4,3)\\):*  \nPut the two side‑4 squares in opposite quadrants and the side‑3 square adjacent to both.  \nThe shared lengths are \\(\\min(4,3)=3\\) and \\(\\min(4,3)=3\\).  \n\\[\nP = 4(4+4+3)-2(3+3)=44-12=32.\n\\]\n\nAll other arrangements yield a smaller perimeter.\n\nStep 6: The greatest possible perimeter among all valid configurations is therefore \\(32\\).\n\n\\[\n\\boxed{32}\n\\]",
+      "metadata": {
+        "dataset": "olympiadbench_balanced_40_v1",
+        "source_dataset": "Hothan/OlympiadBench/OE_TO_maths_en_COMP",
+        "source_run_model": "openai/gpt-oss-120b",
+        "selector": "000247",
+        "topic": "Geometry",
+        "artifact": "full_response",
+        "correctness": true,
+        "correctness_label": "TRUE",
+        "source_metadata_sha256": "9e09044c28cbd8aadcf123e28716f55c299f893b76eabc278896a5a437c6618a",
+        "problem_sha256": "556003c374f657488fbbf4813be0c3b1e6875861e576ca70cc68471a0613ed32",
+        "proof_sha256": "a97f078a609f8ef7957df126d5646590eb7d82a3269dc6842720740c1672ee7b",
+        "proof_chars": 1992
+      }
+    },
+    {
+      "example_id": "2606",
+      "problem": "$\\quad$ Compute the greatest integer $k \\leq 1000$ such that $\\left(\\begin{array}{c}1000 \\\\ k\\end{array}\\right)$ is a multiple of 7 .",
+      "proof": "Step 1: Use Lucas’ Theorem.  \nFor a prime \\(p\\), \\(\\displaystyle \\binom{n}{k}\\pmod p =\\prod_i \\binom{n_i}{k_i}\\pmod p\\), where \\(n_i,k_i\\) are the base‑\\(p\\) digits of \\(n,k\\).  \nThe binomial coefficient is **not** divisible by \\(p\\) iff every digit \\(k_i\\le n_i\\).  \nHence \\(\\binom{1000}{k}\\) is divisible by \\(7\\) iff, in base \\(7\\), at least one digit of \\(k\\) exceeds the corresponding digit of \\(1000\\).\n\nStep 2: Write \\(1000\\) in base \\(7\\).  \n\\(1000 = 2\\cdot7^{3}+6\\cdot7^{2}+2\\cdot7+6\\), so  \n\\[\n1000_{10}=2626_{7}.\n\\]\n\nStep 3: Determine the largest \\(k\\le1000\\) whose base‑\\(7\\) representation has a digit larger than the corresponding digit of \\(2626_{7}\\).  \nThe only positions where the digit of \\(1000\\) is smaller than the maximal digit \\(6\\) are the \\(7^{1}\\) place (digit \\(2\\)).  \nTo keep the whole number \\(\\le 1000\\) while allowing a larger digit there, we must make a more‑significant digit smaller than its counterpart in \\(2626_{7}\\).\n\nTake the most significant digit equal to \\(2\\) (as large as possible).  \nChoose the next digit (\\(7^{2}\\) place) one less than its maximum, i.e. \\(5\\) (since \\(6\\) would leave no room for a larger later digit).  \nNow we can set the \\(7^{1}\\) digit to its maximum \\(6\\) (which exceeds the original \\(2\\)), and the units digit to its maximum \\(6\\).  \n\nThus the largest admissible base‑\\(7\\) number is  \n\\[\nk = (2,5,6,6)_7.\n\\]\n\nStep 4: Convert back to decimal:  \n\\[\nk = 2\\cdot7^{3}+5\\cdot7^{2}+6\\cdot7+6 = 2\\cdot343+5\\cdot49+42+6 = 686+245+48 = 979.\n\\]\n\nStep 5: Verify divisibility.  \nIn base \\(7\\), the digit at the \\(7^{1}\\) place is \\(6>2\\); thus \\(\\binom{1000}{979}\\equiv 0\\pmod 7\\).  \n\nNo larger integer \\(\\le1000\\) can satisfy the condition, because any number greater than \\(979\\) either matches all digits of \\(2626_{7}\\) (giving a non‑multiple) or has the first differing digit larger than the corresponding digit of \\(2626_{7}\\), which would make the whole number exceed \\(1000\\).\n\n\\[\n\\boxed{979}\n\\]",
+      "metadata": {
+        "dataset": "olympiadbench_balanced_40_v1",
+        "source_dataset": "Hothan/OlympiadBench/OE_TO_maths_en_COMP",
+        "source_run_model": "openai/gpt-oss-120b",
+        "selector": "000053",
+        "topic": "Number Theory",
+        "artifact": "full_response",
+        "correctness": true,
+        "correctness_label": "TRUE",
+        "source_metadata_sha256": "c9a146f55e42efc4960906ba8c5ad6738476f42a7067f21f462c2f02d23bfe79",
+        "problem_sha256": "4940479c0d3b33427388abf2de5b2a1f14f5fbb186606caeb3765409c1c0980f",
+        "proof_sha256": "d6f10811d40951ea72a8542bab7389e7c08e291921bc26a956a313affb07848f",
+        "proof_chars": 1964
+      }
+    },
+    {
+      "example_id": "1678",
+      "problem": "Find all pairs $(k, n)$ of positive integers for which $7^{k}-3^{n}$ divides $k^{4}+n^{2}$.",
+      "proof": "Step 1:  \nIf \\(7^{k}=3^{n}\\) then \\(k=n=0\\), which is impossible for positive integers. Hence \\(7^{k}\\neq3^{n}\\) and we may set  \n\n\\[\nd = |7^{k}-3^{n}|\\; (>0).\n\\]\n\nThe condition of the problem is  \n\n\\[\nd\\mid k^{4}+n^{2}\\quad\\Longrightarrow\\quad d\\le k^{4}+n^{2}. \\tag{1}\n\\]\n\n--------------------------------------------------------------------\nStep 2:  Rough size comparison  \n\nSince \\(7^{k}\\) grows much faster than \\(3^{n}\\), for a fixed \\(k\\) the only chance that (1) holds is when \\(3^{n}\\) is very close to \\(7^{k}\\).  \nTaking logarithms,\n\\[\nk\\log 7\\approx n\\log 3 \\qquad\\Longrightarrow\\qquad \nn\\approx \\frac{\\log 7}{\\log 3}\\,k\\approx 1.7712\\,k .\n\\]\n\nThus we only have to test values of \\(n\\) that are near \\(\\lfloor1.7712k\\rfloor\\) or \\(\\lceil1.7712k\\rceil\\).\n\n--------------------------------------------------------------------\nStep 3:  Small values of \\(k\\)\n\n* \\(k=1\\): \\(7^{1}=7\\).  \n  \\[\n  n=1\\Rightarrow d=4,\\;k^{4}+n^{2}=2\\;(4\\nmid2)\\\\\n  n=2\\Rightarrow d=2,\\;k^{4}+n^{2}=5\\;(2\\nmid5)\\\\\n  n\\ge 3\\Rightarrow d\\ge20>k^{4}+n^{2}.\n  \\]\n  No solution.\n\n* \\(k=2\\): \\(7^{2}=49\\).  \n  Check the two possible \\(n\\)’s near \\(1.7712\\cdot2\\approx3.5\\).\n\n  \\[\n  n=3:\\;d=22,\\;k^{4}+n^{2}=25\\;(22\\nmid25)\\\\\n  n=4:\\;d=|49-81|=32,\\;k^{4}+n^{2}=16+16=32\\;(32\\mid32).\n  \\]\n\n  Hence \\((k,n)=(2,4)\\) satisfies the condition.\n\n* \\(k=3\\): \\(7^{3}=343\\).  \n  Near \\(1.7712\\cdot3\\approx5.3\\) we try \\(n=5,6\\).\n\n  \\[\n  n=5:\\;d=100,\\;k^{4}+n^{2}=106\\;(100\\nmid106)\\\\\n  n=6:\\;d=|343-729|=386>k^{4}+n^{2}=117 .\n  \\]\n\n  All other \\(n\\) give a larger difference, so no solution for \\(k=3\\).\n\n* \\(k=4\\): \\(7^{4}=2401\\).  \n  Near \\(1.7712\\cdot4\\approx7.1\\) we test \\(n=7,8\\).\n\n  \\[\n  n=7:\\;d=214,\\;k^{4}+n^{2}=305\\;(214\\nmid305)\\\\\n  n=8:\\;d=|2401-6561|=4160>k^{4}+n^{2}=320 .\n  \\]\n\n  No solution.\n\n--------------------------------------------------------------------\nStep 4:  Larger \\(k\\)\n\nFor \\(k\\ge5\\) we have  \n\n\\[\n7^{k}\\ge 7^{5}=16807 .\n\\]\n\nIf \\(n\\le \\lfloor1.7712k\\rfloor\\) then \\(3^{n}\\le 3^{\\lceil1.7712k\\rceil}\\) and a direct computation shows  \n\n\\[\n7^{k}-3^{n}\\ge 7^{k}-3^{1.7712k}>k^{4}+n^{2}\\quad\\text{for }k\\ge5 .\n\\]\n\nIf \\(n\\ge\\lceil1.7712k\\rceil+1\\) then \\(3^{n}>7^{k}\\) and  \n\n\\[\n3^{n}-7^{k}\\ge 3^{\\lceil1.7712k\\rceil+1}-7^{k}>k^{4}+n^{2}\\quad\\text{for }k\\ge5 .\n\\]\n\nThus condition (1) cannot be satisfied when \\(k\\ge5\\).\n\n--------------------------------------------------------------------\nStep 5:  Conclusion  \n\nThe only pair of positive integers that fulfills  \n\n\\[\n7^{k}-3^{n}\\mid k^{4}+n^{2}\n\\]\n\nis \\((k,n)=(2,4)\\).\n\n\\[\n\\boxed{(k,n)=(2,4)}\n\\]",
+      "metadata": {
+        "dataset": "olympiadbench_balanced_40_v1",
+        "source_dataset": "Hothan/OlympiadBench/OE_TO_maths_en_COMP",
+        "source_run_model": "openai/gpt-oss-120b",
+        "selector": "000089",
+        "topic": "Number Theory",
+        "artifact": "full_response",
+        "correctness": true,
+        "correctness_label": "TRUE",
+        "source_metadata_sha256": "61ff003ab0b1e7f56c54759c7bab7bd51f676eee49fde2df1530d103845cc71d",
+        "problem_sha256": "2908da6f8483f3e3e7541e14bf1d482f59beb2f226c29eac5ad4adb6ee2d10a1",
+        "proof_sha256": "d6a79d9697b18ce7d4aab0079825c9925ef05c7565eefbacb6350c0d763cc4d7",
+        "proof_chars": 2540
+      }
+    },
+    {
+      "example_id": "1964",
+      "problem": "Let $\\mathbb{Z}_{>0}$ denote the set of positive integers. For any positive integer $k$, a function $f: \\mathbb{Z}_{>0} \\rightarrow \\mathbb{Z}_{>0}$ is called $k$-good if $\\operatorname{gcd}(f(m)+n, f(n)+m) \\leqslant k$ for all $m \\neq n$. Find all $k$ such that there exists a $k$-good function.",
+      "proof": "Step 1: Observe that for any function \\(f\\) and any two distinct positive integers \\(m,n\\) we have  \n\\[\n\\gcd\\bigl(f(m)+n,\\;f(n)+m\\bigr)\\mid (f(m)+n)-(f(n)+m)=f(m)-f(n)+(n-m).\n\\]  \nHence any common divisor of the two numbers also divides the integer \\(f(m)-f(n)+(n-m)\\).\n\nStep 2: Fix a positive integer \\(k\\ge 2\\).  \nChoose an infinite sequence of distinct primes \\(\\{p_i\\}_{i\\ge 1}\\) such that each \\(p_i>k\\) and \\(p_i>i\\).  \nDefine  \n\\[\nf(i)=k\\,p_i\\qquad(i\\in\\mathbb Z_{>0}).\n\\]\n\nStep 3: Let \\(m\\neq n\\).  \nSuppose a prime \\(q>k\\) divides both \\(f(m)+n\\) and \\(f(n)+m\\).  \nBecause \\(q\\) does not divide \\(k\\), from \\(q\\mid k p_m+n\\) we obtain  \n\\(p_m\\equiv -k^{-1}n\\pmod q\\).  \nSimilarly \\(p_n\\equiv -k^{-1}m\\pmod q\\).  \nConsequently \\(q\\mid p_m-p_n\\).  \nBut \\(p_m\\) and \\(p_n\\) are distinct primes larger than \\(q\\); a prime cannot divide the difference of two larger distinct primes.  \nThus no prime \\(q>k\\) can divide both numbers.\n\nStep 4: Therefore any common divisor of \\(f(m)+n\\) and \\(f(n)+m\\) is at most \\(k\\).  \nHence the function constructed above is \\(k\\)-good for every \\(k\\ge 2\\).\n\nStep 5: It remains to show that no \\(1\\)-good function exists.  \nAssume a \\(1\\)-good function \\(f\\) existed.  \nTake any integer \\(t\\ge 1\\) and consider the two numbers \\(f(t)+t\\) and \\(f(2t)+2t\\).  \nBoth are positive, so they have a common divisor at least \\(1\\).  \nIf the function were \\(1\\)-good, this divisor would have to be \\(1\\).  \nBut by the pigeon‑hole principle the infinite set \\(\\{f(n)+n\\mid n\\in\\mathbb Z_{>0}\\}\\) contains two equal elements, say \\(f(m)+m=f(n)+n\\) with \\(m\\neq n\\).  \nThen \\(\\gcd\\bigl(f(m)+n,\\;f(n)+m\\bigr)=\\gcd\\bigl(f(m)+n,\\;f(m)+m\\bigr)=f(m)+m>1\\), a contradiction.  \nThus a \\(1\\)-good function cannot exist.\n\nConsequently, a \\(k\\)-good function exists exactly for those \\(k\\) with \\(k\\ge 2\\).\n\n\\[\n\\boxed{k\\ge 2}\n\\]",
+      "metadata": {
+        "dataset": "olympiadbench_balanced_40_v1",
+        "source_dataset": "Hothan/OlympiadBench/OE_TO_maths_en_COMP",
+        "source_run_model": "openai/gpt-oss-120b",
+        "selector": "000135",
+        "topic": "Number Theory",
+        "artifact": "full_response",
+        "correctness": true,
+        "correctness_label": "TRUE",
+        "source_metadata_sha256": "406401596167970089b4ae06ecd371bb54a1e80724ded38e9866aec62f089712",
+        "problem_sha256": "a56d957791699b87e61da621a4710e186ac12f1d563ad7a0867e43a90b2630b0",
+        "proof_sha256": "ecb473bda87da707c172ffb83cada1ea18445dc6eda5d1c6feb251d3ad43b7e4",
+        "proof_chars": 1843
+      }
+    },
+    {
+      "example_id": "2022",
+      "problem": "Find all positive integers $n>2$ such that\n\n$$\nn ! \\mid \\prod_{\\substack{p<q \\leqslant n \\\\ p, q \\text { primes }}}(p+q)\n$$",
+      "proof": "Step 1:  Write the product  \n\\[\nP_n=\\prod_{\\substack{p<q\\le n\\\\ p,q\\text{ primes}}}(p+q)\n\\]\nand let \\(n!=\\prod_{r\\le n}r^{e_r}\\) where \\(e_r=\\displaystyle\\sum_{k\\ge1}\\Big\\lfloor\\frac{n}{r^k}\\Big\\rfloor\\).\n\nStep 2:  For a fixed prime \\(r\\le n\\) we need at least \\(e_r\\) copies of \\(r\\) among the factors \\(p+q\\).  \nIf \\(r\\le n/2\\) there are many pairs \\((p,q)\\) with \\(p,q\\le n\\); one can always obtain enough copies of such a small prime, so the only possible obstruction comes from the large primes \\(r>n/2\\).\n\nStep 3:  Let \\(r>n/2\\) be a prime.  Any sum \\(p+q\\) with \\(p,q\\le n\\) is at most \\(2n\\); therefore the only multiples of \\(r\\) that can appear are \\(r\\) and \\(2r\\) (since \\(3r>2n\\)).  \nThus we must have either  \n\n* (i) \\(p+q=r\\) for some distinct primes \\(p,q\\le n\\); or  \n* (ii) \\(p+q=2r\\) for some distinct primes \\(p,q\\le n\\).\n\nStep 4:  Case (i) can occur only when one of the primes is \\(2\\), because an odd prime is the sum of two primes only as \\(2+(r-2)\\).  \nHence (i) holds exactly when \\(r-2\\) is prime (i.e. \\(r\\) is the upper member of a twin‑prime pair).\n\nStep 5:  For the largest prime \\(r=n\\) the alternative (ii) is impossible: if \\(p+q=2n\\) with \\(p,q\\le n\\) we would have \\(p=q=n\\), which is forbidden because the primes must be distinct.  Consequently we must have \\(n-2\\) prime; therefore \\(n\\) itself must be the upper member of a twin‑prime pair.\n\nStep 6:  Now consider any other prime \\(r\\) with \\(n/2<r<n\\).  \nIf \\(r-2\\) is prime we are done (case (i)).  \nIf not, we need a representation \\(2r=p+q\\) with distinct primes \\(p,q\\le n\\).  \nBecause \\(p,q\\le n\\) and \\(p+q=2r\\), we must have \\(p\\ge 2r-n\\) and \\(q=2r-p\\le n\\).\n\nChecking the first few upper twin primes we obtain:\n\n* \\(n=5\\): the product \\(P_5=5\\cdot7\\cdot8=280\\) and \\(5!\\,=120\\) does **not** divide \\(280\\).\n\n* \\(n=7\\): the primes \\(\\le7\\) are \\(2,3,5,7\\).  \n  The six sums are \\(5,7,9,8,10,12\\); their product is \\(302\\,400\\).  \n  Since \\(7!=5\\,040\\) and \\(302\\,400/5\\,040=60\\), the divisibility holds.\n\n* \\(n=13\\): the prime \\(11\\) lies in \\((13/2,13)\\) and \\(11-2=9\\) is not prime.  \n  The only possible way to obtain a factor \\(11\\) would be \\(2\\cdot11=22\\), but no two distinct primes \\(\\le13\\) sum to \\(22\\).  \n  Hence \\(13!\\nmid P_{13}\\).\n\n* For every larger upper twin prime \\(n\\) (19, 31, 43, …) the same obstruction appears: the prime just below \\(n\\) (namely \\(n-2\\)) is twin, but the next prime down in the interval \\((n/2,n)\\) fails to be either twin or to satisfy a representation \\(2r=p+q\\) with \\(p,q\\le n\\).  Direct verification shows the divisibility fails for all \\(n>7\\).\n\nStep 7:  Therefore the only integer \\(n>2\\) for which \\(n!\\) divides the product of all \\(p+q\\) (with \\(p<q\\le n\\) primes) is \\(n=7\\).\n\n\\[\n\\boxed{7}\n\\]",
+      "metadata": {
+        "dataset": "olympiadbench_balanced_40_v1",
+        "source_dataset": "Hothan/OlympiadBench/OE_TO_maths_en_COMP",
+        "source_run_model": "openai/gpt-oss-120b",
+        "selector": "000194",
+        "topic": "Number Theory",
+        "artifact": "full_response",
+        "correctness": true,
+        "correctness_label": "TRUE",
+        "source_metadata_sha256": "c2c75107039cd2669bcafcfad84667aae2f3c34f23b1b1668cfddbab878780bc",
+        "problem_sha256": "09e1f7561e28357b6028a4b7a9c1df7c71d03b33a2db53eb89bd0a3031e63a67",
+        "proof_sha256": "6915bc078d3655528ece7825cee28e78437397fbab49e352421b4c7532e9aa51",
+        "proof_chars": 2742
+      }
+    },
+    {
+      "example_id": "1988",
+      "problem": "Let $n \\geqslant 2$ be an integer, and let $A_{n}$ be the set\n\n$$\nA_{n}=\\left\\{2^{n}-2^{k} \\mid k \\in \\mathbb{Z}, 0 \\leqslant k<n\\right\\} .\n$$\n\nDetermine the largest positive integer that cannot be written as the sum of one or more (not necessarily distinct) elements of $A_{n}$.",
+      "proof": "Step 1:  \nFor a representation using \\(t\\) elements of \\(A_n\\) we have  \n\n\\[\nN=\\sum_{j=1}^{t}\\bigl(2^{n}-2^{k_j}\\bigr)\n    =t\\cdot 2^{n}-\\sum_{j=1}^{t}2^{k_j},\n\\]\n\nwhere each \\(k_j\\in\\{0,1,\\dots ,n-1\\}\\).  \nSet  \n\n\\[\nM=\\sum_{j=1}^{t}2^{k_j}.\n\\]\n\nThen \\(N=t\\cdot2^{n}-M\\) with  \n\n\\[\nt\\le M\\le t\\cdot2^{\\,n-1}.\n\\]\n\nThe integer \\(M\\) is a sum of exactly \\(t\\) powers of two; such a sum is possible **iff**\nthe binary weight (the number of 1’s in the binary expansion) of \\(M\\) does not exceed \\(t\\).\n\nHence a positive integer \\(N\\) is representable ⇔ with  \n\n\\[\nt=\\Bigl\\lceil\\frac{N}{2^{\\,n-1}}\\Bigr\\rceil\n\\]\n\nthe number  \n\n\\[\nM=t\\cdot2^{n}-N\n\\]\n\nhas binary weight \\(\\le t\\).\n\nStep 2:  \nIf \\(t\\ge n\\) the binary weight of any integer is at most \\(n\\le t\\); therefore every\n\\(N\\) with \\(\\lceil N/2^{\\,n-1}\\rceil\\ge n\\) is representable.  \nConsequently a non‑representable integer can occur only for  \n\n\\[\nt\\in\\{1,2,\\dots ,n-1\\}.\n\\]\n\nFor a fixed \\(t\\) the smallest \\(M\\) whose binary weight exceeds \\(t\\) is  \n\n\\[\nM_{\\min}=2^{t+1}-1\n\\qquad(\\text{binary }11\\ldots1\\text{ with }t+1\\text{ ones}),\n\\]\n\nwhich indeed satisfies \\(t\\le M_{\\min}\\le t\\cdot2^{\\,n-1}\\) because \\(t\\le n-1\\).\n\nThus the largest \\(N\\) that fails for this \\(t\\) is  \n\n\\[\nN_t=t\\cdot2^{n}-M_{\\min}\n   =t\\cdot2^{n}-(2^{t+1}-1)\n   =t\\cdot2^{n}-2^{t+1}+1 .\n\\]\n\nStep 3:  \nThe function \\(f(t)=t\\cdot2^{n}-2^{t+1}\\) is increasing for\n\\(t=1,\\dots ,n-2\\) because  \n\n\\[\nf(t+1)-f(t)=2^{n}-2^{t+1}>0,\n\\]\n\nand \\(f(n-1)=f(n-2)\\).  \nHence the maximal non‑representable integer occurs at \\(t=n-1\\):\n\n\\[\nN_{\\max}=(n-1)2^{n}-2^{n}+1\n        =(n-2)2^{n}+1.\n\\]\n\nStep 4:  \nChecking the first few cases:\n\\[\nn=2\\;:\\; (0)2^{2}+1=1,\\qquad\nn=3\\;:\\; (1)2^{3}+1=9,\\qquad\nn=4\\;:\\; (2)2^{4}+1=33,\n\\]\nwhich matches direct enumeration.\n\nTherefore, for every integer \\(n\\ge 2\\) the largest positive integer that cannot be expressed as a sum of elements of \\(A_n\\) is  \n\n\\[\n\\boxed{(n-2)2^{\\,n}+1}.\n\\]",
+      "metadata": {
+        "dataset": "olympiadbench_balanced_40_v1",
+        "source_dataset": "Hothan/OlympiadBench/OE_TO_maths_en_COMP",
+        "source_run_model": "openai/gpt-oss-120b",
+        "selector": "000226",
+        "topic": "Number Theory",
+        "artifact": "full_response",
+        "correctness": true,
+        "correctness_label": "TRUE",
+        "source_metadata_sha256": "2d79a4b2cadb1c404503e9eda5d14635de20b533478864bafc28a52b622a9de7",
+        "problem_sha256": "c7fd7a3f1d52f85d17762e484245efb337aa37e5032f67bfd79ffa14282eb5b3",
+        "proof_sha256": "fd1849c7567c62500b2c5d278a4121406b2c9de9818430dbe8ad8cdbc07c6f72",
+        "proof_chars": 1928
+      }
+    }
+  ],
+  "heldout": [
+    {
+      "example_id": "2084",
+      "problem": "Determine all functions $f$ from the set of positive integers into the set of positive integers such that for all $x$ and $y$ there exists a non degenerated triangle with sides of lengths\n\n$$\nx, \\quad f(y) \\text { and } f(y+f(x)-1) .\n$$",
+      "proof": "Step 1.  \nFor a triangle with sides \\(x,\\;f(y),\\;f(y+f(x)-1)\\) the three strict triangle inequalities give  \n\n\\[\n\\begin{aligned}\nx+f(y) &> f\\bigl(y+f(x)-1\\bigr),\\\\\nx+f\\bigl(y+f(x)-1\\bigr) &> f(y),\\\\\nf(y)+f\\bigl(y+f(x)-1\\bigr) &> x .\n\\end{aligned}\n\\]\n\nSince all numbers are integers the first and the third inequalities are equivalent to  \n\n\\[\n\\boxed{\\,x-f(y)+1\\le f\\bigl(y+f(x)-1\\bigr)\\le x+f(y)-1\\,}\\tag{1}\n\\]\n\nfor every pair of positive integers \\(x,y\\).\n\n--------------------------------------------------------------------\n\nStep 2.  \nPut \\(y=1\\) in (1). Denoting \\(a=f(1)\\) we obtain  \n\n\\[\nx-a+1\\le f\\bigl(f(x)\\bigr)\\le x+a-1\\qquad(\\forall x\\in\\mathbb N^+). \\tag{2}\n\\]\n\n--------------------------------------------------------------------\n\nStep 3.  Determining \\(f(1)\\).  \n\nAssume \\(a\\ge 2\\).  \nTake \\(x=a\\) in (2):  \n\n\\[\n1\\le f\\bigl(f(a)\\bigr)\\le 2a-1 .\\tag{3}\n\\]\n\nNow apply (1) with \\(y=f(a)\\) and \\(x=a\\). Because \\(y+f(x)-1=2f(a)-1\\),\n\n\\[\na+f\\bigl(f(a)\\bigr)>f(2f(a)-1).\\tag{4}\n\\]\n\nUsing the right–hand side of (1) with the same \\(x,y\\) we also have  \n\n\\[\nf(2f(a)-1)\\le a+f\\bigl(f(a)\\bigr)-1.\\tag{5}\n\\]\n\nFrom (4) and (5) we obtain  \n\n\\[\na+f\\bigl(f(a)\\bigr)\\ge a+f\\bigl(f(a)\\bigr) \\;+\\;1,\n\\]\n\nan impossibility. Hence \\(a\\neq 2,3,\\dots\\) and therefore  \n\n\\[\n\\boxed{f(1)=1}. \\tag{6}\n\\]\n\n--------------------------------------------------------------------\n\nStep 4.  Consequence of \\(f(1)=1\\).  \n\nWith \\(a=1\\) the double inequality (2) becomes  \n\n\\[\nf\\bigl(f(x)\\bigr)=x\\qquad(\\forall x). \\tag{7}\n\\]\n\nThus \\(f\\) is a bijection and an involution.\n\n--------------------------------------------------------------------\n\nStep 5.  Monotonicity of \\(f\\).  \n\nAssume there exist \\(u<v\\) with \\(f(u)\\ge f(v)\\).  \nPut \\(x=v\\) and \\(y=u\\) in (1). Because \\(f(v)\\le f(u)\\),\n\n\\[\nv-f(u)+1\\le f\\bigl(u+f(v)-1\\bigr)\\le v+f(u)-1 .\n\\]\n\nBut \\(u+f(v)-1\\le u+f(u)-1\\), and using (1) again with \\(x=u,\\;y=u\\) we get  \n\n\\[\nf\\bigl(u+f(v)-1\\bigr)\\le u+f(u)-1 .\n\\]\n\nHence  \n\n\\[\nv-f(u)+1\\le u+f(u)-1,\n\\]\n\nwhich simplifies to \\(v\\le u\\), contradicting \\(u<v\\).  \nTherefore  \n\n\\[\n\\boxed{u<v\\Longrightarrow f(u)<f(v)} ,\n\\]\n\ni.e. \\(f\\) is strictly increasing.\n\n--------------------------------------------------------------------\n\nStep 6.  Determining \\(f\\).  \n\nA strictly increasing involution on the set of positive integers can only be the identity.  \nIndeed, let \\(n\\) be the smallest integer with \\(f(n)\\neq n\\).  \nBecause \\(f\\) is increasing, \\(f(n)>n\\).  \nApplying the involution property (7) to \\(f(n)\\) gives  \n\n\\[\nn=f\\bigl(f(n)\\bigr)>f(n),\n\\]\n\ncontradiction. Hence no such \\(n\\) exists and  \n\n\\[\nf(n)=n\\qquad\\forall n\\in\\mathbb N^+ .\n\\]\n\n--------------------------------------------------------------------\n\n**Answer**\n\n\\[\n\\boxed{\\,f(n)=n\\text{ for all positive integers }n\\,}\n\\]",
+      "metadata": {
+        "dataset": "olympiadbench_balanced_40_v1",
+        "source_dataset": "Hothan/OlympiadBench/OE_TO_maths_en_COMP",
+        "source_run_model": "openai/gpt-oss-120b",
+        "selector": "000047",
+        "topic": "Algebra",
+        "artifact": "full_response",
+        "correctness": true,
+        "correctness_label": "TRUE",
+        "source_metadata_sha256": "1cd11fffa5849b0d7a67688768fc73ba8c6927dc181f92b5f8a556fb89b1de73",
+        "problem_sha256": "749b2619b02f866e06709fbc61bb96ed4fe10c7f703f346ae39ee0e0b63f1ab0",
+        "proof_sha256": "b2a26386da32fa24c1b083ff44fa42f3c1fec846b298293fef8aff2780f3c266",
+        "proof_chars": 2761
+      }
+    },
+    {
+      "example_id": "2427",
+      "problem": "Determine all pairs $(a, b)$ of real numbers that satisfy the following system of equations:\n\n$$\n\\begin{aligned}\n\\sqrt{a}+\\sqrt{b} & =8 \\\\\n\\log _{10} a+\\log _{10} b & =2\n\\end{aligned}\n$$\n\nGive your answer(s) as pairs of simplified exact numbers.",
+      "proof": "Step 1: Let \\(x=\\sqrt{a}\\) and \\(y=\\sqrt{b}\\).  \nThen \\(x\\ge 0,\\;y\\ge 0\\) and the system becomes  \n\n\\[\n\\begin{cases}\nx+y=8,\\\\[2mm]\n\\log_{10}(x^{2})+\\log_{10}(y^{2})=2 .\n\\end{cases}\n\\]\n\nStep 2: Use the logarithm property \\(\\log_{10}u+\\log_{10}v=\\log_{10}(uv)\\):\n\n\\[\n\\log_{10}\\bigl(x^{2}y^{2}\\bigr)=2 \\quad\\Longrightarrow\\quad \n\\log_{10}\\bigl((xy)^{2}\\bigr)=2 .\n\\]\n\nHence  \n\n\\[\n2\\log_{10}(xy)=2\\;\\Longrightarrow\\;\\log_{10}(xy)=1\\;\\Longrightarrow\\;xy=10 .\n\\]\n\nStep 3: Now we have the algebraic system  \n\n\\[\n\\begin{cases}\nx+y=8,\\\\\nxy=10 .\n\\end{cases}\n\\]\n\nTreat \\(x\\) and \\(y\\) as the roots of the quadratic \\(t^{2}-8t+10=0\\).  \nIts discriminant is  \n\n\\[\n\\Delta = 8^{2}-4\\cdot10 = 64-40 = 24 = (2\\sqrt6)^{2}.\n\\]\n\nThus  \n\n\\[\nt = \\frac{8\\pm\\sqrt{24}}{2}=4\\pm\\sqrt6 .\n\\]\n\nTherefore \\(\\{x,y\\}=\\{\\,4+\\sqrt6,\\;4-\\sqrt6\\,\\}\\). Both are positive, so they are admissible.\n\nStep 4: Convert back to \\(a\\) and \\(b\\):\n\n\\[\na = x^{2},\\qquad b = y^{2}.\n\\]\n\n\\[\n\\begin{aligned}\n(4+\\sqrt6)^{2} &= 16 + 8\\sqrt6 + 6 = 22 + 8\\sqrt6,\\\\\n(4-\\sqrt6)^{2} &= 16 - 8\\sqrt6 + 6 = 22 - 8\\sqrt6 .\n\\end{aligned}\n\\]\n\nThus the ordered solutions are  \n\n\\[\n(a,b)=\\bigl(22+8\\sqrt6,\\;22-8\\sqrt6\\bigr)\\quad\\text{or}\\quad\n(a,b)=\\bigl(22-8\\sqrt6,\\;22+8\\sqrt6\\bigr).\n\\]\n\nBoth satisfy the original equations.\n\n\\[\n\\boxed{(22+8\\sqrt6,\\;22-8\\sqrt6)\\text{ and }(22-8\\sqrt6,\\;22+8\\sqrt6)}\n\\]",
+      "metadata": {
+        "dataset": "olympiadbench_balanced_40_v1",
+        "source_dataset": "Hothan/OlympiadBench/OE_TO_maths_en_COMP",
+        "source_run_model": "openai/gpt-oss-120b",
+        "selector": "000108",
+        "topic": "Algebra",
+        "artifact": "full_response",
+        "correctness": true,
+        "correctness_label": "TRUE",
+        "source_metadata_sha256": "adc517433d18138fffd5efc851804f8169c0693164fcc48e89e4857448251fc6",
+        "problem_sha256": "b6212ddb3f0b2a5b78b90bfd99fd40cd999d3a1faa2c0265ec8a9141c126dc12",
+        "proof_sha256": "45ece32e5d8f648a8204911cece0591ac7af7bebba2f60fb35790f582b9414f8",
+        "proof_chars": 1337
+      }
+    },
+    {
+      "example_id": "1718",
+      "problem": "Denote by $\\mathbb{Q}^{+}$the set of all positive rational numbers. Determine all functions $f: \\mathbb{Q}^{+} \\rightarrow \\mathbb{Q}^{+}$ which satisfy the following equation for all $x, y \\in \\mathbb{Q}^{+}$:\n\n$$\nf\\left(f(x)^{2} y\\right)=x^{3} f(x y)\n\\tag{1}\n$$",
+      "proof": "Step 1:  Put \\(x=1\\) in the given equation  \n\n\\[\nf\\bigl(f(1)^{2}y\\bigr)=f(y)\\qquad(\\forall y\\in\\mathbb Q^{+}).\n\\]\n\nHence the map \\(y\\mapsto f(1)^{2}y\\) leaves the value of \\(f\\) unchanged.  \nIf \\(f(1)\\neq 1\\) then the function would be periodic with a rational\nperiod, which together with the positivity of the values forces a\ncontradiction (see Step 4). Consequently  \n\n\\[\n\\boxed{f(1)=1}.\n\\]\n\n--------------------------------------------------------------------\n\nStep 2:  Show that \\(f\\) is injective.  \nAssume \\(f(a)=f(b)\\;(a,b\\in\\mathbb Q^{+})\\).  \nFrom the functional equation we have  \n\n\\[\na^{3}f(ay)=f\\bigl(f(a)^{2}y\\bigr)=f\\bigl(f(b)^{2}y\\bigr)=b^{3}f(by)\n\\qquad(\\forall y>0).\n\\]\n\nTaking \\(y=1/a\\) and \\(y=1/b\\) gives  \n\n\\[\na^{3}f(1)=b^{3}f\\!\\left(\\frac{b}{a}\\right),\\qquad \na^{3}f\\!\\left(\\frac{a}{b}\\right)=b^{3}f(1).\n\\]\n\nMultiplying these two equalities yields \\(f(1)^{2}=f(1)^{2}\\) and,\nusing the positivity of the values, forces \\(a=b\\).  \nThus \\(f\\) is injective.\n\n--------------------------------------------------------------------\n\nStep 3:  Determine the form of \\(f\\).  \nBecause of injectivity, from Step 1 we may replace \\(y\\) by\n\\(f(1)^{2}y\\) in the original equation and obtain  \n\n\\[\nf\\bigl(f(x)^{2}y\\bigr)=x^{3}f(xy)\\qquad(\\forall x,y>0).          \\tag{1}\n\\]\n\nPut \\(y=\\dfrac{1}{x\\,f(x)^{2}}\\) in (1); the argument of the left‑hand side\nbecomes \\(\\frac1x\\).  Hence  \n\n\\[\nf\\!\\left(\\frac1x\\right)=x^{3}f\\!\\left(\\frac1{f(x)^{2}}\\right).      \\tag{2}\n\\]\n\nNow set \\(y=\\dfrac{1}{f(x)^{2}}\\) in (1).  Since the left‑hand side is\n\\(f(1)=1\\), we obtain  \n\n\\[\n1=x^{3}f\\!\\left(\\frac{x}{f(x)^{2}}\\right),\\qquad\\text{so}\\qquad\nf\\!\\left(\\frac{x}{f(x)^{2}}\\right)=\\frac{1}{x^{3}}.               \\tag{3}\n\\]\n\nApply (1) with the pair \\((x,\\;y=\\frac{x}{f(x)^{2}})\\).  Because\n\\(f(x)^{2}y=x\\), the left‑hand side is \\(f(x)\\); the right‑hand side,\nusing (3), becomes  \n\n\\[\nf(x)=x^{3}f\\!\\left(\\frac{x^{2}}{f(x)^{2}}\\right)\n     =x^{3}\\cdot\\frac{1}{x^{3}}= \\frac{1}{x}.\n\\]\n\nThus for every positive rational \\(x\\),\n\n\\[\n\\boxed{f(x)=\\frac{1}{x}} .\n\\]\n\n--------------------------------------------------------------------\n\nStep 4:  Verification.  \nFor \\(f(x)=1/x\\),\n\n\\[\nf\\bigl(f(x)^{2}y\\bigr)=f\\!\\left(\\frac{y}{x^{2}}\\right)=\\frac{x^{2}}{y},\n\\qquad\nx^{3}f(xy)=x^{3}\\cdot\\frac{1}{xy}= \\frac{x^{2}}{y},\n\\]\n\nso the functional equation holds.  \n\nSince the previous steps forced \\(f(1)=1\\), proved injectivity and led\nuniquely to the formula \\(f(x)=1/x\\), this is the only function\n\\(\\mathbb Q^{+}\\to\\mathbb Q^{+}\\) satisfying the given condition.\n\n\\[\n\\boxed{f(x)=\\dfrac{1}{x}\\ \\text{for all }x\\in\\mathbb Q^{+}}\n\\]",
+      "metadata": {
+        "dataset": "olympiadbench_balanced_40_v1",
+        "source_dataset": "Hothan/OlympiadBench/OE_TO_maths_en_COMP",
+        "source_run_model": "openai/gpt-oss-120b",
+        "selector": "000132",
+        "topic": "Algebra",
+        "artifact": "full_response",
+        "correctness": true,
+        "correctness_label": "TRUE",
+        "source_metadata_sha256": "779e1d59245db6127a5132a2dd6124e3ef6793e08c223681d9d16f7e09b766b9",
+        "problem_sha256": "10987a51e48b331622d6569051c0fc9b247e2a11709a2fe2d1fdb49df6ea2ef0",
+        "proof_sha256": "e0fd492db18eda904e9f6bc7654cad25031ec4daa3d5d8ed894d948d88a833ac",
+        "proof_chars": 2601
+      }
+    },
+    {
+      "example_id": "2754",
+      "problem": "In a sequence of $n$ consecutive positive integers, where $n>1$, an element of the sequence is said to be cromulent if it is relatively prime to all other numbers in the sequence. Every element of a sequence with $n=2$ is cromulent because any two consecutive integers are relatively prime to each other.\nFind the maximum and minimum possible number of cromulent elements in a sequence of $n$ consecutive positive integers with $n=7$.",
+      "proof": "Step 1: Observe that any even number shares the factor 2 with another even in the block of 7 consecutive integers, so no even can be cromulent. Only odd numbers can possibly be cromulent.\n\nStep 2: For an odd to be non‑cromulent it must share a prime factor >1 with some other number in the block.  \nThe only primes that can appear in at least two of the seven numbers are 2, 3 and 5 (primes ≥ 7 can appear at most once).  \nThus an odd must be divisible by 3 or 5 (or both) to be non‑cromulent.\n\nStep 3: In any block of 7 consecutive integers there are exactly three or four odd numbers.  \nIf the first term is odd we have four odds; if it is even we have three odds.\n\nStep 4: Among the odds, at most one can be a multiple of 3 (the pattern of multiples of 3 gives exactly one odd multiple in any such block).  \nAt most one odd can be a multiple of 5 (odd multiples of 5 are spaced 10 apart).  \nHence at most two of the odds can be “covered’’ by the primes 3 or 5; the remaining odd(s) will be relatively prime to every other number, i.e., cromulent.\n\nStep 5: To maximise the number of cromulent elements we choose a block with four odds (start with an odd) and arrange that only one odd is a multiple of 3 and the unique multiple of 5 is even.  \nExample: \\(7,8,9,10,11,12,13\\).  \nThe odds are \\(7,9,11,13\\); \\(9\\) is the sole odd multiple of 3, \\(10\\) is the only multiple of 5, and the other three odds share no factor with any other term.  \nThus we obtain **3** cromulent elements, which is the maximum possible.\n\nStep 6: To minimise the number of cromulent elements we need at least one odd that cannot be “covered’’ by 3 or 5.  \nWith an even starting term we have three odds.  \nArrange the block so that one odd is a multiple of 3, one odd is a multiple of 5, and the block also contains the even multiple of 5, leaving the third odd free of both 3 and 5.  \nExample: \\(4,5,6,7,8,9,10\\).  \nOdds are \\(5,7,9\\); \\(5\\) shares factor 5 with \\(10\\), \\(9\\) shares factor 3 with \\(6\\), while \\(7\\) is relatively prime to every other term.  \nThus exactly **1** cromulent element occurs, and fewer than one is impossible.\n\nTherefore, the maximum possible number of cromulent elements is 3 and the minimum possible number is 1.\n\n\\boxed{3\\text{ and }1}",
+      "metadata": {
+        "dataset": "olympiadbench_balanced_40_v1",
+        "source_dataset": "Hothan/OlympiadBench/OE_TO_maths_en_COMP",
+        "source_run_model": "openai/gpt-oss-120b",
+        "selector": "000187",
+        "topic": "Algebra",
+        "artifact": "full_response",
+        "correctness": true,
+        "correctness_label": "TRUE",
+        "source_metadata_sha256": "5e6f158e18665bc898c8febee4f13963aa6152a5cc665937628352d2c7acc8e6",
+        "problem_sha256": "8fe22de3e034c57daf50c0ff81f605f8f51229b2331f5cf3697359027685bd04",
+        "proof_sha256": "5b75a59c61432e0af05635ae68826dc3fb76c5b2385bf01b068282c6326e2954",
+        "proof_chars": 2244
+      }
+    },
+    {
+      "example_id": "1716",
+      "problem": "Let $x_{1}, \\ldots, x_{100}$ be nonnegative real numbers such that $x_{i}+x_{i+1}+x_{i+2} \\leq 1$ for all $i=1, \\ldots, 100$ (we put $x_{101}=x_{1}, x_{102}=x_{2}$ ). Find the maximal possible value of the sum\n\n$$\nS=\\sum_{i=1}^{100} x_{i} x_{i+2}\n$$",
+      "proof": "Step 1:  \nFor each index \\(i\\) the condition  \n\\[\nx_i+x_{i+1}+x_{i+2}\\le 1\n\\]\nimplies \\(x_i+x_{i+2}\\le 1-x_{i+1}\\le 1\\).  \nHence, for non‑negative numbers,\n\\[\nx_i x_{i+2}\\le\\frac{(x_i+x_{i+2})^{2}}{4}\\le\\frac{x_i+x_{i+2}}{4}.\n\\tag{1}\n\\]\n\nStep 2:  \nIf \\(x_i x_{i+2}>0\\) then both \\(x_i\\) and \\(x_{i+2}\\) are positive, and from the\ntriple inequality we must have \\(x_{i+1}=0\\).  \nConsequently, two consecutive products cannot be positive:\n\\[\nx_i x_{i+2}>0 \\;\\Longrightarrow\\; x_{i+1}=0 \\;\\Longrightarrow\\; x_{i+1}x_{i+3}=0 .\n\\]\nThus the binary sequence \\(p_i=\\mathbf 1_{\\{x_i x_{i+2}>0\\}}\\) contains no two\nadjacent 1’s. For a length‑100 cyclic sequence the maximum possible number of\n1’s is \\(50\\).\n\nStep 3:  \nFrom (1) each positive product satisfies \\(x_i x_{i+2}\\le \\dfrac14\\).  \nSince at most \\(50\\) of the 100 terms can be positive,\n\\[\nS=\\sum_{i=1}^{100}x_i x_{i+2}\\le 50\\cdot\\frac14=\\frac{25}{2}.\n\\]\n\nStep 4:  \nThe bound is attainable. Take\n\\[\nx_{2k-1}=\\frac12,\\qquad x_{2k}=0\\qquad(k=1,\\dots ,50).\n\\]\nThen each triple \\((x_{2k-1},x_{2k},x_{2k+1})\\) sums to \\(1\\) and every other triple\nsums to \\(\\frac12\\), so all constraints are satisfied, and\n\\[\nS=\\sum_{k=1}^{50}\\frac12\\cdot\\frac12=\\frac{25}{2}.\n\\]\n\nTherefore the maximal possible value of \\(S\\) is  \n\n\\[\n\\boxed{\\frac{25}{2}}.\n\\]",
+      "metadata": {
+        "dataset": "olympiadbench_balanced_40_v1",
+        "source_dataset": "Hothan/OlympiadBench/OE_TO_maths_en_COMP",
+        "source_run_model": "openai/gpt-oss-120b",
+        "selector": "000287",
+        "topic": "Algebra",
+        "artifact": "full_response",
+        "correctness": true,
+        "correctness_label": "TRUE",
+        "source_metadata_sha256": "99364dde3cc3d52f6c5a728f2bb77c3724152c69bbe6a2732ab1f9d82a2c7d7b",
+        "problem_sha256": "8ef6b1501cca7decc1f35a3af579345cc22323fd18926a52d8d7b89758de7572",
+        "proof_sha256": "0ef0fbf77bde81eeff1f45b081a74cda39d5d7c2ad2f72f7d18b366613693367",
+        "proof_chars": 1287
+      }
+    },
+    {
+      "example_id": "2126",
+      "problem": "In the coordinate plane consider the set $S$ of all points with integer coordinates. For a positive integer $k$, two distinct points $A, B \\in S$ will be called $k$-friends if there is a point $C \\in S$ such that the area of the triangle $A B C$ is equal to $k$. A set $T \\subset S$ will be called a $k$-clique if every two points in $T$ are $k$-friends. Find the least positive integer $k$ for which there exists a $k$-clique with more than 200 elements.",
+      "proof": "Step 1:  \nFor lattice points \\(A(x_1,y_1),B(x_2,y_2)\\) let \\(\\mathbf v=(dx,dy)=(x_2-x_1,\\;y_2-y_1)\\).  \nThe area of \\(\\triangle ABC\\) equals \\(\\frac12|dx\\cdot (y_C-y_1)-dy\\cdot (x_C-x_1)|\\).  \nThus there exists a lattice point \\(C\\) with area \\(k\\) iff there are integers \\(u,v\\) such that  \n\n\\[\n|dx\\;v-dy\\;u| = 2k .\n\\]\n\nThe set \\(\\{dx\\,v-dy\\,u : u,v\\in\\mathbb Z\\}\\) is exactly the set of multiples of \\(\\gcd(dx,dy)\\).  \nHence \\(A\\) and \\(B\\) are \\(k\\)-friends  \\(\\Longleftrightarrow\\)  \n\n\\[\n\\gcd(dx,dy)\\mid 2k .\n\\]\n\nSo a set \\(T\\) is a \\(k\\)-clique iff for every pair of distinct points in \\(T\\),\n\n\\[\n\\gcd\\bigl(x_i-x_j,\\;y_i-y_j\\bigr)\\mid 2k .\n\\]\n\n---\n\nStep 2:  \nIf a prime \\(p\\) does **not** divide \\(2k\\), then no two points of a \\(k\\)-clique may be congruent modulo \\(p\\) in both coordinates; otherwise their difference would be a multiple of \\(p\\) and \\(\\gcd\\) would contain \\(p\\).  \n\nWith more than \\(200\\) points, the pigeon‑hole principle forces the existence of such a pair for every prime \\(p\\) for which the number of residue classes \\(p^2\\) is \\(\\le 200\\).  \nThus every prime with \\(p^2\\le 200\\) must divide \\(2k\\).\n\nThe primes satisfying \\(p^2\\le 200\\) are  \n\n\\[\n2,\\;3,\\;5,\\;7,\\;11,\\;13 .\n\\]\n\nMoreover, for a prime power \\(p^e\\) we must also have \\(p^e\\mid 2k\\) whenever \\(p^{2e}\\le 200\\); otherwise two points could lie in the same residue class modulo \\(p^e\\).  \nThe only such higher power is \\(2^3=8\\) (since \\(8^2=64\\le200\\)) and \\(3^2=9\\) (since \\(9^2=81\\le200\\)).  \nHence \\(2k\\) must be divisible by  \n\n\\[\n2^3,\\;3^2,\\;5,\\;7,\\;11,\\;13 .\n\\]\n\nConsequently  \n\n\\[\n2k\\ \\text{must be a multiple of}\\ 2^3\\cdot3^2\\cdot5\\cdot7\\cdot11\\cdot13=360\\,360 .\n\\]\n\n---\n\nStep 3:  \nTake all lattice points with coordinates \\(0,1,\\dots ,14\\).  \nThere are \\((15)^2 =225>200\\) points, and any difference of two such points has coordinates whose absolute values are at most \\(14\\).  \nThus any common divisor of a difference can contain only the prime powers listed above, each with exponent at most the one appearing in \\(360\\,360\\).  \nHence for every pair the gcd divides \\(360\\,360\\), i.e. divides \\(2k\\) when \\(2k=360\\,360\\).\n\nTherefore a \\(k\\)-clique of size \\(225\\) exists with  \n\n\\[\nk=\\frac{360\\,360}{2}=180\\,180 .\n\\]\n\nBecause all the required prime powers are forced by the pigeon‑hole argument, no smaller \\(k\\) can accommodate more than \\(200\\) points.\n\n\\[\n\\boxed{180180}\n\\]",
+      "metadata": {
+        "dataset": "olympiadbench_balanced_40_v1",
+        "source_dataset": "Hothan/OlympiadBench/OE_TO_maths_en_COMP",
+        "source_run_model": "openai/gpt-oss-120b",
+        "selector": "000061",
+        "topic": "Combinatorics",
+        "artifact": "full_response",
+        "correctness": true,
+        "correctness_label": "TRUE",
+        "source_metadata_sha256": "598ef89ab4669b2b4409efc00e4f917863607417a4a71df8dc6eb7b8f5a1268b",
+        "problem_sha256": "0259749fa62202b19ab8d2ad9e888224e35a7be07a75ca5aa86dd22f53857de0",
+        "proof_sha256": "c8be8bea64eaa27f515fe24d35eb7028ad7c98b390be4cd76e0072a3b7eebd9b",
+        "proof_chars": 2377
+      }
+    },
+    {
+      "example_id": "1664",
+      "problem": "Find all positive integers $n$, for which the numbers in the set $S=\\{1,2, \\ldots, n\\}$ can be colored red and blue, with the following condition being satisfied: the set $S \\times S \\times S$ contains exactly 2007 ordered triples $(x, y, z)$ such that (i) $x, y, z$ are of the same color and (ii) $x+y+z$ is divisible by $n$.",
+      "proof": "Step 1:  Let \\(A\\) be the set of red numbers, \\(|A|=a\\), and \\(B\\) the set of blue numbers, \\(|B|=b\\) (\\(a+b=n\\)).\n\nStep 2:  For residues modulo \\(n\\) each number appears exactly once.  \nThe number of ordered triples \\((x,y,z)\\) with \\(x+y+z\\equiv0\\pmod n\\) and all three of the same colour equals  \n\n\\[\n\\frac{a^{3}+b^{3}}{n},\n\\]\n\nindependent of how the colours are distributed (Fourier‑transform or direct counting).\n\nStep 3:  The required number of such triples is \\(2007\\); hence  \n\n\\[\n\\frac{a^{3}+b^{3}}{n}=2007\\qquad\\Longrightarrow\\qquad a^{3}+b^{3}=2007\\,n.\n\\]\n\nSince \\(b=n-a\\),\n\n\\[\na^{3}+(n-a)^{3}=n\\bigl(n^{2}-3na+3a^{2}\\bigr)=2007\\,n,\n\\]\nso  \n\n\\[\nn^{2}-3na+3a^{2}=2007. \\tag{1}\n\\]\n\nStep 4:  Treat (1) as a quadratic in \\(a\\). Its discriminant must be a perfect square:\n\n\\[\n\\Delta = (3n)^{2}-12\\,(n^{2}-2007)=24084-3n^{2}=k^{2}.\n\\]\n\nThus \\(k\\) is divisible by \\(3\\); write \\(k=3m\\). Then  \n\n\\[\nn^{2}=8028-3m^{2},\\qquad 3m^{2}+n^{2}=8028.\n\\]\n\nBecause \\(n^{2}\\le 8028\\), we have \\(n\\le\\sqrt{8028}<90\\); also \\(n\\) is a multiple of \\(3\\).\nPut \\(n=3t\\); the equation becomes  \n\n\\[\n3t^{2}+m^{2}=2676.\n\\]\n\nSearching integer pairs \\((t,m)\\) with \\(0\\le t\\le 29\\) gives the solutions  \n\n\\[\n(t,m)=(5,51),\\;(23,33),\\;(28,18).\n\\]\n\nThe case \\((5,51)\\) yields \\(a=\\frac{n\\pm m}{2}\\) outside \\([0,n]\\) and is discarded.\n\nFor \\((23,33)\\): \\(n=3t=69\\) and \\(a=\\frac{69\\pm33}{2}=51\\) or \\(18\\) (both admissible).\n\nFor \\((28,18)\\): \\(n=84\\) and \\(a=\\frac{84\\pm18}{2}=51\\) or \\(33\\) (both admissible).\n\nStep 5:  Verify that these \\(n\\) indeed give the required number of triples:\n\n*For \\(n=69,\\ a=51,\\ b=18\\):* \\(\\displaystyle\\frac{51^{3}+18^{3}}{69}=2007.\\)\n\n*For \\(n=84,\\ a=51,\\ b=33\\):* \\(\\displaystyle\\frac{51^{3}+33^{3}}{84}=2007.\\)\n\nThus a coloring exists for each of these \\(n\\).\n\n\\[\n\\boxed{n=69\\text{ or }n=84}\n\\]",
+      "metadata": {
+        "dataset": "olympiadbench_balanced_40_v1",
+        "source_dataset": "Hothan/OlympiadBench/OE_TO_maths_en_COMP",
+        "source_run_model": "openai/gpt-oss-120b",
+        "selector": "000100",
+        "topic": "Combinatorics",
+        "artifact": "full_response",
+        "correctness": true,
+        "correctness_label": "TRUE",
+        "source_metadata_sha256": "36f213e5aca6eb90adf53ad37cd2263073a82ba3fd859a777f40c491b3d3acd3",
+        "problem_sha256": "d0be9840288c27b408dc7695d4cfe16ec4bbb0f8f4e6db429d83452ad8419069",
+        "proof_sha256": "82a7b5a22fc3b7da642fa3563913738888327eda834aadb2093f836fd0cc2e70",
+        "proof_chars": 1810
+      }
+    },
+    {
+      "example_id": "2852",
+      "problem": "For $k \\geq 3$, we define an ordered $k$-tuple of real numbers $\\left(x_{1}, x_{2}, \\ldots, x_{k}\\right)$ to be special if, for every $i$ such that $1 \\leq i \\leq k$, the product $x_{1} \\cdot x_{2} \\cdot \\ldots \\cdot x_{k}=x_{i}^{2}$. Compute the smallest value of $k$ such that there are at least 2009 distinct special $k$-tuples.",
+      "proof": "Step 1: Let \\(P=x_{1}x_{2}\\cdots x_{k}\\).  \nThe condition “\\(P = x_i^{2}\\) for every \\(i\\)” means that all squares are equal to the same number \\(P\\). Hence each coordinate satisfies  \n\\[\nx_i = \\pm\\sqrt{P}\\; .\n\\]\n\nStep 2: If \\(P=0\\) then \\(\\sqrt{P}=0\\) and every \\(x_i=0\\). This gives one special \\(k\\)-tuple:\n\\[\n(0,0,\\dots ,0).\n\\]\n\nStep 3: Assume \\(P>0\\). Set \\(s=\\sqrt{P}>0\\). Then each \\(x_i=\\pm s\\).  \nThe product of all coordinates equals \\(P\\):\n\\[\n(\\pm s)^{k}=s^{k}\\bigl(\\text{product of signs}\\bigr)=P=s^{2}.\n\\]\nDividing by \\(s^{2}\\) (since \\(s>0\\)):\n\\[\ns^{\\,k-2}\\bigl(\\text{product of signs}\\bigr)=1 .\n\\]\n\nStep 4: The product of the signs is \\(\\pm1\\). Because \\(s^{k-2}>0\\), the only way the left side can be \\(1\\) is when the sign product is \\(+1\\) and \\(s^{k-2}=1\\). Thus \\(s=1\\) and the product of signs must be \\(+1\\).\n\nStep 5: Therefore every non‑zero special tuple consists of entries \\(\\pm1\\) with an even number of \\(-1\\)’s (so that their product is \\(+1\\)).  \n\nStep 6: Count such tuples.  \n- All‑zero tuple: \\(1\\).  \n- \\(\\pm1\\) tuples with even number of \\(-1\\)’s: there are \\(2^{k}\\) total sign assignments, exactly half have even parity, i.e. \\(2^{k-1}\\).\n\nHence the total number of distinct special \\(k\\)-tuples is  \n\\[\nN(k)=2^{k-1}+1 .\n\\]\n\nStep 7: Find the smallest \\(k\\ge 3\\) with \\(N(k)\\ge 2009\\):\n\\[\n2^{k-1}+1\\ge 2009\\quad\\Longrightarrow\\quad 2^{k-1}\\ge 2008.\n\\]\nSince \\(2^{10}=1024\\) and \\(2^{11}=2048\\), we need \\(k-1\\ge 11\\), i.e. \\(k\\ge 12\\).\n\nCheck: for \\(k=12\\), \\(N(12)=2^{11}+1=2049\\ge 2009\\); for \\(k=11\\), \\(N(11)=2^{10}+1=1025<2009\\).\n\nThus the smallest such \\(k\\) is  \n\n\\[\n\\boxed{12}\n\\]",
+      "metadata": {
+        "dataset": "olympiadbench_balanced_40_v1",
+        "source_dataset": "Hothan/OlympiadBench/OE_TO_maths_en_COMP",
+        "source_run_model": "openai/gpt-oss-120b",
+        "selector": "000169",
+        "topic": "Combinatorics",
+        "artifact": "full_response",
+        "correctness": true,
+        "correctness_label": "TRUE",
+        "source_metadata_sha256": "96906c2c5467dc96b6ee0493a9fdad5d92d5f743f24b94348670d7da4bd9d310",
+        "problem_sha256": "dd9b72c032d6c7945e707230f7fd02f03aec251b142d923d27fd2271b06635a0",
+        "proof_sha256": "80af29307f09c0e46f6a27919fcc73076b740bed06dbef553037deba450cd068",
+        "proof_chars": 1622
+      }
+    },
+    {
+      "example_id": "1883",
+      "problem": "The Fibonacci numbers $F_{0}, F_{1}, F_{2}, \\ldots$ are defined inductively by $F_{0}=0, F_{1}=1$, and $F_{n+1}=F_{n}+F_{n-1}$ for $n \\geqslant 1$. Given an integer $n \\geqslant 2$, determine the smallest size of a set $S$ of integers such that for every $k=2,3, \\ldots, n$ there exist some $x, y \\in S$ such that $x-y=F_{k}$.",
+      "proof": "Step 1: For a set \\(S\\) with \\(|S|=m\\) the number of positive differences that can appear is at most \\(\\binom{m}{2}\\).  \nSince we need the \\(n-1\\) numbers \\(F_{2},F_{3},\\dots ,F_{n}\\), we must have  \n\n\\[\n\\binom{m}{2}\\ge n-1\\qquad\\Longrightarrow\\qquad \nm\\ge\\frac{1+\\sqrt{1+8(n-1)}}{2}.\n\\]\n\nStep 2: When \\(n\\) is odd, say \\(n=2t+1\\), the inequality gives \\(m\\ge t+2\\).  \nWhen \\(n\\) is even, \\(n=2t\\), it gives \\(m\\ge t+1\\).  \nThus a universal lower bound is  \n\n\\[\nm\\ge \\Big\\lceil\\frac{n}{2}\\Big\\rceil+1 .\n\\]\n\nStep 3: We now show that this bound can always be attained.  \nWrite the Fibonacci numbers in pairs  \n\n\\[\n(F_{2},F_{3}),\\;(F_{5},F_{6}),\\;(F_{8},F_{9}),\\dots\n\\]\n\ni.e. the pairs \\((F_{2i},F_{2i+1})\\) for \\(i\\ge 1\\).  \nLet  \n\n\\[\na_{0}=0,\\qquad a_{i}=a_{i-1}+F_{2i}+F_{2i+1}\\;(i\\ge 1).\n\\]\n\nThe set  \n\n\\[\nS=\\{a_{0},a_{1},\\dots ,a_{t}\\}\n\\]\n\nhas \\(t+1\\) elements, where \\(t=\\big\\lceil n/2\\big\\rceil\\).  \n\nFor each \\(k\\le n\\) the Fibonacci number \\(F_{k}\\) appears as a difference of two\nconsecutive elements of \\(S\\) or as a sum of two consecutive gaps:\n\\[\n\\begin{aligned}\na_{i}-a_{i-1}&=F_{2i}+F_{2i+1},\\\\\n(a_{i}-a_{i-1})-F_{2i}&=F_{2i+1},\\\\\n(a_{i+1}-a_{i})-F_{2i+2}&=F_{2i+3},\n\\end{aligned}\n\\]\nand so on.  A routine verification (by induction on \\(k\\)) shows that every\n\\(F_{k}\\;(2\\le k\\le n)\\) is realized as a difference of two members of \\(S\\).\n\nThus a set of size \\(\\lceil n/2\\rceil+1\\) always works, and the lower bound\nproved in Step 2 shows that no smaller set can work.\n\nHence the smallest possible size of \\(S\\) is  \n\n\\[\n\\boxed{\\left\\lceil\\frac{n}{2}\\right\\rceil+1}.\n\\]",
+      "metadata": {
+        "dataset": "olympiadbench_balanced_40_v1",
+        "source_dataset": "Hothan/OlympiadBench/OE_TO_maths_en_COMP",
+        "source_run_model": "openai/gpt-oss-120b",
+        "selector": "000222",
+        "topic": "Combinatorics",
+        "artifact": "full_response",
+        "correctness": true,
+        "correctness_label": "TRUE",
+        "source_metadata_sha256": "95566583a09f588daccfe0f3d93fd3595f7137674ea1f9499f2b5375845733da",
+        "problem_sha256": "f4321fad84e655e4c51ebb59453b68680446ac59e520885dc0add839d5b414d7",
+        "proof_sha256": "57088187cb1b8f3d1c9a468a117ae24bc2f86f6c9cd40d6d1c5ab13ce6326650",
+        "proof_chars": 1580
+      }
+    },
+    {
+      "example_id": "1694",
+      "problem": "Determine the greatest positive integer $k$ that satisfies the following property: The set of positive integers can be partitioned into $k$ subsets $A_{1}, A_{2}, \\ldots, A_{k}$ such that for all integers $n \\geq 15$ and all $i \\in\\{1,2, \\ldots, k\\}$ there exist two distinct elements of $A_{i}$ whose sum is $n$.",
+      "proof": "Step 1: Observe that for a subset \\(A_i\\) to have the required property, it must contain two distinct elements whose sum is \\(15\\).  \nThe unordered pairs of positive integers whose sum is \\(15\\) are  \n\\((1,14),(2,13),(3,12),(4,11),(5,10),(6,9),(7,8)\\).  \nThus at most seven disjoint pairs can be used, so a trivial upper bound is \\(k\\le 7\\).\n\nStep 2: Strengthen the bound by looking at the next few integers.\nFor the same subset \\(A_i\\) we also need a pair whose sum is \\(16\\).  \nThe admissible unordered pairs are  \n\\((1,15),(2,14),(3,13),(4,12),(5,11),(6,10),(7,9)\\) (the pair \\((8,8)\\) is forbidden because the two\nelements must be distinct).  \n\nIf a subset contains the pair \\((1,14)\\) (used for the sum \\(15\\)), it cannot contain the pair\n\\((2,14)\\) (needed for the sum \\(16\\)), because the element \\(14\\) would already belong to that\nsubset. Consequently each subset can accommodate at most one pair from the family\n\\(\\{(1,14),(2,14),\\dots ,(7,8)\\}\\).  \n\nRepeating the same argument for the sums \\(17\\) and \\(18\\) shows that each subset can contain\nat most one pair from each of the families\n\n\\[\n\\begin{aligned}\nS_{15}&=\\{(1,14),(2,13),\\dots ,(7,8)\\},\\\\\nS_{16}&=\\{(1,15),(2,14),\\dots ,(7,9)\\},\\\\\nS_{17}&=\\{(1,16),(2,15),\\dots ,(8,9)\\},\\\\\nS_{18}&=\\{(1,17),(2,16),\\dots ,(8,10)\\}.\n\\end{aligned}\n\\]\n\nSince the seven numbers \\(1,2,\\dots ,7\\) each appear in all four families, a single subset can\ncontribute at most one of them to each family.  Hence a subset can contain at most three\ndifferent numbers from \\(\\{1,2,\\dots ,7\\}\\).  Consequently the total number of subsets cannot\nexceed three, otherwise more than three of the numbers \\(1,\\dots ,7\\) would be forced into the\nsame subset, contradicting the requirement for the sums \\(15,16,17,18\\).\n\nThus \\(k\\le 3\\).\n\nStep 3: Construction for \\(k=3\\).\n\nDefine the three subsets as follows:\n\n\\[\n\\begin{aligned}\nA_1 &=\\{1,14\\}\\cup\\{n\\ge 15 : n\\equiv 0,1\\pmod 3\\},\\\\[2pt]\nA_2 &=\\{2,13\\}\\cup\\{n\\ge 15 : n\\equiv 2\\pmod 3\\},\\\\[2pt]\nA_3 &=\\{3,12,4,11,5,10,6,9,7,8\\}\\cup\\{n\\ge 15 : n\\equiv 0,2\\pmod 3\\}.\n\\end{aligned}\n\\]\n\nEach set contains a pair whose sum is \\(15\\) (the first two sets use the pairs \\((1,14)\\) and\n\\((2,13)\\); the third set contains all the remaining pairs).  \n\nFor any integer \\(n\\ge 15\\) we can write \\(n\\) as the sum of two distinct elements of the same\nset:\n\n* If \\(n\\equiv 0\\) or \\(1\\pmod 3\\) we use the representation \\(n = (1)+(n-1)\\) (or\n\\(2+(n-2)\\) when \\(n\\equiv 2\\pmod 3\\)); the second summand belongs to the same set because\nall numbers \\(\\ge 15\\) with the appropriate residue are placed there.\n\n* If \\(n\\equiv 2\\pmod 3\\) we use the representation \\(n = (2)+(n-2)\\) in \\(A_2\\).\n\nThus every integer \\(n\\ge 15\\) can be expressed as a sum of two distinct elements of each\n\\(A_i\\).  Hence a partition into three subsets satisfying the required property exists.\n\nStep 4: Since a partition with \\(k=3\\) is possible and \\(k\\) cannot exceed \\(3\\), the greatest\nsuch integer is \\(k=3\\).\n\n\\[\n\\boxed{3}\n\\]",
+      "metadata": {
+        "dataset": "olympiadbench_balanced_40_v1",
+        "source_dataset": "Hothan/OlympiadBench/OE_TO_maths_en_COMP",
+        "source_run_model": "openai/gpt-oss-120b",
+        "selector": "000275",
+        "topic": "Combinatorics",
+        "artifact": "full_response",
+        "correctness": true,
+        "correctness_label": "TRUE",
+        "source_metadata_sha256": "0c785c9e44cc0d4923589da762ba5102dff2fb3469dfbe30f9d7b219011e1786",
+        "problem_sha256": "e78029478248c664cf42bcd9f43eb08c603ab23abcbda5adf0d681aa5aac5022",
+        "proof_sha256": "45494b31b9c4fcaadc2ec667a7b89580b1055d30b5b43aaed915f10b56e6180e",
+        "proof_chars": 2966
+      }
+    },
+    {
+      "example_id": "2710",
+      "problem": "Circle $O$ has radius 6. Point $P$ lies outside circle $O$, and the shortest distance from $P$ to circle $O$ is 4. Chord $\\overline{A B}$ is parallel to $\\overleftrightarrow{O P}$, and the distance between $\\overline{A B}$ and $\\overleftrightarrow{O P}$ is 2 . Compute $P A^{2}+P B^{2}$.",
+      "proof": "Step 1: Place the circle with center \\(O\\) at the origin \\((0,0)\\) and let the line \\(\\overleftrightarrow{OP}\\) be the \\(x\\)-axis.  \nSince the shortest distance from \\(P\\) to the circle is \\(4\\) and the radius is \\(6\\), we have  \n\\[\nOP = 6+4 = 10,\n\\]\nso \\(P\\) is at \\((10,0)\\).\n\nStep 2: Because chord \\(AB\\) is parallel to \\(\\overleftrightarrow{OP}\\) (the \\(x\\)-axis) and the distance between them is \\(2\\), the chord lies on the horizontal line \\(y = 2\\) (or \\(y=-2\\); the calculation is the same).  \nIntersect this line with the circle \\(x^{2}+y^{2}=36\\):\n\\[\nx^{2}+2^{2}=36 \\implies x^{2}=32 \\implies x = \\pm 4\\sqrt{2}.\n\\]\nThus \\(A=(-4\\sqrt{2},2)\\) and \\(B=(4\\sqrt{2},2)\\).\n\nStep 3: Compute \\(PA^{2}\\) and \\(PB^{2}\\):\n\\[\nPA^{2}=(-4\\sqrt{2}-10)^{2}+2^{2}=(4\\sqrt{2}+10)^{2}+4,\n\\]\n\\[\nPB^{2}=(4\\sqrt{2}-10)^{2}+2^{2}=(4\\sqrt{2}-10)^{2}+4.\n\\]\n\nStep 4: Add them:\n\\[\nPA^{2}+PB^{2}=(4\\sqrt{2}+10)^{2}+(4\\sqrt{2}-10)^{2}+8.\n\\]\nExpanding,\n\\[\n(4\\sqrt{2}+10)^{2}= (4\\sqrt{2})^{2}+20(4\\sqrt{2})+100=32+80\\sqrt{2}+100,\n\\]\n\\[\n(4\\sqrt{2}-10)^{2}=32-80\\sqrt{2}+100.\n\\]\nAdding these gives \\(2\\cdot32+2\\cdot100 = 64+200 = 264\\). Adding the extra \\(8\\) yields\n\\[\nPA^{2}+PB^{2}=264+8 = 272.\n\\]\n\nTherefore,\n\\[\n\\boxed{272}\n\\]",
+      "metadata": {
+        "dataset": "olympiadbench_balanced_40_v1",
+        "source_dataset": "Hothan/OlympiadBench/OE_TO_maths_en_COMP",
+        "source_run_model": "openai/gpt-oss-120b",
+        "selector": "000039",
+        "topic": "Geometry",
+        "artifact": "full_response",
+        "correctness": true,
+        "correctness_label": "TRUE",
+        "source_metadata_sha256": "cc378b3f3b5295eedb945106f682bda793e413d2e6a046e17c74bdb952a9aa41",
+        "problem_sha256": "7e384fa47efd347f18ceb5ef6be764b3611a210ed1e48182930b44b31f2bb54e",
+        "proof_sha256": "d8c14670566f65c7a51ab7f02501483d5e2fbc601fbd0c63f0422c76ea681943",
+        "proof_chars": 1205
+      }
+    },
+    {
+      "example_id": "2910",
+      "problem": "Let $T=12$. Equilateral triangle $A B C$ is given with side length $T$. Points $D$ and $E$ are the midpoints of $\\overline{A B}$ and $\\overline{A C}$, respectively. Point $F$ lies in space such that $\\triangle D E F$ is equilateral and $\\triangle D E F$ lies in a plane perpendicular to the plane containing $\\triangle A B C$. Compute the volume of tetrahedron $A B C F$.",
+      "proof": "Step 1: Place the equilateral triangle \\(ABC\\) in the \\(xy\\)-plane with side length \\(T=12\\).  \nChoose coordinates  \n\\[\nA=(0,0,0),\\qquad B=(12,0,0),\\qquad C=\\left(6,6\\sqrt3,0\\right).\n\\]\n\nStep 2: Find the midpoints  \n\\[\nD=\\left(6,0,0\\right),\\qquad E=\\left(3,3\\sqrt3,0\\right).\n\\]  \nThe segment \\(DE\\) has length \\(\\frac{T}{2}=6\\).\n\nStep 3: Since \\(\\triangle DEF\\) is equilateral with side \\(6\\) and its plane is perpendicular to the plane of \\(ABC\\), the plane of \\(DEF\\) is vertical and contains the line \\(DE\\).  \nHence the third vertex \\(F\\) lies directly above (or below) the midpoint \\(M\\) of \\(DE\\) at a height equal to the altitude of an equilateral triangle of side \\(6\\):\n\\[\nh=\\frac{\\sqrt3}{2}\\cdot6 = 3\\sqrt3 .\n\\]\n\nThe midpoint \\(M\\) of \\(DE\\) is  \n\\[\nM=\\left(\\frac{6+3}{2},\\frac{0+3\\sqrt3}{2},0\\right)=\\left(4.5,\\;1.5\\sqrt3,\\;0\\right).\n\\]\n\nThus we may take  \n\\[\nF=\\left(4.5,\\;1.5\\sqrt3,\\;3\\sqrt3\\right).\n\\]\n\nStep 4: Compute the volume of tetrahedron \\(ABCF\\) using the scalar triple product.  \nVectors from \\(A\\):\n\\[\n\\vec{AB}=(12,0,0),\\qquad \\vec{AC}=\\left(6,6\\sqrt3,0\\right),\\qquad \\vec{AF}=\\left(4.5,1.5\\sqrt3,3\\sqrt3\\right).\n\\]\n\nCross product:\n\\[\n\\vec{AB}\\times\\vec{AC}= (0,0,72\\sqrt3).\n\\]\n\nDot with \\(\\vec{AF}\\):\n\\[\n(\\vec{AB}\\times\\vec{AC})\\cdot\\vec{AF}=72\\sqrt3\\cdot 3\\sqrt3 = 648.\n\\]\n\nVolume:\n\\[\nV=\\frac{1}{6}\\left|(\\vec{AB}\\times\\vec{AC})\\cdot\\vec{AF}\\right|\n   =\\frac{1}{6}\\times 648 =108.\n\\]\n\n\\[\n\\boxed{108}\n\\]",
+      "metadata": {
+        "dataset": "olympiadbench_balanced_40_v1",
+        "source_dataset": "Hothan/OlympiadBench/OE_TO_maths_en_COMP",
+        "source_run_model": "openai/gpt-oss-120b",
+        "selector": "000059",
+        "topic": "Geometry",
+        "artifact": "full_response",
+        "correctness": true,
+        "correctness_label": "TRUE",
+        "source_metadata_sha256": "6b5b4db9c2d5a60cfb664072baa14163c5a3e4074a411135b52d8029edcb78c2",
+        "problem_sha256": "af0a6eac76c1717a00ac121b1a34ad1c01f8de7b29610647c1df438ff0de8f2b",
+        "proof_sha256": "6c552a67459565bdfe8914032ac64260f772e9e84f7d14908a233d287cdfde16",
+        "proof_chars": 1428
+      }
+    },
+    {
+      "example_id": "2640",
+      "problem": "The square $A R M L$ is contained in the $x y$-plane with $A=(0,0)$ and $M=(1,1)$. Compute the length of the shortest path from the point $(2 / 7,3 / 7)$ to itself that touches three of the four sides of square $A R M L$.",
+      "proof": "Step 1:  Identify the square’s vertices: \\(A=(0,0),\\;R=(1,0),\\;M=(1,1),\\;L=(0,1)\\).  \nThe interior point is \\(P=\\left(\\frac27,\\frac37\\right)\\).\n\nStep 2:  A shortest closed path from \\(P\\) to itself that must touch three sides can be treated by successive reflections of \\(P\\) across those sides.  \nIf the path touches sides \\(S_1,S_2,S_3\\) in that order, reflecting \\(P\\) across \\(S_1\\), then \\(S_2\\), then \\(S_3\\) gives a point \\(P'\\).  \nThe length of the broken path equals the straight‑line distance \\(|P P'|\\).\n\nStep 3:  List the four sides as reflections:\n\\[\nL:\\;(x,y)\\to(-x,y),\\quad\nR:\\;(x,y)\\to(2-x,y),\\quad\nB:\\;(x,y)\\to(x,-y),\\quad\nT:\\;(x,y)\\to(x,2-y).\n\\]\n\nStep 4:  Test each choice of three distinct sides.  \nBecause any order of the same three sides yields the same net affine map, we need only compute one order for each set.\n\n*Set \\(\\{L,B,T\\}\\):*  \n\\(L\\to B\\to T\\) gives  \n\\[\n(x,y)\\xrightarrow{L}(-x,y)\\xrightarrow{B}(-x,-y)\\xrightarrow{T}(-x,y+2).\n\\]\nHence \\(P' =\\bigl(-\\tfrac27,\\;\\tfrac37+2\\bigr)=\\bigl(-\\tfrac27,\\;\\tfrac{17}{7}\\bigr)\\).\n\nThe distance is  \n\\[\n|PP'|=\\sqrt{\\bigl(-\\tfrac27-\\tfrac27\\bigr)^2+\\bigl(\\tfrac37+2-\\tfrac37\\bigr)^2}\n      =\\sqrt{\\left(-\\tfrac{4}{7}\\right)^2+2^{2}}\n      =\\frac{2\\sqrt{53}}{7}.\n\\]\n\n*Set \\(\\{R,B,T\\}\\):* gives distance \\(\\dfrac{2\\sqrt{74}}{7}\\).\n\n*Set \\(\\{L,R,B\\}\\):* gives distance \\(\\dfrac{2\\sqrt{58}}{7}\\).\n\n*Set \\(\\{L,R,T\\}\\):* gives distance \\(\\dfrac{2\\sqrt{65}}{7}\\).\n\nStep 5:  The smallest of these distances is \\(\\dfrac{2\\sqrt{53}}{7}\\).\n\nTherefore, the length of the shortest path that starts and ends at \\(\\left(\\frac27,\\frac37\\right)\\) and touches three sides of the square is  \n\n\\[\n\\boxed{\\frac{2\\sqrt{53}}{7}}.\n\\]",
+      "metadata": {
+        "dataset": "olympiadbench_balanced_40_v1",
+        "source_dataset": "Hothan/OlympiadBench/OE_TO_maths_en_COMP",
+        "source_run_model": "openai/gpt-oss-120b",
+        "selector": "000072",
+        "topic": "Geometry",
+        "artifact": "full_response",
+        "correctness": true,
+        "correctness_label": "TRUE",
+        "source_metadata_sha256": "bd951c8534279677cef48325b40e86c69b42adf75228eb432ee821144c30ec24",
+        "problem_sha256": "ac7860612a3bc4db25947b0de456c8c7bb70d006f61abf4fdc85e70e6b2bfecf",
+        "proof_sha256": "c3782e6b1fe730893e0d6448e3fb93856cfd215aeb83a363048c056ba2e12d0a",
+        "proof_chars": 1679
+      }
+    },
+    {
+      "example_id": "3086",
+      "problem": "Given a regular 16-gon, extend three of its sides to form a triangle none of whose vertices lie on the 16-gon itself. Compute the number of noncongruent triangles that can be formed in this manner.",
+      "proof": "Step 1:  Label the sides of the regular 16‑gon by \\(0,1,\\dots ,15\\) in cyclic order.  \nChoosing three sides \\(a<b<c\\) determines the gaps  \n\n\\[\nd_1=b-a,\\qquad d_2=c-b,\\qquad d_3=16-(c-a)=16-(d_1+d_2)\n\\]\n\nwith \\(d_1+d_2+d_3=16\\).\n\nStep 2:  For a triangle to be formed none of the chosen sides may be adjacent (otherwise two of the extended lines meet at a vertex of the 16‑gon) and no two may be opposite (otherwise the lines are parallel).  \nHence each gap must satisfy  \n\n\\[\nd_i\\ge 2\\qquad\\text{and}\\qquad d_i\\neq 8 .\n\\]\n\nStep 3:  Count unordered triples \\(\\{d_1,d_2,d_3\\}\\) of integers satisfying the above conditions.  \nWrite the triples in non‑decreasing order \\((a\\le b\\le c)\\).\n\n\\[\n\\begin{array}{c|c}\na & (a,b,c)\\\\ \\hline\n2 & (2,2,12),(2,3,11),(2,4,10),(2,5,9),(2,7,7)\\\\\n3 & (3,3,10),(3,4,9),(3,6,7)\\\\\n4 & (4,5,7),(4,6,6)\\\\\n5 & (5,5,6)\n\\end{array}\n\\]\n\nNo other values of \\(a\\) give admissible triples.  \nThus there are \\(5+3+2+1 = 11\\) distinct unordered triples.\n\nStep 4:  Rotating the whole 16‑gon cyclically or reflecting it merely permutes the three gaps, so each unordered triple corresponds to one congruence class of triangles. Hence the number of non‑congruent triangles that can be obtained is exactly the number of such triples.\n\n\\[\n\\boxed{11}\n\\]",
+      "metadata": {
+        "dataset": "olympiadbench_balanced_40_v1",
+        "source_dataset": "Hothan/OlympiadBench/OE_TO_maths_en_COMP",
+        "source_run_model": "openai/gpt-oss-120b",
+        "selector": "000235",
+        "topic": "Geometry",
+        "artifact": "full_response",
+        "correctness": true,
+        "correctness_label": "TRUE",
+        "source_metadata_sha256": "555750d20a482d7a33c83f0e20a66842dc31786e672cfcd956ec79a13313811f",
+        "problem_sha256": "3f597ab58616b8cfa061881d3e8109edae03c2fcd832949a44e5ce96f3f53a86",
+        "proof_sha256": "92704db3212ff6c46c78de31dd74e7359c26a8b84b7ffb7cf398e7a30f3baf48",
+        "proof_chars": 1262
+      }
+    },
+    {
+      "example_id": "2761",
+      "problem": "The degree-measures of the interior angles of convex hexagon TIEBRK are all integers in arithmetic progression. Compute the least possible degree-measure of the smallest interior angle in hexagon TIEBRK.",
+      "proof": "Step 1: Let the six interior angles be an arithmetic progression  \n\\[\na,\\;a+d,\\;a+2d,\\;a+3d,\\;a+4d,\\;a+5d,\n\\]\nwhere \\(a\\) and \\(d\\) are integers and \\(a\\) is the smallest angle (so \\(d\\ge 0\\)).\n\nStep 2: The sum of the interior angles of a convex hexagon is  \n\\[\n(6-2)\\times180 = 720^\\circ .\n\\]\nHence  \n\n\\[\n6a + 15d = 720\\qquad\\Longrightarrow\\qquad 2a + 5d = 240.\n\\]\n\nStep 3: Solve for integer solutions.  \nFrom \\(2a = 240-5d\\) we need \\(240-5d\\) even, so \\(d\\) must be even.  \nWrite \\(d = 2k\\) with \\(k\\ge 0\\). Then  \n\n\\[\na = \\frac{240-5(2k)}{2}=120-5k.\n\\]\n\nStep 4: Apply convex‑polygon constraints.  \nEach interior angle must satisfy \\(0^\\circ < \\text{angle} < 180^\\circ\\).\n\n- Smallest angle: \\(a = 120-5k > 0\\) ⇒ \\(k \\le 23\\).\n- Largest angle: \\(a+5d = 120-5k + 10k = 120+5k < 180\\) ⇒ \\(k \\le 11\\).\n\nThus \\(k\\) can be any integer \\(0\\le k\\le 11\\).\n\nStep 5: To minimize the smallest angle \\(a\\), maximize \\(k\\).  \nTake \\(k = 11\\):\n\n\\[\na = 120-5(11)=120-55 = 65^\\circ, \\qquad\nd = 2(11)=22^\\circ.\n\\]\n\nThe six angles are \\(65^\\circ, 87^\\circ, 109^\\circ, 131^\\circ, 153^\\circ, 175^\\circ\\); they are all integers, each less than \\(180^\\circ\\), and their sum is \\(720^\\circ\\). Such a set of angles can be realized by a convex hexagon.\n\nStep 6: Any larger \\(k\\) would make the largest angle \\(180^\\circ\\) or more, violating convexity. Hence \\(65^\\circ\\) is the least possible smallest interior angle.\n\n\\[\n\\boxed{65}\n\\]",
+      "metadata": {
+        "dataset": "olympiadbench_balanced_40_v1",
+        "source_dataset": "Hothan/OlympiadBench/OE_TO_maths_en_COMP",
+        "source_run_model": "openai/gpt-oss-120b",
+        "selector": "000290",
+        "topic": "Geometry",
+        "artifact": "full_response",
+        "correctness": true,
+        "correctness_label": "TRUE",
+        "source_metadata_sha256": "bfb4a9988c22e5d7ed9990337364f0ba122de779fba4024efaf94bab90a1854a",
+        "problem_sha256": "c2da476ee2408573216154ff16cb31c3ff2ef2e19db990509057b5f919cf11d7",
+        "proof_sha256": "a839750bcdf9731dad4cb15e70d9e576e3dff4a54065d092a232be227faee0c3",
+        "proof_chars": 1412
+      }
+    },
+    {
+      "example_id": "1929",
+      "problem": "Find all pairs $(m, n)$ of positive integers satisfying the equation\n\n$$\n\\left(2^{n}-1\\right)\\left(2^{n}-2\\right)\\left(2^{n}-4\\right) \\cdots\\left(2^{n}-2^{n-1}\\right)=m !\n\\tag{1}\n$$",
+      "proof": "Step 1:  Rewrite the product.  \n\\[\n\\begin{aligned}\n\\prod_{k=0}^{n-1}(2^{n}-2^{k})\n&=\\prod_{k=0}^{n-1}2^{k}\\bigl(2^{\\,n-k}-1\\bigr)\\\\\n&=2^{\\sum_{k=0}^{n-1}k}\\prod_{j=1}^{n}(2^{j}-1)\\\\\n&=2^{\\frac{n(n-1)}2}\\;\\prod_{j=1}^{n}(2^{j}-1).\n\\end{aligned}\n\\]\n\nThus the equation becomes  \n\n\\[\nm! = 2^{\\frac{n(n-1)}2}\\;\\prod_{j=1}^{n}(2^{j}-1).\\tag{1}\n\\]\n\nStep 2:  Use the 2‑adic valuation.  \nFor the left‑hand side\n\\[\nv_{2}(m!)=\\sum_{i\\ge1}\\Bigl\\lfloor\\frac{m}{2^{i}}\\Bigr\\rfloor=m-s_{2}(m),\n\\]\nwhere \\(s_{2}(m)\\) is the sum of the binary digits of \\(m\\).\nFrom (1) we obtain  \n\n\\[\nm-s_{2}(m)=\\frac{n(n-1)}2\\qquad\\Longrightarrow\\qquad \nm=\\frac{n(n-1)}2+s_{2}(m). \\tag{2}\n\\]\n\nSince \\(1\\le s_{2}(m)\\le \\log_{2}m+1\\), (2) forces  \n\n\\[\n\\frac{n(n-1)}2 < m \\le \\frac{n(n-1)}2+\\log_{2}m+1.\n\\]\n\nConsequently \\(m\\) is of order \\(\\frac{n^{2}}2\\).\n\nStep 3:  Compare sizes.  \nFrom the expression of the product we have  \n\n\\[\n2^{n(n-1)}<\\prod_{j=1}^{n}(2^{j}-1)\\,2^{\\frac{n(n-1)}2}<2^{n^{2}} .\n\\]\n\nHence  \n\n\\[\n2^{n(n-1)}<m!<2^{n^{2}}.\\tag{3}\n\\]\n\nFor \\(n\\ge5\\) we have \\( \\frac{n^{2}}2\\ge 13\\).  \nUsing Stirling’s estimate,\n\\[\n\\bigl(\\tfrac{n^{2}}2\\bigr)!\\;>\\;2^{\\,\\frac{n^{2}}2\\bigl(2\\log_{2}n-2.44\\bigr)}\\;>\\;2^{n^{2}}\n\\qquad (n\\ge5),\n\\]\nso the right‑hand side of (3) is already larger than \\(\\bigl(\\tfrac{n^{2}}2\\bigr)!\\).  \nBut (2) tells us that \\(m<\\frac{n^{2}}2+ \\log_{2}m+1\\), i.e. \\(m\\le\\frac{n^{2}}2\\) for \\(n\\ge5\\).  \nThus for \\(n\\ge5\\) the inequality (3) cannot hold – no solution exists.\n\nStep 4:  Check the remaining small values \\(n=1,2,3,4\\).\n\n* \\(n=1\\): product \\(=1\\). Hence \\(m!=1\\Rightarrow m=1\\).  \n\n* \\(n=2\\): product \\((4-1)(4-2)=3\\cdot2=6\\). Hence \\(m!=6\\Rightarrow m=3\\).  \n\n* \\(n=3\\): product \\(7\\cdot6\\cdot4=168\\). No factorial equals 168.  \n\n* \\(n=4\\): product \\(15\\cdot14\\cdot12\\cdot8=20160\\). No factorial equals 20160.\n\nThus the only solutions are those found for \\(n=1,2\\).\n\n\\[\n\\boxed{(m,n)=(1,1)\\ \\text{or}\\ (3,2)}\n\\]",
+      "metadata": {
+        "dataset": "olympiadbench_balanced_40_v1",
+        "source_dataset": "Hothan/OlympiadBench/OE_TO_maths_en_COMP",
+        "source_run_model": "openai/gpt-oss-120b",
+        "selector": "000078",
+        "topic": "Number Theory",
+        "artifact": "full_response",
+        "correctness": true,
+        "correctness_label": "TRUE",
+        "source_metadata_sha256": "a8883aa35673b51bf8c5f217e9b626d3188bfd1587afab7bb84fffda54d6d527",
+        "problem_sha256": "b1461e23bca170ecc2aa21d1a17ccffe2f6cb4a37605c952cb61980fb0969819",
+        "proof_sha256": "b221059e0357e7fcf874c42cc656879242182996623bbbf3c004c0a512236d0e",
+        "proof_chars": 1920
+      }
+    },
+    {
+      "example_id": "1832",
+      "problem": "Call a rational number short if it has finitely many digits in its decimal expansion. For a positive integer $m$, we say that a positive integer $t$ is $m$-tastic if there exists a number $c \\in\\{1,2,3, \\ldots, 2017\\}$ such that $\\frac{10^{t}-1}{c \\cdot m}$ is short, and such that $\\frac{10^{k}-1}{c \\cdot m}$ is not short for any $1 \\leqslant k<t$. Let $S(m)$ be the set of $m$-tastic numbers. Consider $S(m)$ for $m=1,2, \\ldots$ What is the maximum number of elements in $S(m)$ ?",
+      "proof": "Step 1:  \nA rational number is short (terminating) iff after reduction its denominator has only the prime factors \\(2\\) and \\(5\\).  \nFor a given positive integer \\(m\\) and a choice of \\(c\\in\\{1,\\dots ,2017\\}\\) let  \n\n\\[\nd=c\\,m .\n\\]\n\nWrite \\(d=2^{a}5^{b}n\\) where \\(n\\) is coprime to \\(10\\).  \nAfter cancelling the common factors of \\(10^{t}-1\\) and \\(d\\), the reduced denominator is \\(n/\\gcd (n,10^{t}-1)\\).  \nThus \\(\\dfrac{10^{t}-1}{c m}\\) is short exactly when \\(n\\mid 10^{t}-1\\).\n\nStep 2:  \nLet \\(\\operatorname{ord}_{n}(10)\\) be the multiplicative order of \\(10\\) modulo \\(n\\); i.e. the smallest positive integer \\(t\\) such that \\(10^{t}\\equiv1\\pmod n\\).  \nFrom the observation above, for a fixed \\(c\\) the smallest \\(t\\) that makes the fraction short is precisely  \n\n\\[\nt=\\operatorname{ord}_{n}(10),\\qquad n=\\frac{c\\,m}{2^{a}5^{b}} .\n\\]\n\nHence each \\(c\\) contributes at most one element to \\(S(m)\\), namely the order of \\(10\\) modulo the part of \\(c m\\) that is coprime to \\(10\\).\n\nStep 3:  \nDefine  \n\n\\[\nc'=\\frac{c}{2^{\\alpha_c}5^{\\beta_c}},\n\\]\n\nthe integer obtained from \\(c\\) after removing all factors \\(2\\) and \\(5\\).  \nThen \\(c'\\) is never divisible by \\(2\\) or \\(5\\).  \nIf we write \\(m=2^{u}5^{v}r\\) with \\(\\gcd(r,10)=1\\), the number that matters for the order is  \n\n\\[\nn = r\\;c'.\n\\]\n\nThus the set of possible \\(n\\) values, as \\(c\\) ranges from \\(1\\) to \\(2017\\), is exactly  \n\n\\[\n\\{\\,r\\;c' \\mid c' \\le 2017,\\; 2\\nmid c',\\;5\\nmid c'\\,\\}.\n\\]\n\nConsequently the cardinality of \\(S(m)\\) cannot exceed the number of integers \\(\\le 2017\\) that are not divisible by \\(2\\) or \\(5\\).\n\nStep 4:  \nCount those integers:\n\n\\[\n\\begin{aligned}\n\\#\\{1\\le x\\le 2017\\mid 2\\nmid x,5\\nmid x\\}\n&=2017-\\Big\\lfloor\\frac{2017}{2}\\Big\\rfloor-\\Big\\lfloor\\frac{2017}{5}\\Big\\rfloor\n+\\Big\\lfloor\\frac{2017}{10}\\Big\\rfloor\\\\[2mm]\n&=2017-1008-403+201\\\\\n&=807 .\n\\end{aligned}\n\\]\n\nHence \\(|S(m)|\\le 807\\) for every positive integer \\(m\\).\n\nStep 5:  \nThe bound is attainable.  \nChoose \\(m\\) to be a power of \\(2\\) times a power of \\(5\\) (so that \\(r=1\\)).  \nThen each admissible \\(c'\\) gives a distinct \\(n=c'\\).  \nFor distinct \\(n\\) the orders \\(\\operatorname{ord}_{n}(10)\\) are distinct, because if two different numbers \\(n_1\\neq n_2\\) (both coprime to \\(10\\)) had the same order, the smallest exponent making \\(10^{t}\\equiv1\\) would divide both \\(n_1-1\\) and \\(n_2-1\\), forcing a coincidence that does not occur for any pair of numbers in this range.  \nThus every one of the \\(807\\) values of \\(c'\\) yields a different minimal \\(t\\), and all of them belong to \\(S(m)\\).\n\nTherefore the maximal possible size of \\(S(m)\\) is exactly \\(807\\).\n\n\\[\n\\boxed{807}\n\\]",
+      "metadata": {
+        "dataset": "olympiadbench_balanced_40_v1",
+        "source_dataset": "Hothan/OlympiadBench/OE_TO_maths_en_COMP",
+        "source_run_model": "openai/gpt-oss-120b",
+        "selector": "000137",
+        "topic": "Number Theory",
+        "artifact": "full_response",
+        "correctness": true,
+        "correctness_label": "TRUE",
+        "source_metadata_sha256": "cba0ee764f9b7c731815b5384fddf6efcd9663ad451440e100d4734a0edc467b",
+        "problem_sha256": "ace20fb4dfd6e6fa1f1f1a68cd20640228fcd50ebb8230fbbaf3dde75a0cb253",
+        "proof_sha256": "b9945fe0d363e5ae90761b1f0cf7ea18528f1872dbc846bd027c23346e2bd048",
+        "proof_chars": 2636
+      }
+    },
+    {
+      "example_id": "2892",
+      "problem": "Compute the integer $n$ such that $2009<n<3009$ and the sum of the odd positive divisors of $n$ is 1024 .",
+      "proof": "Step 1: Write \\(n\\) as \\(n=2^{k}\\,m\\) where \\(m\\) is odd.  \nThe odd positive divisors of \\(n\\) are exactly the divisors of \\(m\\); therefore  \n\n\\[\n\\sum_{\\substack{d\\mid n\\\\ d\\text{ odd}}} d = \\sigma(m)=1024 .\n\\]\n\nStep 2: Factor \\(m\\).  \nFor an odd prime power \\(p^{a}\\),\n\n\\[\n\\sigma(p^{a})=\\frac{p^{a+1}-1}{p-1}=1+p+\\dots +p^{a}.\n\\]\n\nSince \\(\\sigma(m)=1024=2^{10}\\) is a power of two, each factor \\(\\sigma(p^{a})\\) must itself be a power of two.\n\nStep 3: Find odd prime powers whose divisor‑sum is a power of two.  \nThe only possibilities are \\(a=1\\) with \\(p+1=2^{t}\\), i.e. \\(p=2^{t}-1\\) must be a Mersenne prime.  \nThe known such primes with \\(t\\le10\\) are  \n\n\\[\nt=2:\\;p=3,\\qquad\nt=3:\\;p=7,\\qquad\nt=5:\\;p=31,\\qquad\nt=7:\\;p=127 .\n\\]\n\nThus each contributes a factor \\(2^{t}\\) to the product \\(\\sigma(m)\\).\n\nStep 4: Choose a set of these \\(t\\)’s whose sum is \\(10\\) (because \\(2^{10}=1024\\)).  \nThe possible selections are  \n\n\\[\n5+3+2=10 \\quad\\Longrightarrow\\quad m=31\\cdot7\\cdot3=651,\n\\]\n\\[\n7+3=10 \\quad\\Longrightarrow\\quad m=127\\cdot7=889.\n\\]\n\nBoth give \\(\\sigma(m)=4\\cdot8\\cdot32=1024\\).\n\nStep 5: Attach the power of two factor \\(2^{k}\\) and enforce \\(2009<n<3009\\).\n\n- For \\(m=651\\):\n  \\[\n  2^{0}\\cdot651=651,\\;2^{1}\\cdot651=1302,\\;2^{2}\\cdot651=2604,\\;2^{3}\\cdot651=5208.\n  \\]\n  Only \\(2604\\) lies in the required interval.\n\n- For \\(m=889\\):\n  \\[\n  2^{0}\\cdot889=889,\\;2^{1}\\cdot889=1778,\\;2^{2}\\cdot889=3556,\n  \\]\n  none of which are between \\(2009\\) and \\(3009\\).\n\nHence the unique integer satisfying the conditions is \\(n=2604\\).\n\n\\[\n\\boxed{2604}\n\\]",
+      "metadata": {
+        "dataset": "olympiadbench_balanced_40_v1",
+        "source_dataset": "Hothan/OlympiadBench/OE_TO_maths_en_COMP",
+        "source_run_model": "openai/gpt-oss-120b",
+        "selector": "000181",
+        "topic": "Number Theory",
+        "artifact": "full_response",
+        "correctness": true,
+        "correctness_label": "TRUE",
+        "source_metadata_sha256": "53392462400cf080f9bd33e1d777960de4a227e6e899a61baa4723703dd2f439",
+        "problem_sha256": "d68fa46830b45829fbea85f26001e8a179147127ff48e9099dfd36c40b61b4e9",
+        "proof_sha256": "7a250747400e6ae8d22f6f4f05e3d9c4131e9a5c771ef429e0716ba7809272c7",
+        "proof_chars": 1555
+      }
+    },
+    {
+      "example_id": "2954",
+      "problem": "Compute the smallest positive integer $n$ such that $n^{n}$ has at least 1,000,000 positive divisors.",
+      "proof": "Step 1:  Write \\(n\\) in its prime factorisation \\(n=\\prod p_i^{a_i}\\).  \nThen  \n\n\\[\nn^{n}= \\prod p_i^{a_i n}\n\\]\n\nand the number of positive divisors of \\(n^{n}\\) is  \n\n\\[\nd(n^{n})=\\prod (a_i n+1).\n\\]\n\nStep 2:  To minimise \\(n\\) we use the smallest primes and keep the exponents as small as possible while making the product \\(\\prod (a_i n+1)\\) at least \\(10^{6}\\).\n\nStep 3:  Test numbers built from the smallest primes.\n\n* With three distinct primes each to the first power, \\(n=pqr\\) and  \n  \\(d(n^{n})=(n+1)^3\\).  \n  The inequality \\((n+1)^3\\ge 10^{6}\\) gives \\(n\\ge 99\\).  \n  The smallest such \\(n\\) is \\(2\\cdot3\\cdot17=102\\), which works but is not minimal.\n\n* Try numbers with two distinct primes, one possibly raised to a higher power.  \n  The smallest such \\(n\\) that satisfies the divisor condition is \\(n=384\\), larger than the candidate above.\n\n* Try numbers with three distinct primes where one prime is squared.  \n  The first candidate that succeeds is \\(n=84=2^{2}\\cdot3\\cdot7\\).\n\nStep 4:  Verify \\(n=84\\).\n\n\\[\n\\begin{aligned}\na_2 &=2,\\; a_3 =1,\\; a_7 =1,\\\\\nd(84^{84}) &= (2\\cdot84+1)(1\\cdot84+1)(1\\cdot84+1)\\\\\n           &= 169\\cdot85\\cdot85\\\\\n           &= 1\\,221\\,025\\;>\\;1\\,000\\,000.\n\\end{aligned}\n\\]\n\nStep 5:  Check all integers \\(n<84\\).  \nFor each \\(n<84\\) the product \\(\\prod (a_i n+1)\\) is at most \\(493\\,039\\) (attained at \\(n=78\\)), which is below \\(10^{6}\\). Hence no smaller \\(n\\) works.\n\nTherefore the smallest positive integer \\(n\\) such that \\(n^{n}\\) has at least \\(1\\,000\\,000\\) divisors is  \n\n\\[\n\\boxed{84}\n\\]",
+      "metadata": {
+        "dataset": "olympiadbench_balanced_40_v1",
+        "source_dataset": "Hothan/OlympiadBench/OE_TO_maths_en_COMP",
+        "source_run_model": "openai/gpt-oss-120b",
+        "selector": "000207",
+        "topic": "Number Theory",
+        "artifact": "full_response",
+        "correctness": true,
+        "correctness_label": "TRUE",
+        "source_metadata_sha256": "ea951eaab383d424c8045ba936bb7c80b67bc2f9ffa520fd90410bbc3e2f6b95",
+        "problem_sha256": "e0af905ff3f1ffd907166558758d620d5e6dcdfef11f09cf0f6004d583a76d19",
+        "proof_sha256": "c59e879cb129239fec19d811d991561737385a8c46e29bcdaa08bd19e79e727b",
+        "proof_chars": 1541
+      }
+    },
+    {
+      "example_id": "1869",
+      "problem": "Denote by $\\mathbb{N}$ the set of all positive integers. Find all functions $f: \\mathbb{N} \\rightarrow \\mathbb{N}$ such that for all positive integers $m$ and $n$, the integer $f(m)+f(n)-m n$ is nonzero and divides $m f(m)+n f(n)$.",
+      "proof": "Step 1:  \nPut \\(a_m=f(m)\\) and define  \n\\[\nd_m=2a_m-m^{2}\\qquad (m\\in\\mathbb N).\n\\]  \nThen \\(a_m=\\dfrac{m^{2}+d_m}{2}\\) and the condition of the problem becomes  \n\n\\[\n\\bigl((m-n)^2+d_m+d_n\\bigr)\\;\\big|\\; \\bigl(m^{3}+n^{3}+m d_m+n d_n\\bigr) \\tag{1}\n\\]\n\nfor all \\(m,n\\).  \n\nStep 2:  \nTaking \\(m=n\\) gives  \n\\[\nd_m\\mid 2m a_m=m\\bigl(m^{2}+d_m\\bigr)\\Longrightarrow d_m\\mid m^{3}.\n\\]  \nHence each \\(d_m\\) is a (possibly negative) divisor of \\(m^{3}\\) and\n\\(d_m\\equiv m\\pmod 2\\) (so that \\(a_m\\) is integral).\n\nStep 3:  \nPut \\(n=1\\).  Since \\(d_1\\mid 1\\) and \\(d_1\\equiv1\\pmod2\\), we must have \\(d_1=1\\) and consequently \\(a_1=1\\).\n\nWith \\(n=1\\) formula (1) becomes  \n\n\\[\n\\bigl((m-1)^2+d_m+1\\bigr)\\;\\big|\\; 2\\bigl(m^{2}-m+1\\bigr).\\tag{2}\n\\]\n\nDenote \\(T_m=(m-1)^2+d_m+1=m^{2}-2m+d_m+2\\).  \nFrom (2) we obtain \\(|T_m|\\le 2(m^{2}-m+1)\\), which yields  \n\n\\[\n-m^{2}\\le d_m\\le m^{2}\\qquad (m\\ge 2). \\tag{3}\n\\]\n\nTogether with \\(d_m\\mid m^{3}\\) the only possibilities for \\(|d_m|\\) are  \n\\(1,\\;m,\\;m^{2}\\) (any other divisor of \\(m^{3}\\) would exceed the bound (3)).\n\nStep 4:  \nWe now eliminate the three possibilities.\n\n*If \\(d_m=1\\):*  then \\(T_m=m^{2}-2m+3\\).  From (2) we would need  \n\\(m^{2}-2m+3\\mid 2(m^{2}-m+1)\\).  For \\(m\\ge2\\) the quotient is not an integer, so this is impossible (the only admissible case is \\(m=1\\), already handled).\n\n*If \\(d_m=m\\):*  then \\(T_m=m^{2}-m+2\\).  Condition (2) would give  \n\\(m^{2}-m+2\\mid 2(m^{2}-m+1)\\), i.e. the divisor must also divide \\(2\\).  \nHence \\(m^{2}-m+2\\le2\\), which forces \\(m=1\\).  Thus \\(d_m=m\\) cannot occur for any \\(m\\ge2\\).\n\n*If \\(d_m=-m\\):*  then \\(T_m=(m-1)(m-2)\\).  For \\(m\\ge3\\) we have  \n\\((m-1)(m-2)\\mid 2(m^{2}-m+1)\\) which is false already for \\(m=4\\).  \nHence this case is also impossible.\n\nConsequently the only remaining possibility compatible with (3) is  \n\n\\[\nd_m=m^{2}\\qquad\\text{for every }m\\in\\mathbb N .\n\\]\n\nStep 5:  \nWith \\(d_m=m^{2}\\) we obtain  \n\n\\[\na_m=\\frac{m^{2}+d_m}{2}= \\frac{m^{2}+m^{2}}{2}=m^{2}.\n\\]\n\nFinally we verify that \\(f(m)=m^{2}\\) satisfies the original requirement:\n\\[\nf(m)+f(n)-mn=m^{2}+n^{2}-mn=m^{2}-mn+n^{2},\n\\]\n\\[\nm f(m)+n f(n)=m^{3}+n^{3}=(m+n)\\bigl(m^{2}-mn+n^{2}\\bigr),\n\\]\nso the divisor indeed divides the numerator and is never zero.\n\nThus the unique function is  \n\n\\[\n\\boxed{f(n)=n^{2}\\text{ for all }n\\in\\mathbb N}.\n\\]",
+      "metadata": {
+        "dataset": "olympiadbench_balanced_40_v1",
+        "source_dataset": "Hothan/OlympiadBench/OE_TO_maths_en_COMP",
+        "source_run_model": "openai/gpt-oss-120b",
+        "selector": "000263",
+        "topic": "Number Theory",
+        "artifact": "full_response",
+        "correctness": true,
+        "correctness_label": "TRUE",
+        "source_metadata_sha256": "3f85af24fb749a0d318ca2951d27a70a76fb59a7af2697284113256c75a41e68",
+        "problem_sha256": "ede120edc3d46ac64063f6d1055908023bb2d51cb2c39942e2e71021c1b5b2f0",
+        "proof_sha256": "a8d7b2dc3a5286e8a2d10180bfa189e67662267f267abb065984a5d8ff8b3d84",
+        "proof_chars": 2315
+      }
+    }
+  ]
+}

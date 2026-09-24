@@ -45,7 +45,7 @@ Discovery mechanisms are counted within source sessions and may be merged during
 Every run compares a generic mutator with a frozen-strategy-guided mutator, independently checks whether the introduced error is genuine, and sends each valid mutation to multiple blind error-inventory judges. A separate matcher determines whether each judge report identified the introduced error. The mean is the total number of blind reviews that missed the introduced error divided by the number of valid mutations in that arm. Parentheses report the candidate-level sample standard deviation (SD) of the number of missed judges. Invalid mutations are excluded. The maximum is three judges.
 
 The completed Claude Code Olympiad rerun uses the frozen selector manifest
-`local_datasets/generated_proof_datasets/olympiadbench_balanced_40_v1_manifest.json`.
+`local_datasets/olympiadbench_balanced_40_v1_manifest.json`.
 This corpus has 20
 discovery and 20 evaluation proofs, with five each of Algebra, Combinatorics,
 Geometry, and Number Theory in both splits. All 40 problem IDs and normalized problem
@@ -71,7 +71,7 @@ of the 20 evaluation proofs: 0 strategy-only, 0 generic-only, 0 both, and 20 nei
 (paired risk difference 0.00; exact one-sided p = 1.0; alpha = 0.01).
 
 The completed Claude Code graduate-course discovery run uses
-`local_datasets/generated_proof_datasets/graduate_course_dossiers_v1.json`.
+`local_datasets/graduate_course_dossiers_v1.json`.
 This corpus has ten discovery and ten evaluation dossiers; each split contains
 four algebra/number-theory, three analysis, and three geometry/topology
 dossiers. The 20 disjoint source ranges are 6,542–12,926 words long and use

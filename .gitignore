@@ -156,7 +156,16 @@ venv/
 ENV/
 env.bak/
 venv.bak/
-/local_datasets/
+# Local datasets are ignored by default. Version-control only the canonical,
+# self-contained inputs for the four datasets reported in QUANTITATIVE_RESULTS.md.
+/local_datasets/*
+!/local_datasets/graduate_course_dossiers_v1.json
+!/local_datasets/olympiadbench_balanced_40_v1.json
+!/local_datasets/olympiadbench_balanced_40_v1_manifest.json
+!/local_datasets/recent_math_research_dossiers_clean_v1.json
+!/local_datasets/openai_ten_advances_2026/
+/local_datasets/openai_ten_advances_2026/*
+!/local_datasets/openai_ten_advances_2026/proofs_markdown/
 
 # Spyder project settings
 .spyderproject
@@ -251,5 +260,8 @@ CppProperties.json
 
 logs
 
-# Local/generated strategy libraries; supply explicit paths to experiment runners.
-/src/proof_fuzzer/data/
+# Generated strategy libraries are ignored except for the audited TCS library used
+# by the headline frozen evaluation.
+/src/proof_fuzzer/data/*
+!/src/proof_fuzzer/data/audited_persistent_strategies_20260909.md
+!/src/proof_fuzzer/data/audited_persistent_strategies_20260909.jsonl

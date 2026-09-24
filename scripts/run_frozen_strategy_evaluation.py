@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Evaluate a frozen strategy library on fresh OlympiadBench proofs."""
+"""Evaluate a frozen strategy library on fresh held-out proofs."""
 
 import argparse
 import json
@@ -8,23 +8,20 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from src.proof_fuzzer.datasets.olympiadbench import load_examples, load_split_manifest
 from src.proof_fuzzer.datasets.json_split import load_json_split
 from src.proof_fuzzer.frozen_evaluation import run_frozen_evaluation
+from src.proof_fuzzer.openai_ten_advances import load_openai_ten_advances_split
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     source = parser.add_mutually_exclusive_group(required=True)
-    source.add_argument("--dataset-root", type=Path)
     source.add_argument("--split-json", type=Path)
+    source.add_argument("--tcs-root", type=Path)
     parser.add_argument("--strategy-path", required=True, type=Path)
     parser.add_argument("--storage-dir", required=True, type=Path)
-    selection = parser.add_mutually_exclusive_group()
-    selection.add_argument("--heldout-folders", nargs="+")
-    selection.add_argument("--olympiad-split-manifest", type=Path)
     parser.add_argument("--model")
-    parser.add_argument("--provider", choices=("codex", "claude-code", "gemini-cli"),
+    parser.add_argument("--provider", choices=("codex", "claude-code"),
                         default="codex")
     parser.add_argument("--reasoning-effort", default="medium")
     parser.add_argument("--seed", type=int, default=20260913)
@@ -41,24 +38,14 @@ def main() -> None:
         help="JSON object mapping every held-out selector to one directive per candidate")
     args = parser.parse_args()
     default_models = {
-        "codex": "gpt-5.6-luna",
-        "claude-code": "sonnet",
-        "gemini-cli": "gemini-3.5-flash",
+        "codex": "gpt-5.6-sol",
+        "claude-code": "claude-opus-5",
     }
     model = args.model or default_models[args.provider]
-    if args.split_json:
-        if args.heldout_folders or args.olympiad_split_manifest:
-            parser.error("--split-json cannot be combined with Olympiad folder selectors")
-        _, heldout = load_json_split(args.split_json.resolve())
-    elif args.olympiad_split_manifest:
-        _, heldout = load_split_manifest(
-            args.dataset_root.resolve(), args.olympiad_split_manifest.resolve())
-    elif args.heldout_folders:
-        heldout = load_examples(
-            args.dataset_root.resolve(), args.heldout_folders,
-            proof_artifact="model_response", require_correct=True)
+    if args.tcs_root:
+        _, heldout = load_openai_ten_advances_split(args.tcs_root.resolve())
     else:
-        parser.error("--dataset-root requires --heldout-folders or --olympiad-split-manifest")
+        _, heldout = load_json_split(args.split_json.resolve())
     assignments = (json.loads(args.strategy_assignments.read_text())
                    if args.strategy_assignments else None)
     run_frozen_evaluation(heldout=heldout, strategy_path=args.strategy_path,

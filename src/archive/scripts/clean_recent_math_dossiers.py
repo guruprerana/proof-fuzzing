@@ -323,17 +323,17 @@ def main() -> None:
     parser.add_argument(
         "--input",
         type=Path,
-        default=Path("local_datasets/generated_proof_datasets/recent_math_research_dossiers_v1.json"),
+        default=Path("local_datasets/recent_math_research_dossiers_v1.json"),
     )
     parser.add_argument(
         "--output",
         type=Path,
-        default=Path("local_datasets/generated_proof_datasets/recent_math_research_dossiers_clean_v1.json"),
+        default=Path("local_datasets/recent_math_research_dossiers_clean_v1.json"),
     )
     parser.add_argument(
         "--pilot-output",
         type=Path,
-        default=Path("local_datasets/generated_proof_datasets/recent_math_research_dossiers_clean_pilot3_v1.json"),
+        default=Path("local_datasets/recent_math_research_dossiers_clean_pilot3_v1.json"),
     )
     parser.add_argument(
         "--audit-dir",

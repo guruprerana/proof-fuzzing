@@ -1,0 +1,20 @@
+{
+  "name": "olympiadbench_balanced_40_v1",
+  "source": "Hothan/OlympiadBench/OE_TO_maths_en_COMP via gpt-oss-120b run artifacts",
+  "proof_artifact": "full_response",
+  "correctness_label": "TRUE",
+  "proofs_per_topic_per_split": 5,
+  "selection_notes": "Forty distinct text-only problem IDs. Each selected full_response has correctness.txt=TRUE. Discovery and heldout each contain five Algebra, Combinatorics, Geometry, and Number Theory examples.",
+  "discovery": {
+    "Algebra": ["000057", "000102", "000143", "000204", "000241"],
+    "Combinatorics": ["000031", "000051", "000077", "000131", "000173"],
+    "Geometry": ["000099", "000107", "000184", "000244", "000247"],
+    "Number Theory": ["000053", "000089", "000135", "000194", "000226"]
+  },
+  "heldout": {
+    "Algebra": ["000047", "000108", "000132", "000187", "000287"],
+    "Combinatorics": ["000061", "000100", "000169", "000222", "000275"],
+    "Geometry": ["000039", "000059", "000072", "000235", "000290"],
+    "Number Theory": ["000078", "000137", "000181", "000207", "000263"]
+  }
+}

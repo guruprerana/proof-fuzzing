@@ -11,7 +11,7 @@ from scripts.build_graduate_course_dossiers import DATASET, build
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE_DIR = ROOT / "local_datasets/graduate_course_dossiers_v1_sources"
-DATASET_PATH = ROOT / "local_datasets/generated_proof_datasets/graduate_course_dossiers_v1.json"
+DATASET_PATH = ROOT / "local_datasets/graduate_course_dossiers_v1.json"
 
 
 class GraduateCourseDossiersTests(unittest.TestCase):

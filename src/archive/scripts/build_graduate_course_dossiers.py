@@ -366,7 +366,7 @@ def main() -> None:
     parser.add_argument(
         "--output",
         type=Path,
-        default=Path("local_datasets/generated_proof_datasets/graduate_course_dossiers_v1.json"),
+        default=Path("local_datasets/graduate_course_dossiers_v1.json"),
     )
     args = parser.parse_args()
     payload = build(args.source_dir)

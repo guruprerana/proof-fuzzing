@@ -5,8 +5,8 @@ import json
 from pathlib import Path
 
 
-SOURCE = Path("local_datasets/generated_proof_datasets/recent_math_research_dossiers_clean_v1.json")
-OUTPUT = Path("local_datasets/generated_proof_datasets/recent_math_research_dossiers_clean_extension2_v1.json")
+SOURCE = Path("local_datasets/recent_math_research_dossiers_clean_v1.json")
+OUTPUT = Path("local_datasets/recent_math_research_dossiers_clean_extension2_v1.json")
 IDS = {"arxiv_2309_06944", "arxiv_2412_13499"}
 
 

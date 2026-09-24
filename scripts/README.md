@@ -1,138 +1,87 @@
-# Supported workflow
+# Main experiment workflow
 
-The current experimental pipeline uses two separate commands:
+The supported pipeline has two separate stages:
 
-1. persistent discovery agents make repeated mutation attempts;
-2. independent agents validate errors, measure judge detection, and classify novelty;
-3. discovery mechanisms are deduplicated into a frozen strategy library; and
-4. a separate evaluator compares generic and strategy-guided mutation on held-out
-   examples, with one fresh session per candidate and no feedback between candidates.
+1. `run_strategy_transfer.py` runs persistent discovery agents,
+   independent validation and matching, and strategy distillation.
+2. `run_frozen_strategy_evaluation.py` compares generic and strategy-guided mutation
+   on held-out proofs with a fresh session for every candidate.
 
-Run `run_strategy_transfer.py --discovery-only` for steps 1–3, then pass its
-`distillation/strategies.md` artifact to `run_frozen_strategy_evaluation.py` for
-step 4. This separation prevents evaluation evidence from changing the library or
-influencing later evaluation candidates.
+The supported providers are Codex with GPT-5.6-sol and Claude Code with Claude Opus 5.
+Both must already be authenticated. Python dependencies are listed in
+`requirements.txt`; Claude additionally requires the `claude` executable.
 
-The orchestration function `src.proof_fuzzer.run_strategy_transfer` accepts any objects
-implementing the small `ProofExample` protocol (`example_id`, `problem`, and `proof`).
-This is the integration point for OpenAI Ten, IMO-GradeBench, ProofBenchJudge, REFLECT,
-MedPRMBench, and future datasets. Dataset-specific loading and splitting stay outside the
-pipeline. The CLI accepts either the OlympiadBench adapter or a dataset-neutral `--split-json`;
-additional adapters belong in `src/proof_fuzzer/datasets/`, without duplicating the pipeline.
+## Dataset inputs
+
+Three datasets use self-contained JSON splits:
+
+- `local_datasets/olympiadbench_balanced_40_v1.json`
+- `local_datasets/graduate_course_dossiers_v1.json`
+- `local_datasets/recent_math_research_dossiers_clean_v1.json`
+
+TCS uses the ten Markdown proofs under:
+
+- `local_datasets/openai_ten_advances_2026/proofs_markdown/`
+
+The TCS loader reproduces the reported five-proof discovery partition
+(`03`, `04`, `05`, `08`, and `10`) and uses the other five proofs for evaluation.
+
+## Discovery and distillation
+
+For a JSON dataset with GPT-5.6-sol:
 
 ```bash
 .venv/bin/python scripts/run_strategy_transfer.py \
-  --dataset-root /path/to/olympiadbench \
-  --storage-dir logs/strategy_discovery/run_name \
-  --olympiad-split-manifest local_datasets/generated_proof_datasets/olympiadbench_balanced_40_v1_manifest.json \
-  --model gpt-5.6-terra \
+  --split-json local_datasets/graduate_course_dossiers_v1.json \
+  --storage-dir logs/by_dataset/graduate_course/gpt56sol_discovery \
+  --provider codex \
+  --model gpt-5.6-sol \
   --reasoning-effort medium \
-  --discovery-only
+  --discovery-attempts 25 \
+  --discovery-workers 10
 ```
 
-The local Olympiad manifest selects 40 unique text-only problem IDs. Discovery
-and evaluation each contain exactly five Algebra, Combinatorics, Geometry, and Number
-Theory examples. The adapter submits each selected `full_response`, requires its
-`correctness.txt` label to be `TRUE`, and rejects duplicate IDs or normalized problem
-statements. Explicit `--discovery-folders` and `--heldout-folders` remain available,
-but each must contain 20 selectors and pass the same balance and correctness checks.
-
-To run discovery and distillation entirely through restricted Claude Code processes:
+For TCS with Claude Opus 5:
 
 ```bash
 .venv/bin/python scripts/run_strategy_transfer.py \
-  --split-json local_datasets/generated_proof_datasets/olympiadbench_balanced_40_v1.json \
-  --storage-dir logs/by_dataset/olympiad/claude_discovery_run \
+  --tcs-root local_datasets/openai_ten_advances_2026/proofs_markdown \
+  --storage-dir logs/by_dataset/tcs_open_problems/opus5_discovery \
   --provider claude-code \
-  --model sonnet \
+  --model claude-opus-5 \
   --reasoning-effort medium \
   --discovery-attempts 25 \
-  --discovery-workers 20 \
-  --discovery-only
+  --discovery-workers 5
 ```
 
-Each proof gets one resumable Claude conversation across its mutation attempts. The
-blind judge, validity checker, introduced-error matcher, novelty classifier, and
-distiller are fresh Claude processes. The manifest records Claude Code for every role.
+Each proof gets one persistent mutation conversation during discovery. Blind judges,
+validators, matchers, novelty classifiers, and the distiller use fresh calls. All run
+artifacts are written below `--storage-dir`. Use `--dry-run` to validate and snapshot
+the split without model calls.
 
-Gemini CLI can be selected in the same way:
+If a Claude discovery run is interrupted by quota exhaustion, resume it with
+`resume_strategy_discovery.py` and the same `--split-json` or `--tcs-root` input.
+Provider-native session state must still be available on that machine.
 
-```bash
-.venv/bin/python scripts/run_strategy_transfer.py \
-  --split-json local_datasets/generated_proof_datasets/olympiadbench_balanced_40_v1.json \
-  --storage-dir logs/by_dataset/olympiad/gemini_discovery_run \
-  --provider gemini-cli \
-  --model gemini-3.5-flash \
-  --discovery-attempts 25 \
-  --discovery-workers 20 \
-  --discovery-only
-```
-
-This routes every model role to restricted Gemini CLI processes and uses one resumable
-Gemini conversation per proof. Gemini CLI currently has no reasoning-effort option, so
-its manifests record `reasoning_effort: null`, the requested value separately, and
-`provider_supports_reasoning_effort: false`.
-
-All prompts, responses, event streams, full mutations, explanations, diffs,
-assessments, feedback, and distilled strategies are saved below `--storage-dir`.
-Use `--dry-run` to validate and snapshot a split without model calls.
-
-Without `--discovery-only`, `run_strategy_transfer.py` also runs its original
-persistent-session evaluation. That integrated mode is retained for reproduction and
-adaptive exploratory experiments, but it is not the current frozen-evaluation
-protocol.
-
-The REFLECT process-level trace adapter currently exposes the original integrated,
-adaptive workflow through its trace profile:
-
-```bash
-.venv/bin/python scripts/run_agent_trace_strategy_transfer.py \
-  --dataset-root local_datasets/REFLECT \
-  --storage-dir logs/prompt_evolution_experiments/reflect_run \
-  --model gpt-5.6-terra \
-  --reasoning-effort medium \
-  --discovery-traces 5 \
-  --heldout-traces 5 \
-  --discovery-attempts 25 \
-  --evaluation-attempts-per-trace 5
-```
-
-This adapter splits by `trace_id`, submits one complete trace at a time, and never gives
-the blind judge an original/reference trace or mutation explanation. A structural guard
-requires each candidate to preserve the full JSON trace and alter the content of exactly
-one existing step. The original-trace control is used only by the independent matcher.
-It does not yet provide the separate fresh-candidate frozen-evaluation stage described
-above, so use it for reproduction or exploratory trace experiments rather than as an
-implementation of the current evaluation protocol.
-
-For the held-out stage, run independent generic and strategy-guided candidates with
-three blind reviews per valid mutation:
+## Frozen evaluation
 
 ```bash
 .venv/bin/python scripts/run_frozen_strategy_evaluation.py \
-  --split-json local_datasets/generated_proof_datasets/olympiadbench_balanced_40_v1.json \
-  --strategy-path logs/strategy_discovery/run_name/distillation/strategies.md \
-  --storage-dir logs/frozen_evaluation/run_name \
-  --provider claude-code \
-  --model claude-opus-5 \
-  --attempts-per-arm 3
+  --split-json local_datasets/graduate_course_dossiers_v1.json \
+  --strategy-path logs/by_dataset/graduate_course/gpt56sol_discovery/distillation/strategies.md \
+  --storage-dir logs/by_dataset/graduate_course/gpt56sol_frozen_eval \
+  --provider codex \
+  --model gpt-5.6-sol \
+  --reasoning-effort medium \
+  --attempts-per-arm 5 \
+  --reviews-per-valid-candidate 3
 ```
 
-This command freezes the strategy hash and job order in its manifest before model
-calls. Every candidate receives a fresh mutation session, evaluation feedback is not
-returned to later candidates, and the primary comparison is paired at the proof level.
+For TCS, replace `--split-json ...` with:
 
-`distill_replicated_strategy.py` can build a subsequent library from valid mutations
-missed by at least two of three independent reviews. By default it rejects incomplete
-source runs; allowing partial runs is explicitly marked as exploratory.
-
-Historical commands are under `src/archive/scripts/` and are unsupported.
-
-For any other benchmark, `--split-json` accepts:
-
-```json
-{
-  "discovery": [{"example_id": "train-1", "problem": "...", "proof": "...", "metadata": {}}],
-  "heldout": [{"example_id": "test-1", "problem": "...", "proof": "...", "metadata": {}}]
-}
+```text
+--tcs-root local_datasets/openai_ten_advances_2026/proofs_markdown
 ```
+
+The evaluator freezes the strategy hash and job order before model calls. Evaluation
+feedback is never returned to later mutation candidates.

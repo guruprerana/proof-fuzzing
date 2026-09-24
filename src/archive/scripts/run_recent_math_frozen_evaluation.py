@@ -11,7 +11,7 @@ from src.proof_fuzzer.datasets.json_split import load_json_split
 from src.proof_fuzzer.frozen_evaluation import run_frozen_evaluation
 
 
-DEFAULT_SPLIT = Path("local_datasets/generated_proof_datasets/recent_math_research_dossiers_clean_v1.json")
+DEFAULT_SPLIT = Path("local_datasets/recent_math_research_dossiers_clean_v1.json")
 DEFAULT_STRATEGY = Path(
     "logs/by_dataset/recent_math/runs/recent_math_research_clean_all5_distillation_v1_gpt56sol_medium/"
     "distillation/strategies.md"

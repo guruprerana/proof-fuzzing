@@ -1,40 +1,97 @@
 # Project memory
 
-## Analysis exclusions
+Last updated: 2026-09-24.
 
-- Do not include the TORA dataset in future quantitative tables, comparisons, summaries, or analyses unless the user explicitly asks to restore it.
+## Current project scope
 
-## Current best proof-fuzzing pipeline — 2026-09-10
+The headline study covers exactly four datasets:
 
-The user identifies the following as the **best pipeline we have discovered so far** and wants it retained as the default experimental direction:
+1. Olympiad
+2. Graduate course dossiers
+3. TCS open problems
+4. Recent mathematical research
 
-1. **Discover through repeated agent attempts.** Run persistent proof-fuzzing agents on several source proofs. Each agent iteratively introduces mathematical errors, observes blind target-judge feedback, and adapts subsequent attempts.
-2. **Validate and distill.** Audit whether the mutations really introduce new logical errors and whether the judge actually misses those errors. Distill successful mechanisms into a reusable strategy library, including applicability conditions and concrete validity checks. Repeated instances of the same mechanism are not independent discoveries.
-3. **Freeze and evaluate transfer.** Give the frozen strategies to fresh mutation agents on separate evaluation proofs. Compare against identical generic instructions without the strategy library, with matched attempt budgets. Do not expose evaluation feedback to later mutation sessions or evolve the library during evaluation.
+Do not add other datasets to the headline quantitative tables, comparisons, summaries,
+active code, or bundled inputs unless the user explicitly changes the scope.
 
-This is a working project conclusion and preferred pipeline, not a claim of statistically established superiority or universal generalization.
+The current planned extension is to run Claude Opus 5 on the TCS open-problems setup
+used for the GPT-5.6-sol headline result, including discovery and frozen evaluation as
+appropriate. Work may be parallelized across machines.
 
-### Evaluation protocol used in the latest pilot
+## Canonical version-controlled inputs
 
-- `gpt-5.6-sol`, medium reasoning; full proofs provided through files without truncation. Mutators copy the original and edit the copy, saving the introduced-error explanation separately.
-- Each evaluation mutation is generated in a fresh session. Validity, blind judging, and matching also use fresh sessions.
-- The validity checker sees the original proof, mutated proof, and introduced-error explanation. A genuine new local error counts even when dispensable to the final theorem.
-- Each valid candidate receives three blind error-inventory reviews. Judges are instructed to find all concrete errors and do not see the original proof or private introduced-error explanation.
-- A separate matcher receives both proofs, the introduced-error details, and the judge report. Exact or uniquely equivalent detection counts; unrelated complaints do not. Malformed non-detection is ambiguous, not a confirmed miss.
-- Log prompts, full artifacts and diffs, responses, exposed intermediate tool events, per-session token usage, timings, and failures.
-- Report validity yield; mutations missed in at least one, at least two, and all three reviews; missed-review rates; ambiguity; and duplicates. Independently audit apparent successes before stronger claims.
+Only self-contained inputs needed by the current runs belong in Git:
 
-### Reference artifacts
+- `local_datasets/olympiadbench_balanced_40_v1.json`
+- `local_datasets/olympiadbench_balanced_40_v1_manifest.json`
+- `local_datasets/graduate_course_dossiers_v1.json`
+- `local_datasets/recent_math_research_dossiers_clean_v1.json`
+- `local_datasets/openai_ten_advances_2026/proofs_markdown/*.md`
 
-- Frozen strategies: `src/proof_fuzzer/data/audited_persistent_strategies_20260909.md` and companion `.jsonl`.
-- Persistent discovery runner: `scripts/run_persistent_proof_fuzzing.py`.
-- Discovery validity audits: `logs/persistent_validity_audit_20260909/`.
-- Matched evaluation runner: `scripts/run_matched_strategy_pilot.py`.
-- Completed 50-attempt evaluation: `logs/prompt_evolution_experiments/ten_matched_50_gpt-5.6-sol_medium_20260909_202502/`.
-- That directory's `results_snapshot_48.md` is an interim snapshot only; `results.json` and `summary.json` hold the completed run.
+The three split JSON files contain both discovery and held-out examples. The TCS
+directory contains the ten Markdown proofs; the reported GPT-5.6-sol study used five
+of them. Do not reintroduce raw PDFs, downloaded source archives, extraction and
+cleaning workspaces, nested benchmark repositories, caches, or superseded splits.
 
-### Evidence and caveats
+## Preferred proof-fuzzing pipeline
 
-The completed pilot used five proofs, five mutation attempts per proof per arm (50 total). Generic instructions produced 21 validated mutations and 7 missed reviews out of 63 valid review slots; learned strategies produced 23 validated mutations and 20 missed reviews out of 69 slots. Five generic and ten strategy-guided submissions had at least one confirmed miss. Ambiguous or missing reviews count as non-misses in these conservative rates.
+This remains the default experimental direction:
 
-These are automated validity/matching results pending independent audit. The evaluation proofs had previous strategy-guided exposure, so they are not a pristine holdout. There are duplicate submissions and clustered reviews; do not interpret raw review counts as independent proof-level evidence.
+1. **Discover through repeated attempts.** Persistent mutation agents work on source
+   proofs, observe blind-judge feedback, and adapt within each discovery session.
+2. **Validate and distill.** Independently check that mutations introduce genuine new
+   errors, determine whether blind judges detected them, classify mechanisms, and
+   distill distinct successful mechanisms into a reusable strategy library.
+3. **Freeze and evaluate transfer.** Compare generic guidance with the frozen strategy
+   library on held-out proofs using matched budgets and a fresh mutation session for
+   every candidate. Never return evaluation feedback to later candidates and never
+   evolve the library during evaluation.
+
+This is the preferred protocol, not a claim of universal or statistically established
+superiority.
+
+### Evaluation requirements
+
+- Supply full proofs through files without truncation. Mutators copy the original,
+  edit the copy, and save the introduced-error explanation separately.
+- Use fresh sessions for evaluation mutation, validity checking, blind judging, and
+  matching.
+- A genuine new local mathematical error may be valid even if it is dispensable to
+  the final theorem.
+- Give each valid candidate three blind error-inventory reviews. Blind judges do not
+  see the original proof or the private introduced-error explanation.
+- Use a separate matcher to decide whether a review found the introduced error. An
+  exact or uniquely equivalent identification counts; unrelated complaints do not.
+  Treat malformed non-detection as ambiguous rather than a confirmed miss.
+- Report validity yield, candidate-level missed-review counts, proof-level paired
+  outcomes, ambiguity, duplicates, and failures. Independently audit apparent
+  successes before making stronger claims.
+
+## Active entry points and reporting sources
+
+- Discovery and distillation: `scripts/run_strategy_transfer.py`
+- Frozen evaluation: `scripts/run_frozen_strategy_evaluation.py`
+- Resume interrupted CLI-provider discovery: `scripts/resume_strategy_discovery.py`
+- Workflow documentation: `README.md` and `scripts/README.md`
+- Numerical source of truth: `QUANTITATIVE_RESULTS.md`
+- Worked examples and interpretation: `QUALITATIVE_RESULTS.md`
+
+Use the result documents rather than duplicating numerical snapshots here; they are
+updated more frequently than this memory file.
+
+## Artifact boundaries
+
+- `logs/` stores prompts, mutations, feedback, assessments, manifests, transcripts,
+  session metadata, usage, results, and distilled libraries. It is intentionally
+  ignored by Git and is machine-local unless transferred separately.
+- `src/proof_fuzzer/data/` tracks the audited TCS strategy library used by the
+  headline evaluation. Other generated strategy libraries remain ignored.
+- Provider-native session stores and resumable conversation state are machine-local.
+  A thread ID or run directory alone may not make a provider session portable.
+- Never commit `.env`, credentials, tokens, caches, or machine-specific session data.
+- `AGENTS.md` and this file are the version-controlled repository context for coding
+  agents. Update them whenever a durable project decision changes.
+
+Historical result links may point into ignored local `logs/` directories. Do not
+assume those artifacts exist on a fresh clone, and do not confuse their presence on
+one workstation with Git tracking.

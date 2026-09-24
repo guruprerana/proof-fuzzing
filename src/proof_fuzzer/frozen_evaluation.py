@@ -106,8 +106,8 @@ def run_frozen_evaluation(*, heldout: list, strategy_path: Path, storage_dir: Pa
         raise ValueError("Held-out example IDs and selectors must be unique")
     if attempts_per_arm < 1 or workers < 1 or reviews_per_valid_candidate < 1:
         raise ValueError("Attempt, worker, and review counts must be positive")
-    if provider not in {"codex", "claude-code", "gemini-cli"}:
-        raise ValueError("Provider must be 'codex', 'claude-code', or 'gemini-cli'")
+    if provider not in {"codex", "claude-code"}:
+        raise ValueError("Provider must be 'codex' or 'claude-code'")
     if required_missed_reviews is None:
         required_missed_reviews = reviews_per_valid_candidate
     if not 1 <= required_missed_reviews <= reviews_per_valid_candidate:
@@ -134,9 +134,9 @@ def run_frozen_evaluation(*, heldout: list, strategy_path: Path, storage_dir: Pa
         "design": "frozen strategy, paired fresh-proof evaluation",
         "provider": provider,
         "model": model,
-        "reasoning_effort": reasoning_effort if provider != "gemini-cli" else None,
+        "reasoning_effort": reasoning_effort,
         "requested_reasoning_effort": reasoning_effort,
-        "provider_supports_reasoning_effort": provider != "gemini-cli",
+        "provider_supports_reasoning_effort": True,
         "role_providers": {role: provider for role in (
             "mutator", "blind_judge", "validity_checker",
             "introduced_error_matcher", "novelty_classifier")},

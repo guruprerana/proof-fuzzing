@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Resume quota-interrupted Claude/Gemini discovery, then distill it."""
+"""Resume quota-interrupted Claude discovery, then distill it."""
 
 from __future__ import annotations
 
@@ -13,13 +13,11 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from src.proof_fuzzer.agent_cli_client import (
-    ClaudePersistentSession,
-    GeminiPersistentSession,
-)
+from src.proof_fuzzer.agent_cli_client import ClaudePersistentSession
 from src.proof_fuzzer.codex_client import _read_file_mutation
 from src.proof_fuzzer.datasets.json_split import load_json_split
 from src.proof_fuzzer.judging import BlindErrorFinder, parse_judge_result, usage_limit_reached
+from src.proof_fuzzer.openai_ten_advances import load_openai_ten_advances_split
 from src.proof_fuzzer.persistent_fuzzing import run_attempts, write_summary
 from src.proof_fuzzer.strategy_transfer import (
     MechanismAssessor,
@@ -188,8 +186,7 @@ def resume_session(
     auditor = client(session_root / "assessments", model, effort, provider=provider)
     assessor = MechanismAssessor(session_root / "assessments", auditor, 1, None)
     restore_assessor(session_root, assessor)
-    session_type = ClaudePersistentSession if provider == "claude-code" else GeminiPersistentSession
-    thread = session_type(
+    thread = ClaudePersistentSession(
         thread_data["thread_id"],
         (session_root / "mutator_workspace").resolve(),
         started=True,
@@ -250,7 +247,7 @@ def resume_session(
 
 def validate_manifest(manifest: dict[str, object], discovery) -> None:
     if manifest.get("run_mode") != "discovery_and_distillation_only":
-        raise ValueError("Only discovery-only runs can be resumed by this command")
+        raise ValueError("Only discovery-and-distillation runs can be resumed")
     expected = {row["example_id"]: row for row in manifest["discovery"]}
     actual = {proof.example_id: example_metadata(proof) for proof in discovery}
     if set(expected) != set(actual):
@@ -264,7 +261,9 @@ def validate_manifest(manifest: dict[str, object], discovery) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--run-dir", required=True, type=Path)
-    parser.add_argument("--split-json", required=True, type=Path)
+    source = parser.add_mutually_exclusive_group(required=True)
+    source.add_argument("--split-json", type=Path)
+    source.add_argument("--tcs-root", type=Path)
     parser.add_argument("--target-usable-attempts", type=int, default=25)
     parser.add_argument("--workers", type=int, default=10)
     args = parser.parse_args()
@@ -273,13 +272,16 @@ def main() -> None:
 
     root = args.run_dir.resolve()
     manifest = json.loads((root / "manifest.json").read_text())
-    discovery, _ = load_json_split(args.split_json.resolve(), allow_empty_heldout=True)
+    if args.tcs_root:
+        discovery, _ = load_openai_ten_advances_split(args.tcs_root.resolve())
+    else:
+        discovery, _ = load_json_split(args.split_json.resolve(), allow_empty_heldout=True)
     validate_manifest(manifest, discovery)
     provider = manifest["provider"]
     model = manifest["model"]
     effort = manifest["requested_reasoning_effort"]
-    if provider not in {"claude-code", "gemini-cli"}:
-        raise ValueError("This resume command requires a CLI provider")
+    if provider != "claude-code":
+        raise ValueError("This resume command requires the Claude Code provider")
 
     state = json.loads((root / "status.json").read_text())
     state.update(

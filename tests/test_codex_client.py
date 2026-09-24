@@ -28,8 +28,9 @@ class FakeApprovalMode:
 
 
 class FakeCodexConfig:
-    def __init__(self, *, cwd=None):
+    def __init__(self, *, cwd=None, codex_bin=None):
         self.cwd = cwd
+        self.codex_bin = codex_bin
 
 
 class FakeTurnResult:
@@ -143,10 +144,16 @@ class CodexClientTest(unittest.TestCase):
             self.assertIn('item/agentMessage/delta', trace)
 
     def test_file_mutation_outputs_and_permissions_are_call_local(self):
-        from src.archive.proof_fuzzer.llm_interface import NaturalLanguageProofFuzzerLLMInterface
         source = "Let n be even. Then n=2k.\nThe remaining text is unchanged."
-        fuzzer = NaturalLanguageProofFuzzerLLMInterface(source, full_proof_mutation_output=True)
-        prompt = fuzzer._mutation_instruction_prompt(objective_text="Test", maintain_correctness=False)
+        prompt = f"""You are introducing a subtle mathematical error into a proof.
+Original proof:
+<original_proof>
+{source}
+</original_proof>
+Return the complete proof, followed by:
+## Introduced error
+Explain the error.
+"""
         with TemporaryDirectory() as tmp_dir:
             client = CodexProofFuzzerClient(workspace_root=tmp_dir, mutation_file_editing=True,
                                            sdk=FakeSDK, codex_factory=FakeCodexContext)
@@ -168,8 +175,7 @@ class CodexClientTest(unittest.TestCase):
                 return FakeTurnResult()
             with patch.object(FakeThread, "run", run):
                 response = client.complete(prompt)
-            instructions = fuzzer.parse_full_proof_mutation_response(response)
-            self.assertIn("An even number", instructions.rationale)
+            self.assertIn("An even number", response)
             self.assertIn("remaining text is unchanged", response)
             workspace = client.last_workspace
             metadata = json.loads((workspace / "metadata.json").read_text())

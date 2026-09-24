@@ -122,33 +122,13 @@ class OlympiadAdapterTests(unittest.TestCase):
             train, test = load_split(root / "dataset", discovery, heldout)
             output = root / "run"
             run_strategy_transfer(discovery=train, heldout=test, storage_dir=output,
-                                  discovery_attempts=2, evaluation_attempts_per_proof=3,
+                                  discovery_attempts=2,
                                   provider="claude-code", model="sonnet", dry_run=True)
             manifest = json.loads((output / "manifest.json").read_text())
             self.assertEqual(manifest["provider"], "claude-code")
             self.assertEqual(manifest["model"], "sonnet")
             self.assertEqual(set(manifest["role_providers"].values()), {"claude-code"})
             self.assertEqual(manifest["discovery_attempts_per_proof"], 2)
-            self.assertEqual(manifest["evaluation_attempts_per_proof_per_arm"], 3)
-
-    def test_gemini_pipeline_manifest_records_all_roles_and_effort_limitation(self):
-        with TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            discovery, heldout = self.fixture(root / "dataset")
-            train, test = load_split(root / "dataset", discovery, heldout)
-            output = root / "run"
-            run_strategy_transfer(
-                discovery=train, heldout=test, storage_dir=output,
-                provider="gemini-cli", model="gemini-3.5-flash",
-                reasoning_effort="medium", dry_run=True,
-            )
-            manifest = json.loads((output / "manifest.json").read_text())
-            self.assertEqual(manifest["provider"], "gemini-cli")
-            self.assertEqual(set(manifest["role_providers"].values()), {"gemini-cli"})
-            self.assertIsNone(manifest["reasoning_effort"])
-            self.assertEqual(manifest["requested_reasoning_effort"], "medium")
-            self.assertFalse(manifest["provider_supports_reasoning_effort"])
-
 
 if __name__ == "__main__":
     unittest.main()

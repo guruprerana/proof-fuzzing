@@ -1,4 +1,4 @@
-"""Isolated, programmatic client for Claude Code."""
+"""Isolated, programmatic clients for Claude Code and Gemini CLI."""
 
 from __future__ import annotations
 
@@ -25,7 +25,8 @@ from .codex_client import (
 from .usage import LLMUsage
 
 
-DEFAULT_CLAUDE_MODEL = "claude-opus-5"
+DEFAULT_CLAUDE_MODEL = "sonnet"
+DEFAULT_GEMINI_CLI_MODEL = "gemini-3.5-flash"
 VALID_CLAUDE_EFFORTS = {"low", "medium", "high", "xhigh", "max"}
 
 ISOLATED_CLI_INSTRUCTIONS = """This agent call runs in a dedicated per-call workspace.
@@ -38,7 +39,7 @@ Read those files directly and use only files inside this workspace to complete t
 
 @dataclass(frozen=True)
 class AgentCLIChatResult:
-    """Normalized result returned by Claude Code."""
+    """Normalized result returned by either command-line agent."""
 
     content: str
     reasoning: str = ""
@@ -50,6 +51,15 @@ class AgentCLIChatResult:
 @dataclass
 class ClaudePersistentSession:
     """A resumable Claude Code conversation rooted in one mutation workspace."""
+
+    id: str
+    workspace: Path
+    started: bool = False
+
+
+@dataclass
+class GeminiPersistentSession:
+    """A resumable Gemini CLI conversation rooted in one mutation workspace."""
 
     id: str
     workspace: Path
@@ -194,7 +204,7 @@ class _AgentCLIClient:
         (workspace / "prompt.txt").write_text(prompt, encoding="utf-8")
         for name, content in files.items():
             (workspace / name).write_text(content, encoding="utf-8")
-        # Prevent agent subprocesses from reading a repository-level environment file.
+        # Stop Gemini's upward .env search before it can reach an experiment repository.
         (workspace / ".env").write_text("", encoding="utf-8")
         self._write_metadata(workspace, status="running")
         return workspace
@@ -552,6 +562,200 @@ class ClaudeCodeProofFuzzerClient(_AgentCLIClient):
         )
 
 
+class GeminiCLIProofFuzzerClient(_AgentCLIClient):
+    """Run Gemini CLI headlessly with only workspace-rooted file tools."""
+
+    provider = "gemini_cli"
+
+    def __init__(
+        self,
+        *,
+        workspace_root: str | Path,
+        model: str = DEFAULT_GEMINI_CLI_MODEL,
+        executable: str = "gemini",
+        **kwargs,
+    ) -> None:
+        super().__init__(
+            workspace_root=workspace_root, model=model, executable=executable, **kwargs
+        )
+
+    def _command(self, workspace: Path) -> tuple[list[str], dict[str, str]]:
+        config_root = self.workspace_root / ".gemini_cli_config"
+        config_root.mkdir(parents=True, exist_ok=True)
+        # Gemini treats GEMINI_CLI_SYSTEM_SETTINGS_PATH as an administrator-owned
+        # override and rejects files below a user-owned experiment directory. Use
+        # the documented workspace settings scope instead.
+        workspace_config = workspace / ".gemini"
+        workspace_config.mkdir(parents=True, exist_ok=True)
+        settings = workspace_config / "settings.json"
+        policy = config_root / "filesystem-only.toml"
+        if not settings.exists():
+            settings.write_text(
+                json.dumps(
+                    {
+                        "context": {
+                            "fileName": ".proof-fuzzer-no-context",
+                            "includeDirectoryTree": False,
+                            "memoryBoundaryMarkers": [],
+                            "includeDirectories": [],
+                        },
+                        "tools": {
+                            "core": [
+                                "read_file",
+                                "read_many_files",
+                                "list_directory",
+                                "glob",
+                                "grep_search",
+                                "write_file",
+                                "replace",
+                            ]
+                        },
+                        "mcp": {"allowed": [], "excluded": ["*"]},
+                        "security": {"blockGitExtensions": True},
+                        "useWriteTodos": False,
+                    },
+                    indent=2,
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+        if not policy.exists():
+            policy.write_text(
+                """[[rule]]
+toolName = ["read_file", "read_many_files", "list_directory", "glob", "grep_search", "write_file", "replace"]
+decision = "allow"
+priority = 999
+
+[[rule]]
+toolName = "*"
+decision = "deny"
+priority = 900
+denyMessage = "Only file operations inside this experiment workspace are available."
+""",
+                encoding="utf-8",
+            )
+        return [
+            self.executable,
+            "--prompt",
+            "",
+            "--output-format",
+            "stream-json",
+            "--model",
+            self.model,
+            "--approval-mode",
+            "auto_edit",
+            "--skip-trust",
+            "--policy",
+            str(policy),
+        ], {
+            "NO_COLOR": "1",
+            "GEMINI_CLI_TRUST_WORKSPACE": "true",
+        }
+
+    def _event_text(self, event: Mapping[str, object]) -> str:
+        if event.get("type") == "message" and event.get("role") == "assistant":
+            return str(event.get("content", ""))
+        return ""
+
+    def start_persistent_session(self, workspace: str | Path) -> GeminiPersistentSession:
+        """Create an explicit resumable conversation confined to ``workspace``."""
+        root = Path(workspace).resolve()
+        root.mkdir(parents=True, exist_ok=True)
+        return GeminiPersistentSession(str(uuid.uuid4()), root)
+
+    def run_persistent_turn(
+        self,
+        session: GeminiPersistentSession,
+        prompt: str,
+    ) -> AgentCLIChatResult:
+        """Run one logged Gemini turn and retain context for the next turn."""
+        for attempt in range(self.technical_retries + 1):
+            call_workspace = self._create_workspace(prompt, {})
+            started = time.monotonic()
+            try:
+                command, environment = self._command(session.workspace)
+                command.extend(
+                    ["--resume", session.id]
+                    if session.started
+                    else ["--session-id", session.id]
+                )
+                result = self._invoke(
+                    call_workspace,
+                    prompt,
+                    cwd=session.workspace,
+                    command_and_environment=(command, environment),
+                )
+                session.started = True
+                self._record_success(call_workspace, result)
+                self.last_result = result
+                self.last_reasoning = result.reasoning
+                return result
+            except AgentCLICallTechnicalError as error:
+                self._record_failure(
+                    call_workspace,
+                    error,
+                    usage=LLMUsage(elapsed_seconds=time.monotonic() - started),
+                )
+                (call_workspace / "technical_retry.json").write_text(
+                    json.dumps(
+                        {
+                            "attempt": attempt + 1,
+                            "retry_scheduled": attempt < self.technical_retries,
+                            "error": str(error),
+                            "prompt_sha256": hashlib.sha256(prompt.encode()).hexdigest(),
+                        },
+                        indent=2,
+                    )
+                    + "\n",
+                    encoding="utf-8",
+                )
+                if attempt >= self.technical_retries:
+                    raise
+            except Exception as error:
+                self._record_failure(
+                    call_workspace,
+                    error,
+                    usage=LLMUsage(elapsed_seconds=time.monotonic() - started),
+                )
+                raise
+        raise AssertionError("unreachable")
+
+    def _parse_result(
+        self, events: Sequence[dict[str, object]], stderr: str, returncode: int | None
+    ) -> AgentCLIChatResult:
+        final = next((event for event in reversed(events) if event.get("type") == "result"), None)
+        if returncode != 0 or final is None or final.get("status") != "success":
+            detail = stderr.strip()
+            if final and final.get("error"):
+                detail = str(final["error"])
+            raise AgentCLICallError(
+                f"Gemini CLI failed with exit code {returncode}: {detail or 'no successful result event'}"
+            )
+        stats = final.get("stats")
+        stats = stats if isinstance(stats, dict) else {}
+        models = stats.get("models")
+        if not isinstance(models, dict) or not models:
+            raise AgentCLICallTechnicalError(
+                "Gemini CLI did not report the model used for this call"
+            )
+        if self.model not in models:
+            used = ", ".join(sorted(str(model) for model in models))
+            raise AgentCLICallTechnicalError(
+                f"Gemini CLI model mismatch: requested {self.model!r}, used {used or 'unknown'}"
+            )
+        content = "".join(
+            str(event.get("content", ""))
+            for event in events
+            if event.get("type") == "message" and event.get("role") == "assistant"
+        )
+        return AgentCLIChatResult(
+            content=content,
+            finish_reason=str(final.get("status", "completed")),
+            raw_response=list(events),
+            usage=_gemini_usage(final),
+        )
+
+
 def _optional_int(value: object) -> int | None:
     if value is None or isinstance(value, bool):
         return None
@@ -595,4 +799,18 @@ def _claude_usage(result: Mapping[str, object]) -> LLMUsage:
         total_tokens=total_tokens,
         cost_usd=_optional_float(result.get("total_cost_usd")),
         turns=_optional_int(result.get("num_turns")),
+    )
+
+
+def _gemini_usage(result: Mapping[str, object]) -> LLMUsage:
+    stats = result.get("stats")
+    stats = stats if isinstance(stats, dict) else {}
+    duration_ms = _optional_float(stats.get("duration_ms"))
+    return LLMUsage(
+        elapsed_seconds=0,
+        provider_elapsed_seconds=duration_ms / 1000 if duration_ms is not None else None,
+        input_tokens=_optional_int(stats.get("input_tokens") or stats.get("input")),
+        cached_input_tokens=_optional_int(stats.get("cached")),
+        output_tokens=_optional_int(stats.get("output_tokens")),
+        total_tokens=_optional_int(stats.get("total_tokens")),
     )
