@@ -19,6 +19,10 @@ from .models import FuzzerMutationInstructions, JudgeResult, ProofExample, Proof
 from .persistent_fuzzing import run_attempts
 
 
+SAFEGUARDED_CALL_TIMEOUT_SECONDS = 20 * 60
+SAFEGUARDED_TECHNICAL_RETRIES = 0
+
+
 def save(path: Path, value: object) -> None:
     path.write_text(json.dumps(value, indent=2, ensure_ascii=False))
 
@@ -30,8 +34,9 @@ def digest(text: str) -> str:
 def client(root: Path, model: str, effort: str, *, provider: str = "codex",
            safeguards: bool = True):
     options = dict(model=model, workspace_root=root / "workspaces", log_events=True,
-        call_timeout_seconds=600 if safeguards else None,
-        detect_repetitive_output=safeguards, technical_retries=1 if safeguards else 0)
+        call_timeout_seconds=SAFEGUARDED_CALL_TIMEOUT_SECONDS if safeguards else None,
+        detect_repetitive_output=safeguards,
+        technical_retries=SAFEGUARDED_TECHNICAL_RETRIES if safeguards else 0)
     if provider == "codex":
         return CodexProofFuzzerClient(reasoning_effort=effort, **options)
     if provider == "claude-code":

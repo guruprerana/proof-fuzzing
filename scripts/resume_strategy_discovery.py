@@ -7,6 +7,7 @@ import argparse
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 import difflib
+import hashlib
 import json
 from pathlib import Path
 import sys
@@ -69,6 +70,24 @@ def restore_assessor(session_root: Path, assessor: MechanismAssessor) -> None:
             assessor.hashes[mutation_hash] = mechanism_id
 
 
+def prior_technical_failure(workspace_root: Path, prompt: str) -> str | None:
+    """Return a terminal prior failure for this exact prompt, if one exists."""
+    prompt_hash = hashlib.sha256(prompt.encode()).hexdigest()
+    failures: list[tuple[float, str]] = []
+    for path in workspace_root.glob("call_*/technical_retry.json"):
+        try:
+            data = json.loads(path.read_text())
+        except (OSError, ValueError, TypeError):
+            continue
+        if (
+            data.get("prompt_sha256") == prompt_hash
+            and data.get("retry_scheduled") is False
+            and data.get("error")
+        ):
+            failures.append((path.stat().st_mtime, str(data["error"])))
+    return max(failures)[1] if failures else None
+
+
 def persist_reassessment(
     session_root: Path,
     records: list[dict[str, object]],
@@ -106,67 +125,125 @@ def recover_interrupted_attempt(
     assessor: MechanismAssessor,
     thread_id: str,
 ) -> bool:
-    """Finish an artifact left between creation and the JSONL checkpoint."""
+    """Finish or checkpoint an artifact left before the JSONL commit.
+
+    A provider timeout is a completed technical outcome, not a reason to retry the
+    same call.  Persist it as an unusable attempt so the session can advance to a
+    fresh candidate and still reach its requested usable-attempt target.
+    """
     index = len(records) + 1
     archive = session_root / "attempts" / f"{index:03d}"
     candidate = session_root / "mutator_workspace" / "attempts" / f"{index:03d}"
     if not archive.is_dir() and not candidate.is_dir():
         return False
-    if not candidate.is_dir():
-        raise RuntimeError(f"Interrupted attempt {index} has no mutation workspace")
-    _read_file_mutation(candidate, proof.proof)
-    mutated = (candidate / "mutated_proof.md").read_text()
-    explanation = (candidate / "introduced_error.md").read_text()
-    archive.mkdir(parents=True, exist_ok=True)
-    (archive / "original_proof.md").write_text(proof.proof)
-    (archive / "problem.txt").write_text(proof.problem)
-    (archive / "mutated_proof.md").write_text(mutated)
-    (archive / "introduced_error.md").write_text(explanation)
-    (archive / "mutation.diff").write_text("".join(difflib.unified_diff(
-        proof.proof.splitlines(keepends=True), mutated.splitlines(keepends=True),
-        fromfile="original_proof.md", tofile="mutated_proof.md",
-    )))
-    if not (archive / "judge_response.txt").exists():
-        prompt = BlindErrorFinder(judge).prompt(problem=proof.problem, proof=mutated)
-        (archive / "judge_prompt.txt").write_text(prompt)
-        response = judge.complete(prompt)
-        (archive / "judge_response.txt").write_text(response)
-    report = parse_judge_result((archive / "judge_response.txt").read_text())
-    if report.response_kind != "error_inventory":
-        raise ValueError(f"Interrupted attempt {index} judge response is not an error inventory")
-    assessment = assessor(proof, archive)
-    if usage_limit_reached(assessment.get("assessment_error", "")):
-        raise RuntimeError(assessment["assessment_error"])
     record: dict[str, object] = {
         "attempt": index,
         "started_at": datetime.now(timezone.utc).isoformat(),
         "mutator_thread_id": thread_id,
-        "verified_success": (
-            assessment.get("valid") is True and assessment.get("detection") == "missed"
-        ),
+        "verified_success": None,
         "proof_id": proof.example_id,
-        "status": "judged",
-        "reported_errors": len(report.detected_errors),
-        "assessment": assessment,
         "elapsed_seconds": 0,
         "recovered_after_process_interruption": True,
     }
+    stage = "mutation_recovery"
+    feedback: dict[str, object]
+    try:
+        if candidate.is_dir():
+            _read_file_mutation(candidate, proof.proof)
+            mutated = (candidate / "mutated_proof.md").read_text()
+            explanation = (candidate / "introduced_error.md").read_text()
+        elif all((archive / name).is_file() for name in (
+            "mutated_proof.md", "introduced_error.md",
+        )):
+            mutated = (archive / "mutated_proof.md").read_text()
+            explanation = (archive / "introduced_error.md").read_text()
+        else:
+            raise RuntimeError(f"Interrupted attempt {index} has no complete mutation")
+        archive.mkdir(parents=True, exist_ok=True)
+        (archive / "original_proof.md").write_text(proof.proof)
+        (archive / "problem.txt").write_text(proof.problem)
+        (archive / "mutated_proof.md").write_text(mutated)
+        (archive / "introduced_error.md").write_text(explanation)
+        (archive / "mutation.diff").write_text("".join(difflib.unified_diff(
+            proof.proof.splitlines(keepends=True), mutated.splitlines(keepends=True),
+            fromfile="original_proof.md", tofile="mutated_proof.md",
+        )))
+        stage = "target_judge"
+        if not (archive / "judge_response.txt").exists():
+            prompt = BlindErrorFinder(judge).prompt(problem=proof.problem, proof=mutated)
+            (archive / "judge_prompt.txt").write_text(prompt)
+            workspace_root = getattr(judge, "workspace_root", None)
+            prior_failure = (
+                prior_technical_failure(Path(workspace_root), prompt)
+                if workspace_root is not None
+                else None
+            )
+            if prior_failure is not None:
+                raise RuntimeError(prior_failure)
+            response = judge.complete(prompt)
+            (archive / "judge_response.txt").write_text(response)
+        stage = "judge_parse"
+        report = parse_judge_result((archive / "judge_response.txt").read_text())
+        if report.response_kind != "error_inventory":
+            raise ValueError(f"Interrupted attempt {index} judge response is not an error inventory")
+        record.update(status="judged", reported_errors=len(report.detected_errors))
+        feedback = {
+            "attempt": index,
+            "judge_report": (archive / "judge_response.txt").read_text(),
+            "interpretation": "Recovered after a process interruption.",
+        }
+    except Exception as error:
+        if usage_limit_reached(str(error)):
+            raise
+        record.update(
+            status="failed",
+            failure_stage=stage,
+            error=f"{type(error).__name__}: {error}",
+        )
+        feedback = {
+            **record,
+            "interpretation": "This is a pipeline failure, not evidence of a judge miss.",
+        }
+        if (archive / "judge_response.txt").exists():
+            feedback["judge_report"] = (archive / "judge_response.txt").read_text()
+
+    if (archive / "mutated_proof.md").exists():
+        try:
+            prior_assessment = session_root / "assessments" / archive.name / "result.json"
+            assessment = (
+                json.loads(prior_assessment.read_text())
+                if prior_assessment.exists()
+                else assessor(proof, archive)
+            )
+            record["assessment"] = assessment
+            record["verified_success"] = (
+                assessment.get("valid") is True
+                and assessment.get("detection") == "missed"
+            )
+            feedback["assessment"] = assessment
+            feedback["interpretation"] = (
+                "Use the independent validity, detection and novelty assessments below; "
+                "these are automated checks, not mathematical ground truth."
+            )
+            if usage_limit_reached(assessment.get("assessment_error", "")):
+                raise RuntimeError(assessment["assessment_error"])
+        except Exception as error:
+            if usage_limit_reached(str(error)):
+                raise
+            record["assessment_error"] = repr(error)
+            feedback["assessment_error"] = repr(error)
+            feedback["reward"] = 0
+
     records.append(record)
-    feedback = {
-        "attempt": index,
-        "judge_report": (archive / "judge_response.txt").read_text(),
-        "assessment": assessment,
-        "interpretation": (
-            "Recovered after a process interruption. Use the independent validity, "
-            "detection and novelty assessment below."
-        ),
-    }
+    archive.mkdir(parents=True, exist_ok=True)
     (archive / "feedback.json").write_text(json.dumps(feedback, indent=2, ensure_ascii=False) + "\n")
     workspace_feedback = session_root / "mutator_workspace/feedback" / f"{index:03d}.json"
+    workspace_feedback.parent.mkdir(parents=True, exist_ok=True)
     workspace_feedback.write_text(json.dumps(feedback, indent=2, ensure_ascii=False) + "\n")
     (archive / "result.json").write_text(json.dumps(record, indent=2, ensure_ascii=False) + "\n")
     with (session_root / "attempts.jsonl").open("a") as stream:
         stream.write(json.dumps(record, ensure_ascii=False) + "\n")
+    write_summary(session_root, records, len(records))
     return True
 
 
@@ -193,7 +270,7 @@ def resume_session(
     )
     recovery = session_root / "mutator_workspace" / "recovery_context.md"
     recovery.write_text(
-        "This session is resuming after provider quota exhaustion. Attempts already containing "
+        "This session is resuming after a technical interruption. Attempts already containing "
         "complete feedback remain authoritative. Quota-failed attempt directories are technical "
         "artifacts, not submitted mutations. Continue seeking new mechanisms.\n"
     )
@@ -206,6 +283,11 @@ def resume_session(
         # Finish assessments for already-generated mutations before requesting more.
         for record in records:
             if usable_attempt(session_root, record):
+                continue
+            # A prior assessment call already consumed its one allowed try.  An
+            # assessment_error makes the attempt unusable; replace it with a new
+            # candidate instead of retrying the same assessment on resume.
+            if isinstance(record.get("assessment"), dict) or record.get("assessment_error"):
                 continue
             archive = session_root / "attempts" / f"{int(record['attempt']):03d}"
             if not all((archive / name).is_file() for name in (
