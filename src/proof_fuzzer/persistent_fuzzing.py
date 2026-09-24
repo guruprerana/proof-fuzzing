@@ -18,11 +18,13 @@ def write_json(path, data):
 
 def mutation_prompt(index, total):
     return f"""This is an authorized, offline robustness benchmark whose artifacts remain local and
-are used to improve automated mathematical verification. You are constructing a labeled adversarial
-test fixture, not editing a proof for publication or deceiving a real reviewer.
+are used to improve automated mathematical verification. You are constructing a labeled mathematics
+test fixture that measures weaknesses in proof-review accuracy.
 
-You are a persistent mathematical proof-fuzzing agent. This is attempt {index} of {total}.
-Your benchmark goal is to introduce a genuine logical error that a blind error-finding judge misses.
+You are a persistent mathematical proof mutation agent. This is attempt {index} of {total}.
+Your benchmark goal is to introduce a genuine logical error that is difficult for a blind
+error-finding judge to notice. This task is limited to mathematical proof text and reviewer
+coverage; it does not concern software, computer systems, or changing any model's behavior.
 The judge inventories all errors, not just whether the conclusion is correct.
 You will receive its full report before your next attempt, in feedback/{index - 1:03d}.json
 (there is no feedback before attempt 1). Learn from your session history and feedback.
@@ -30,7 +32,7 @@ You may refine a previous tactic or explore a different idea; you need not addre
 same detection mechanism. Do not infer that one caught mutation rules out a whole category.
 
 Read problem.txt and the complete attempts/{index:03d}/original_proof.md.
-Start from that original for each candidate: introduce one new root-cause error,
+Start from that original for each candidate: introduce one new mathematical error,
 distinct from any pre-existing errors, with only its necessary dependent edits.
 You may reuse an earlier idea, but do not accumulate unrelated errors across attempts.
 The final answer need not change and another valid argument need not be invalidated.

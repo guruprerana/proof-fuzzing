@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from enum import Enum
 import hashlib
 import json
+import os
 import queue
 from pathlib import Path
 import threading
@@ -357,9 +358,8 @@ class CodexProofFuzzerClient:
 
     def _make_codex_context(self, sdk: "_CodexSDK", *, cwd: str | None) -> object:
         factory = self.codex_factory or sdk.Codex
-        config = None
-        if cwd:
-            config = sdk.CodexConfig(cwd=cwd)
+        codex_bin = os.environ.get("PROOF_FUZZER_CODEX_BIN")
+        config = sdk.CodexConfig(cwd=cwd, codex_bin=codex_bin) if cwd or codex_bin else None
         if config is not None:
             return factory(config=config)
         return factory()
