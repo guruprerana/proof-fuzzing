@@ -255,12 +255,19 @@ def resume_session(
     provider: str,
     model: str,
     effort: str,
+    disable_call_timeout: bool = False,
 ) -> list[dict[str, object]]:
     records = load_records(session_root)
     thread_data = json.loads((session_root / "thread.json").read_text())
     mutator = client(session_root / "mutator", model, effort, provider=provider, safeguards=False)
-    judge = client(session_root / "judge", model, effort, provider=provider)
-    auditor = client(session_root / "assessments", model, effort, provider=provider)
+    judge = client(
+        session_root / "judge", model, effort, provider=provider,
+        disable_call_timeout=disable_call_timeout,
+    )
+    auditor = client(
+        session_root / "assessments", model, effort, provider=provider,
+        disable_call_timeout=disable_call_timeout,
+    )
     assessor = MechanismAssessor(session_root / "assessments", auditor, 1, None)
     restore_assessor(session_root, assessor)
     thread = ClaudePersistentSession(
@@ -348,6 +355,10 @@ def main() -> None:
     source.add_argument("--tcs-root", type=Path)
     parser.add_argument("--target-usable-attempts", type=int, default=25)
     parser.add_argument("--workers", type=int, default=10)
+    parser.add_argument(
+        "--no-call-timeout", action="store_true",
+        help="Allow judge, assessment, and distillation calls to run without a hard wall-clock timeout",
+    )
     args = parser.parse_args()
     if args.target_usable_attempts < 1 or args.workers < 1:
         parser.error("--target-usable-attempts and --workers must be positive")
@@ -370,6 +381,7 @@ def main() -> None:
         phase="discovery_resume",
         complete=False,
         resumed_at=datetime.now(timezone.utc).isoformat(),
+        call_timeout_seconds=(None if args.no_call_timeout else 20 * 60),
     )
     state.pop("error", None)
     state.pop("failed_phase", None)
@@ -386,6 +398,7 @@ def main() -> None:
                     provider=provider,
                     model=model,
                     effort=effort,
+                    disable_call_timeout=args.no_call_timeout,
                 ): proof
                 for proof in discovery
             }
@@ -412,6 +425,7 @@ def main() -> None:
         strategy = distill(
             root / "distillation", discovery, evidence, model, effort,
             provider=provider,
+            disable_call_timeout=args.no_call_timeout,
         )
         state.update(phase="distilled", complete=True, strategy_sha256=digest(strategy))
     except Exception as error:

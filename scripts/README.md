@@ -54,6 +54,11 @@ For TCS with Claude Opus 5:
   --discovery-workers 5
 ```
 
+Judge, assessment, and distillation calls normally have a 20-minute wall-clock
+timeout. Pass `--no-call-timeout` to let those calls finish without a hard time
+limit. The same flag is available on `resume_strategy_discovery.py` when resuming
+an interrupted Claude discovery run.
+
 Each proof gets one persistent mutation conversation during discovery. Blind judges,
 validators, matchers, novelty classifiers, and the distiller use fresh calls. All run
 artifacts are written below `--storage-dir`. Use `--dry-run` to validate and snapshot

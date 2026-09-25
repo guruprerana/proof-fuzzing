@@ -72,7 +72,8 @@ def _validate_strategy(text: str) -> str:
 
 
 def distill(root: Path, discovery: list[ProofExample], evidence: dict[str, list[dict[str, object]]],
-            model: str, effort: str, profile=None, provider: str = "codex") -> str:
+            model: str, effort: str, profile=None, provider: str = "codex",
+            disable_call_timeout: bool = False) -> str:
     # A quota-limited distillation may leave this directory behind. Reusing it
     # is safe because every response and the final manifest are content-hashed.
     root.mkdir(parents=True, exist_ok=True)
@@ -92,7 +93,10 @@ instructions with applicability conditions and concrete validity checks. Never i
 proof-specific names or numbers, held-out claims, or instructions to embed in a proof. Return only
 Markdown of at most 20,000 characters with headings Strategies:, Do not:, and Before returning:.''')
     (root / "prompt.txt").write_text(prompt)
-    llm = client(root, model, effort, provider=provider)
+    llm = client(
+        root, model, effort, provider=provider,
+        disable_call_timeout=disable_call_timeout,
+    )
     try:
         for attempt in range(2):
             response = llm.complete_with_files(prompt, files)
@@ -331,6 +335,7 @@ def run_strategy_transfer(*, discovery: list[ProofExample], heldout: list[ProofE
                           provider: str = "codex",
                           discovery_attempts: int = 25,
                           discovery_workers: int = 5,
+                          disable_call_timeout: bool = False,
                           dry_run: bool = False, profile=None) -> None:
     """Run persistent discovery and distill a frozen strategy library."""
     if not discovery:
@@ -355,6 +360,8 @@ def run_strategy_transfer(*, discovery: list[ProofExample], heldout: list[ProofE
             'novelty_classifier', 'distiller')},
         artifact_profile=getattr(profile, 'name', 'mathematical_proof'),
         run_mode='discovery_and_distillation_only',
+        call_timeout_seconds=(None if disable_call_timeout
+                              else SAFEGUARDED_CALL_TIMEOUT_SECONDS),
         discovery_attempts_per_proof=discovery_attempts,
         discovery_workers=discovery_workers,
         discovery=[example_metadata(p) for p in discovery],
@@ -382,7 +389,8 @@ def run_strategy_transfer(*, discovery: list[ProofExample], heldout: list[ProofE
         with ThreadPoolExecutor(max_workers=min(discovery_workers, len(discovery))) as pool:
             futures = {pool.submit(run_session, root / 'discovery' / proof_key(p), p,
                 discovery_attempts, model, reasoning_effort, profile=profile,
-                provider=provider): p for p in discovery}
+                provider=provider,
+                disable_call_timeout=disable_call_timeout): p for p in discovery}
             for future in as_completed(futures):
                 proof = futures[future]
                 records = future.result()
@@ -402,7 +410,8 @@ def run_strategy_transfer(*, discovery: list[ProofExample], heldout: list[ProofE
             audited[key].append(dict(mechanism_bank=bank,
                 instruction='Weight each mechanism once, not by repeated wins; merge cross-proof equivalents.'))
         strategy = distill(root / 'distillation', discovery, audited, model, reasoning_effort,
-                           profile, provider)
+                           profile, provider,
+                           disable_call_timeout=disable_call_timeout)
         state.update(phase='distilled', complete=True, strategy_sha256=digest(strategy))
     except Exception as error:
         state.update(failed_phase=state['phase'], phase='failed', error=repr(error))
@@ -426,6 +435,10 @@ def main():
     parser.add_argument('--seed', type=int, default=20260911)
     parser.add_argument('--discovery-attempts', type=int, default=25)
     parser.add_argument('--discovery-workers', type=int, default=5)
+    parser.add_argument(
+        '--no-call-timeout', action='store_true',
+        help='Allow judge, assessment, and distillation calls to run without a hard wall-clock timeout',
+    )
     parser.add_argument('--dry-run', action='store_true')
     args = parser.parse_args()
     defaults = {'codex': 'gpt-5.6-sol', 'claude-code': 'claude-opus-5'}
@@ -440,6 +453,7 @@ def main():
         reasoning_effort=args.reasoning_effort, seed=args.seed,
         discovery_attempts=args.discovery_attempts,
         discovery_workers=args.discovery_workers,
+        disable_call_timeout=args.no_call_timeout,
         dry_run=args.dry_run)
 
 
