@@ -5,9 +5,9 @@ This repository contains the main proof-fuzzing experiments reported in
 Opus 5 through Claude Code—on four datasets:
 
 1. Olympiad
-2. Graduate course dossiers
-3. TCS open problems
-4. Recent mathematical research
+2. GraduateCourses
+3. OpenAI-TCS
+4. ArXivMath
 
 ## Experimental design
 

@@ -1,4 +1,4 @@
-"""Generate the Claude Opus 5 judge-miss-rate figure for the paper."""
+"""Plot cross-model judge miss rates on selected strategy-guided mutations."""
 
 from pathlib import Path
 
@@ -13,13 +13,10 @@ DATASETS = (
     "ArXivMath",
 )
 
-# Discovery values are verified blind-judge misses divided by independently
-# assessed attempts. Evaluation values are missed blind reviews divided by all
-# three review slots for every valid mutation. Counts come from
-# QUANTITATIVE_RESULTS.md and its indexed run artifacts.
-DISCOVERY_COUNTS = ((29, 494), (28, 250), (30, 125))
-UNGUIDED_COUNTS = ((8, 300), (15, 150), (13, 75))
-GUIDED_COUNTS = ((24, 297), (47, 147), (28, 75))
+# Each cell contains ten valid strategy-guided mutations selected by descending
+# original missed-review count. Counts come from the finalized cross-model run.
+GPT_JUDGE_CLAUDE_MUTATIONS = ((3, 10), (5, 10), (7, 10))
+CLAUDE_JUDGE_GPT_MUTATIONS = ((2, 10), (1, 10), (2, 10))
 
 
 def percentages(counts: tuple[tuple[int, int], ...]) -> np.ndarray:
@@ -33,42 +30,44 @@ def main() -> None:
             "axes.labelsize": 38,
             "xtick.labelsize": 34,
             "ytick.labelsize": 34,
-            "legend.fontsize": 30,
+            "legend.fontsize": 29,
         }
     )
     series = (
-        ("Discovery", percentages(DISCOVERY_COUNTS), "#4C78A8"),
-        ("Strategy-guided", percentages(GUIDED_COUNTS), "#54A24B"),
-        ("Unguided", percentages(UNGUIDED_COUNTS), "#F58518"),
+        (
+            "GPT-5.6-sol judge / Claude Opus 5 mutations",
+            percentages(GPT_JUDGE_CLAUDE_MUTATIONS),
+            "#4C78A8",
+        ),
+        (
+            "Claude Opus 5 judge / GPT-5.6-sol mutations",
+            percentages(CLAUDE_JUDGE_GPT_MUTATIONS),
+            "#F58518",
+        ),
     )
     x = np.arange(len(DATASETS))
-    width = 0.24
+    width = 0.32
 
     fig, ax = plt.subplots(figsize=(18, 10.8), layout="constrained")
-    for offset, (label, values, color) in zip((-width, 0, width), series):
+    for offset, (label, values, color) in zip((-width / 2, width / 2), series):
         bars = ax.bar(x + offset, values, width, label=label, color=color)
         ax.bar_label(
             bars,
-            labels=[f"{value:.1f}%" for value in values],
+            labels=[f"{value:.0f}%" for value in values],
             padding=4,
-            fontsize=24,
+            fontsize=28,
         )
 
     ax.set_ylabel("Judge Miss Rate")
     ax.yaxis.set_major_formatter(PercentFormatter(xmax=100, decimals=0))
     ax.set_xticks(x, DATASETS)
-    ax.set_ylim(0, 43)
+    ax.set_ylim(0, 80)
     ax.grid(axis="y", color="#D9D9D9", linewidth=0.8)
     ax.set_axisbelow(True)
     ax.spines[["top", "right"]].set_visible(False)
-    ax.legend(
-        frameon=False,
-        ncols=3,
-        loc="upper left",
-        bbox_to_anchor=(0, 0.98),
-    )
+    ax.legend(frameon=False, ncols=1, loc="upper left")
 
-    output = Path(__file__).parent / "figures" / "opus5_transfer_judge_miss_rates.png"
+    output = Path(__file__).parent / "figures" / "cross_model_judge_miss_rates.png"
     output.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(output, dpi=300)
     plt.close(fig)

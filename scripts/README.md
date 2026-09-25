@@ -19,11 +19,11 @@ Three datasets use self-contained JSON splits:
 - `local_datasets/graduate_course_dossiers_v1.json`
 - `local_datasets/recent_math_research_dossiers_clean_v1.json`
 
-TCS uses the ten Markdown proofs under:
+OpenAI-TCS uses the ten Markdown proofs under:
 
 - `local_datasets/openai_ten_advances_2026/proofs_markdown/`
 
-The TCS loader reproduces the reported five-proof discovery partition
+The OpenAI-TCS loader reproduces the reported five-proof discovery partition
 (`03`, `04`, `05`, `08`, and `10`) and uses the other five proofs for evaluation.
 
 ## Discovery and distillation
@@ -41,7 +41,7 @@ For a JSON dataset with GPT-5.6-sol:
   --discovery-workers 10
 ```
 
-For TCS with Claude Opus 5:
+For OpenAI-TCS with Claude Opus 5:
 
 ```bash
 .venv/bin/python scripts/run_strategy_transfer.py \
@@ -86,7 +86,7 @@ Judge and assessment calls normally have a 20-minute wall-clock timeout. Pass
 `--no-call-timeout` to allow those calls to finish without a hard time limit. The
 selected policy is frozen in the evaluation manifest as `call_timeout_seconds`.
 
-For TCS, replace `--split-json ...` with:
+For OpenAI-TCS, replace `--split-json ...` with:
 
 ```text
 --tcs-root local_datasets/openai_ten_advances_2026/proofs_markdown
@@ -94,3 +94,24 @@ For TCS, replace `--split-json ...` with:
 
 The evaluator freezes the strategy hash and job order before model calls. Evaluation
 feedback is never returned to later mutation candidates.
+
+## Cross-model judge evaluation
+
+`run_cross_model_judge_evaluation.py` selects the strongest valid strategy-guided
+mutations from the completed Olympiad, GraduateCourses, and ArXivMath frozen
+evaluations and sends each archived blind-judge prompt to the other model family.
+Selection is frozen by mutation hash and ranked by the number of original missed
+reviews. Each cross-model judge report receives a separate fresh matcher call from
+the same target model. The run is resumable: completed candidate directories and
+result rows are reused.
+
+```bash
+.venv/bin/python scripts/run_cross_model_judge_evaluation.py \
+  --output-dir logs/by_dataset/cross_model/top10_first3_medium_20260925 \
+  --top-k 10 \
+  --workers 40
+```
+
+Use `--dry-run` to validate and print the frozen 60-candidate selection without
+making model calls. The default target reasoning effort is medium and the default
+per-call timeout is 20 minutes.

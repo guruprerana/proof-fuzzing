@@ -1,6 +1,6 @@
-# Independent audit of TCS span annotations
+# Independent audit of OpenAI-TCS span annotations
 
-Audited against the canonical TCS `results.json`, each candidate's
+Audited against the canonical OpenAI-TCS `results.json`, each candidate's
 `attempts/NNN/mutated_proof.md`, and the annotation protocol in this directory.
 No annotation JSON was edited.
 

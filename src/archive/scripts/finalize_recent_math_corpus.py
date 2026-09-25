@@ -123,7 +123,7 @@ def main() -> None:
     )
 
     lines = [
-        "# Recent mathematical research corpus v1",
+        "# ArXivMath corpus v1",
         "",
         "Ten recent, openly licensed mathematical research papers accepted for theorem-dossier extraction.",
         "Every paper has a readable, hashed TeX source archive and two independent high-reasoning",

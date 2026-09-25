@@ -1,7 +1,7 @@
 # Span-of-influence annotation protocol
 
 This directory contains manual annotations for every valid GPT-5.6-sol mutation in
-the frozen graduate-course, TCS, and recent-mathematics evaluations.
+the frozen GraduateCourses, OpenAI-TCS, and ArXivMath evaluations.
 
 ## Unit and endpoint
 
@@ -32,11 +32,11 @@ A valid candidate is **successful** when at least one of its three blind reviews
 `detection == "missed"`. It is **unsuccessful** when none is missed. An ambiguous
 review is not itself counted as a miss.
 
-Candidate indices are one-based positions in each canonical `results.json`. TCS
-proof text comes from the candidate's `attempts/NNN/mutated_proof.md`; recent-math
+Candidate indices are one-based positions in each canonical `results.json`. OpenAI-TCS
+proof text comes from the candidate's `attempts/NNN/mutated_proof.md`; ArXivMath
 proof text is the held-out dossier in
 `local_datasets/recent_math_research_dossiers_clean_v1.json` with the recorded diff
-applied. Graduate-course proof text is the held-out dossier in
+applied. GraduateCourses proof text is the held-out dossier in
 `local_datasets/graduate_course_dossiers_v1.json`, also with the recorded diff
 applied. The graduate endpoint map and reconstruction logic are retained in
 `paper_data/build_graduate_span_annotations.py`.

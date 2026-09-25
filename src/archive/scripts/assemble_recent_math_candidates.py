@@ -253,7 +253,7 @@ def download_sources(rows: Iterable[dict[str, object]], source_dir: Path, delay:
 
 def markdown_report(selected: list[dict[str, object]], rejected: list[dict[str, object]]) -> str:
     lines = [
-        "# Recent mathematical research candidate manifest",
+        "# ArXivMath candidate manifest",
         "",
         "Thirty source-screened candidates for a research-proof fuzzing corpus. All selected",
         "records carry CC BY 4.0, CC BY-SA 4.0, or CC0; source archives and exact hashes are",

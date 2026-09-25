@@ -1,0 +1,3521 @@
+{
+  "definition": "A cluster is one false assertion or inference in one source proof. Wording, counterexample, dependent-edit, and proof-hash differences do not split a cluster; analogous errors in different proofs do.",
+  "scope": "Candidates with valid == true in the three completed frozen Claude Opus 5 evaluations. OpenAI-TCS is excluded because its Opus 5 frozen evaluation has not been run.",
+  "summary": [
+    {
+      "dataset": "olympiad",
+      "dataset_label": "Olympiad",
+      "generated_candidates": 200,
+      "valid_mutations": 199,
+      "distinct_logical_errors": 110,
+      "distinct_error_rate": 0.5527638190954773,
+      "singleton_mutations": 79,
+      "singleton_rate": 0.3969849246231156,
+      "duplicate_excess_candidates": 89
+    },
+    {
+      "dataset": "graduate_course",
+      "dataset_label": "GraduateCourses",
+      "generated_candidates": 100,
+      "valid_mutations": 99,
+      "distinct_logical_errors": 79,
+      "distinct_error_rate": 0.797979797979798,
+      "singleton_mutations": 63,
+      "singleton_rate": 0.6363636363636364,
+      "duplicate_excess_candidates": 20
+    },
+    {
+      "dataset": "recent_math",
+      "dataset_label": "ArXivMath",
+      "generated_candidates": 50,
+      "valid_mutations": 50,
+      "distinct_logical_errors": 36,
+      "distinct_error_rate": 0.72,
+      "singleton_mutations": 28,
+      "singleton_rate": 0.56,
+      "duplicate_excess_candidates": 14
+    }
+  ],
+  "annotations": [
+    {
+      "dataset": "olympiad",
+      "candidate_index": 1,
+      "proof_id": "2852",
+      "arm": "generic",
+      "mutation_sha256": "ae6957803a98cb456fccc67a2549107e1ba961b9c22f948748bfd1f50f83344a",
+      "logical_error_cluster": "opus5:olympiad:L001",
+      "cluster_size": 10,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 2,
+      "proof_id": "2640",
+      "arm": "strategies",
+      "mutation_sha256": "66695e35f8b1c13d654d9892bc247d80d3336371723960e51dc8f203889013f6",
+      "logical_error_cluster": "opus5:olympiad:L002",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 3,
+      "proof_id": "2710",
+      "arm": "strategies",
+      "mutation_sha256": "0847b599ddb270f90e725eeb0880750ad86e180b9c3fe325c7bfc0c6995dbe8d",
+      "logical_error_cluster": "opus5:olympiad:L003",
+      "cluster_size": 5,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 4,
+      "proof_id": "2754",
+      "arm": "generic",
+      "mutation_sha256": "2f07e5f2f02dc97c5130f808e4af67e32d419d5eeff8712f5b3009734e6ed898",
+      "logical_error_cluster": "opus5:olympiad:L004",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 5,
+      "proof_id": "2892",
+      "arm": "generic",
+      "mutation_sha256": "31a2d6fda1a67435d34738f3092e57cd13db4354b1abb07b5f87838dada75e54",
+      "logical_error_cluster": "opus5:olympiad:L005",
+      "cluster_size": 9,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 6,
+      "proof_id": "1883",
+      "arm": "strategies",
+      "mutation_sha256": "8929bb2e8c4e5857da789110267a0ef4f0cce07f30ec7d354791a5e6dfec9dc6",
+      "logical_error_cluster": "opus5:olympiad:L006",
+      "cluster_size": 2,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 7,
+      "proof_id": "1716",
+      "arm": "generic",
+      "mutation_sha256": "84ff23c88dce380590d717eb058fc9351791157eb40894594a968bb40a142a43",
+      "logical_error_cluster": "opus5:olympiad:L007",
+      "cluster_size": 2,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 8,
+      "proof_id": "1694",
+      "arm": "strategies",
+      "mutation_sha256": "5e676ead560b641007b01904d258550ab381630b088c9879f6b64a10d7be67fb",
+      "logical_error_cluster": "opus5:olympiad:L008",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 9,
+      "proof_id": "2710",
+      "arm": "generic",
+      "mutation_sha256": "756d739857d71cecfd2bfa6d86f2f0a340c509b24aafc6ae5e968522249f5599",
+      "logical_error_cluster": "opus5:olympiad:L003",
+      "cluster_size": 5,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 10,
+      "proof_id": "2761",
+      "arm": "strategies",
+      "mutation_sha256": "d346913859ce0a83a9ef28a807d7eaebdd249b7b39fb413e1b0c768c99369e1d",
+      "logical_error_cluster": "opus5:olympiad:L009",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 11,
+      "proof_id": "3086",
+      "arm": "strategies",
+      "mutation_sha256": "bbbcb34354e06ecc6210c86cf94e1e143ea54b727936d4142a5e7fc74dd1f45c",
+      "logical_error_cluster": "opus5:olympiad:L010",
+      "cluster_size": 2,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 12,
+      "proof_id": "2761",
+      "arm": "strategies",
+      "mutation_sha256": "c77cc7d93b9aa899f5d6878b094cc2da5aab7ca4da9e548ba0121d73a6e222f8",
+      "logical_error_cluster": "opus5:olympiad:L011",
+      "cluster_size": 7,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 13,
+      "proof_id": "1694",
+      "arm": "generic",
+      "mutation_sha256": "fcb8a88fe70c24cd34ea12f6c3a4d11cb6f31c5b2c0d2c12eae1a19b0f9e96a0",
+      "logical_error_cluster": "opus5:olympiad:L012",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 14,
+      "proof_id": "1832",
+      "arm": "generic",
+      "mutation_sha256": "dd274f295111c9287d62159b9bcef87a2dc0153c1d1afde9167e42be16db562d",
+      "logical_error_cluster": "opus5:olympiad:L013",
+      "cluster_size": 4,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 15,
+      "proof_id": "1869",
+      "arm": "generic",
+      "mutation_sha256": "eb49b2f009c6280028e2c6e44f6d95ae607ccca693706d364f20f2ad991f07f7",
+      "logical_error_cluster": "opus5:olympiad:L014",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 16,
+      "proof_id": "2892",
+      "arm": "generic",
+      "mutation_sha256": "2c5aaf1da7211cfc04364bf5e334e2037a8a3d48e64ec0d789d5d3c310e18b13",
+      "logical_error_cluster": "opus5:olympiad:L005",
+      "cluster_size": 9,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 17,
+      "proof_id": "3086",
+      "arm": "generic",
+      "mutation_sha256": "d478b3fe959b94cba763ed7cc695f3cb7258ad286ffa0380bac8327cc19d1d65",
+      "logical_error_cluster": "opus5:olympiad:L015",
+      "cluster_size": 2,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 18,
+      "proof_id": "1694",
+      "arm": "generic",
+      "mutation_sha256": "c72e442fa9249369ca90e88e622469159eb194331c2bf6d1d3e823f203925d90",
+      "logical_error_cluster": "opus5:olympiad:L016",
+      "cluster_size": 2,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 19,
+      "proof_id": "3086",
+      "arm": "strategies",
+      "mutation_sha256": "66401bc19de1d9171e41bad338d9c89859de71495cbd31cc24e4ef86a9909926",
+      "logical_error_cluster": "opus5:olympiad:L017",
+      "cluster_size": 5,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 20,
+      "proof_id": "1664",
+      "arm": "strategies",
+      "mutation_sha256": "0f2b65574be5793f0d7b680dfee719a4b82243d0e55ba553f5a5c27f527233a7",
+      "logical_error_cluster": "opus5:olympiad:L018",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 21,
+      "proof_id": "2910",
+      "arm": "generic",
+      "mutation_sha256": "881a277263501ea79533f08b50668e233cfbd59656733ee9c5d829103bc34da5",
+      "logical_error_cluster": "opus5:olympiad:L019",
+      "cluster_size": 3,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 22,
+      "proof_id": "1694",
+      "arm": "generic",
+      "mutation_sha256": "2926657d72947db36fba26b64abe6f0661864b3b0f2c393e0d3da8fe708b88a2",
+      "logical_error_cluster": "opus5:olympiad:L020",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 23,
+      "proof_id": "1929",
+      "arm": "strategies",
+      "mutation_sha256": "fba607e0a392772d33d7286e342d68dd0b7d6b73ae563bd7dd406725fdd5ab73",
+      "logical_error_cluster": "opus5:olympiad:L021",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 24,
+      "proof_id": "1718",
+      "arm": "generic",
+      "mutation_sha256": "c2cf88a943e323291b789bfb70ce9f5c8d83dd8ec971b1c4b033a4a6d2ad464b",
+      "logical_error_cluster": "opus5:olympiad:L022",
+      "cluster_size": 4,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 25,
+      "proof_id": "2126",
+      "arm": "strategies",
+      "mutation_sha256": "d12538ed6b6ddd92fd62a60a21950673ccc45bdea229c45d2f8461afd549c2ff",
+      "logical_error_cluster": "opus5:olympiad:L023",
+      "cluster_size": 4,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 26,
+      "proof_id": "1716",
+      "arm": "strategies",
+      "mutation_sha256": "f29b920a7acb01df00a3aecb36e3965f03a01ee7212dbb185af391f35840869c",
+      "logical_error_cluster": "opus5:olympiad:L024",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 27,
+      "proof_id": "1716",
+      "arm": "generic",
+      "mutation_sha256": "5fe155ad78fae2155f780b542c9de3117899fa7534da0f02a927eee69441ad21",
+      "logical_error_cluster": "opus5:olympiad:L025",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 28,
+      "proof_id": "1664",
+      "arm": "strategies",
+      "mutation_sha256": "ffad30d2b66bc8b8ec101eccacb29f0f55c764d281ce7175951c0ac63111e0a4",
+      "logical_error_cluster": "opus5:olympiad:L026",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 29,
+      "proof_id": "2640",
+      "arm": "generic",
+      "mutation_sha256": "789b2953cbec7432d87e30e1da948921bce06cfad5b6b94300201a2431dbaf0e",
+      "logical_error_cluster": "opus5:olympiad:L027",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 30,
+      "proof_id": "2761",
+      "arm": "strategies",
+      "mutation_sha256": "1565f41467255729478c5b7147c7e6659f7f44aa24497f3d807f44526023ac3d",
+      "logical_error_cluster": "opus5:olympiad:L028",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 31,
+      "proof_id": "2640",
+      "arm": "generic",
+      "mutation_sha256": "d238c2437401a20d80166d51375cde379cbe87d21acb8e107ef125a842d24662",
+      "logical_error_cluster": "opus5:olympiad:L029",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 32,
+      "proof_id": "1694",
+      "arm": "strategies",
+      "mutation_sha256": "f163f06ac9ec2781ded4e028320974d8902a5fa5ad6e87d0dfd13e779985b9f5",
+      "logical_error_cluster": "opus5:olympiad:L030",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 33,
+      "proof_id": "2754",
+      "arm": "strategies",
+      "mutation_sha256": "39a74937dd9ae3d0a40bb8e0aece1915af0d75a363a71ecaec092806756933a8",
+      "logical_error_cluster": "opus5:olympiad:L031",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 34,
+      "proof_id": "2892",
+      "arm": "strategies",
+      "mutation_sha256": "6edc2168e9f0f74de1674edb43626cdc707b607b4eef0b1f866fc88c1963f62a",
+      "logical_error_cluster": "opus5:olympiad:L005",
+      "cluster_size": 9,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 35,
+      "proof_id": "1929",
+      "arm": "generic",
+      "mutation_sha256": "86ed5b1e45c7aa23015ad65df095aaa3fbbd65d87393fbd9049c26af010e74b7",
+      "logical_error_cluster": "opus5:olympiad:L032",
+      "cluster_size": 8,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 36,
+      "proof_id": "2640",
+      "arm": "strategies",
+      "mutation_sha256": "4d5b1a4ce00d90ef39589c3feee5a25700faa82472f55728a55f6df479895395",
+      "logical_error_cluster": "opus5:olympiad:L033",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 37,
+      "proof_id": "2084",
+      "arm": "strategies",
+      "mutation_sha256": "06a3160745fe3f23069aae02b7c4a2a0fee8f31ca7d51736624d8813155d3c35",
+      "logical_error_cluster": "opus5:olympiad:L034",
+      "cluster_size": 2,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 38,
+      "proof_id": "1929",
+      "arm": "generic",
+      "mutation_sha256": "4f8c6201e48eadd716d6d51a554e22efb46ca483794c428be0eb4f37f797edbf",
+      "logical_error_cluster": "opus5:olympiad:L032",
+      "cluster_size": 8,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 39,
+      "proof_id": "1664",
+      "arm": "generic",
+      "mutation_sha256": "3fb7625708f6d937a502e852a834ef789773c73e058d030b9b491a8f05c8b381",
+      "logical_error_cluster": "opus5:olympiad:L035",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 40,
+      "proof_id": "2954",
+      "arm": "generic",
+      "mutation_sha256": "f3cf8da5a67ee3fc69c36f752193e4a5ab0e7270065d1d52f96953c14359bc8e",
+      "logical_error_cluster": "opus5:olympiad:L036",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 41,
+      "proof_id": "1929",
+      "arm": "generic",
+      "mutation_sha256": "7e6c0758ba2c1a65a5a326368571031bc298da7b257290c5a610c18255f81c35",
+      "logical_error_cluster": "opus5:olympiad:L032",
+      "cluster_size": 8,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 42,
+      "proof_id": "1716",
+      "arm": "strategies",
+      "mutation_sha256": "b28b9eadd6216f48690cfaca62975e8aa996404b1354baa8ddb4d09d42dfe59d",
+      "logical_error_cluster": "opus5:olympiad:L037",
+      "cluster_size": 3,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 43,
+      "proof_id": "2084",
+      "arm": "strategies",
+      "mutation_sha256": "ecaea622bb9623f8a543818c0eb9df13118840ef45f3dfb17c834e68991afd39",
+      "logical_error_cluster": "opus5:olympiad:L038",
+      "cluster_size": 3,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 44,
+      "proof_id": "3086",
+      "arm": "generic",
+      "mutation_sha256": "e76c624131e6f9dc6f8e49250bf66ffecb436468a75b7206d71fb618234b046c",
+      "logical_error_cluster": "opus5:olympiad:L017",
+      "cluster_size": 5,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 45,
+      "proof_id": "2892",
+      "arm": "generic",
+      "mutation_sha256": "311fd99a13fc88d632fb45d13329cb1291c892320f29cdc595e64d1d3fd36cec",
+      "logical_error_cluster": "opus5:olympiad:L005",
+      "cluster_size": 9,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 46,
+      "proof_id": "1694",
+      "arm": "strategies",
+      "mutation_sha256": "1de365cee63920ced8af539c2a102f4d89bf1e2f8d271cbb17e176d2076e6784",
+      "logical_error_cluster": "opus5:olympiad:L039",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 47,
+      "proof_id": "1716",
+      "arm": "generic",
+      "mutation_sha256": "4bcae3c5d15cf9db6b376138c4aff03237797b4e3c9681b8ca476b708cf883e0",
+      "logical_error_cluster": "opus5:olympiad:L037",
+      "cluster_size": 3,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 48,
+      "proof_id": "2710",
+      "arm": "generic",
+      "mutation_sha256": "821c6919646942344df1a332aa07b18d5d2f4a1338c34d2e1184a6406a7e1812",
+      "logical_error_cluster": "opus5:olympiad:L040",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 49,
+      "proof_id": "2761",
+      "arm": "generic",
+      "mutation_sha256": "23de035eaad59bc11bd3770b397da2aa4cce8c891099f27227d7d5e6e6af8636",
+      "logical_error_cluster": "opus5:olympiad:L041",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 50,
+      "proof_id": "2761",
+      "arm": "strategies",
+      "mutation_sha256": "3106201b240470e7d915a0add706c302bce3d73acd03df9ad77962fc121f9b11",
+      "logical_error_cluster": "opus5:olympiad:L011",
+      "cluster_size": 7,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 51,
+      "proof_id": "1664",
+      "arm": "generic",
+      "mutation_sha256": "35d7902844c21dac386a6f8c135af3168bc6060c8fde6c220834de002de1c912",
+      "logical_error_cluster": "opus5:olympiad:L042",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 52,
+      "proof_id": "2852",
+      "arm": "generic",
+      "mutation_sha256": "ab71ba96511d20189fd6dce3a18900ce4ab81a82140e086ce90f6985b3c2cf64",
+      "logical_error_cluster": "opus5:olympiad:L001",
+      "cluster_size": 10,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 53,
+      "proof_id": "2640",
+      "arm": "generic",
+      "mutation_sha256": "5c3250a53a1be45446f3ed7d666d624740d5f26f546e8ca56dd58b3048d72471",
+      "logical_error_cluster": "opus5:olympiad:L043",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 54,
+      "proof_id": "2761",
+      "arm": "generic",
+      "mutation_sha256": "7d08d5a48e6c9746174fcf477087cf36768a60b2ff522ec3345868648203b604",
+      "logical_error_cluster": "opus5:olympiad:L011",
+      "cluster_size": 7,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 55,
+      "proof_id": "1718",
+      "arm": "strategies",
+      "mutation_sha256": "85d6786941c46a3ef73a3fecd92622494b8af1cfd1a26286966e042b166333d9",
+      "logical_error_cluster": "opus5:olympiad:L022",
+      "cluster_size": 4,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 56,
+      "proof_id": "1664",
+      "arm": "generic",
+      "mutation_sha256": "03e92e67d85102cd2f4a4d30ac6e422df6780ee165ef545a4feb81c921693a58",
+      "logical_error_cluster": "opus5:olympiad:L044",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 57,
+      "proof_id": "1718",
+      "arm": "strategies",
+      "mutation_sha256": "c2cf88a943e323291b789bfb70ce9f5c8d83dd8ec971b1c4b033a4a6d2ad464b",
+      "logical_error_cluster": "opus5:olympiad:L022",
+      "cluster_size": 4,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 58,
+      "proof_id": "2910",
+      "arm": "generic",
+      "mutation_sha256": "a3d8399c5019092cf952294146a0db85fa012db0d6ee868951f8c82503e909cf",
+      "logical_error_cluster": "opus5:olympiad:L045",
+      "cluster_size": 7,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 59,
+      "proof_id": "1716",
+      "arm": "generic",
+      "mutation_sha256": "86d5ea6574a367db8e5f94298868ec69a77d23e1d25a485b38c359cf8d05b2fe",
+      "logical_error_cluster": "opus5:olympiad:L046",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 60,
+      "proof_id": "2126",
+      "arm": "generic",
+      "mutation_sha256": "fc3f1ec0e0d73b08fc7475119b27fc3ae2c27d447d02a3690171abd4295c1b2b",
+      "logical_error_cluster": "opus5:olympiad:L047",
+      "cluster_size": 5,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 61,
+      "proof_id": "1716",
+      "arm": "strategies",
+      "mutation_sha256": "002935c30ff39b577f366e79fa22e947fed48fc71c3bb5329d379142c1f55a82",
+      "logical_error_cluster": "opus5:olympiad:L037",
+      "cluster_size": 3,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 62,
+      "proof_id": "2910",
+      "arm": "strategies",
+      "mutation_sha256": "b0e0ab4f11dd5c25e54b47bcf371e65fa48c5ead9bea369ab7b8a7d0257937d0",
+      "logical_error_cluster": "opus5:olympiad:L045",
+      "cluster_size": 7,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 63,
+      "proof_id": "1832",
+      "arm": "strategies",
+      "mutation_sha256": "b6faaf92ffee5fc06165483cbcf169d1e15f1fbcb1832109bdef77f8db81eb0e",
+      "logical_error_cluster": "opus5:olympiad:L048",
+      "cluster_size": 2,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 64,
+      "proof_id": "2954",
+      "arm": "strategies",
+      "mutation_sha256": "d5853d8b0d77ad877d0220ac442a50372d704dfa60735a3e3d172aa545e927a5",
+      "logical_error_cluster": "opus5:olympiad:L049",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 65,
+      "proof_id": "2427",
+      "arm": "strategies",
+      "mutation_sha256": "b784df6607691619bd77c4094e932075c9e32296ec966a4d11cb1ec3f9040232",
+      "logical_error_cluster": "opus5:olympiad:L050",
+      "cluster_size": 8,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 66,
+      "proof_id": "1718",
+      "arm": "strategies",
+      "mutation_sha256": "784c86ecca5ab1162e703be8e6fb1378b3b56329db890166f627781ca59b48fd",
+      "logical_error_cluster": "opus5:olympiad:L051",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 67,
+      "proof_id": "1718",
+      "arm": "strategies",
+      "mutation_sha256": "9f49f334b0d2f1ac44f661baef3ff08fa130c3cd9d6521b5e137fa08b4ad815a",
+      "logical_error_cluster": "opus5:olympiad:L052",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 68,
+      "proof_id": "2710",
+      "arm": "strategies",
+      "mutation_sha256": "1276cbda2b26775fe125477dde3730c70614ab615baee112078a282fb41cc243",
+      "logical_error_cluster": "opus5:olympiad:L003",
+      "cluster_size": 5,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 69,
+      "proof_id": "2126",
+      "arm": "strategies",
+      "mutation_sha256": "2e8d2dce996f305f5802cded94a6a9b67e68c3fec68a583ce14dda5d309694c4",
+      "logical_error_cluster": "opus5:olympiad:L023",
+      "cluster_size": 4,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 70,
+      "proof_id": "1929",
+      "arm": "generic",
+      "mutation_sha256": "3d7e7134d77d7cb808b78cb63bc27359f1b685ba4c92edaf79ddb0b9f180c357",
+      "logical_error_cluster": "opus5:olympiad:L032",
+      "cluster_size": 8,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 71,
+      "proof_id": "2954",
+      "arm": "strategies",
+      "mutation_sha256": "815fb9fecc89416a69592ba296f197e4f4be84c76aa543193fb5343603a02b80",
+      "logical_error_cluster": "opus5:olympiad:L053",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 72,
+      "proof_id": "2640",
+      "arm": "generic",
+      "mutation_sha256": "e994bee69fbf73626e2c23759296655ebe605815904dcbad13e1b3e7bb97d027",
+      "logical_error_cluster": "opus5:olympiad:L054",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 73,
+      "proof_id": "2754",
+      "arm": "strategies",
+      "mutation_sha256": "e0a49b28d3d2881a8184eebcbc298c7895185d52b8f0f11375a1f2b40c31a79d",
+      "logical_error_cluster": "opus5:olympiad:L055",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 74,
+      "proof_id": "1832",
+      "arm": "strategies",
+      "mutation_sha256": "8eac25e7ed335aa03427324a9602467f6b1d9c8c77291cbfe45ff2f269804236",
+      "logical_error_cluster": "opus5:olympiad:L056",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 75,
+      "proof_id": "1883",
+      "arm": "generic",
+      "mutation_sha256": "e989d6fe3544f87d4fb794373a413c54158f493e948da3e75a7fdcad49ad38d3",
+      "logical_error_cluster": "opus5:olympiad:L057",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 76,
+      "proof_id": "2427",
+      "arm": "strategies",
+      "mutation_sha256": "45328fb6e8d421536f48fc207cbbb03f81a5ae7976a4269165a00bb678df65f9",
+      "logical_error_cluster": "opus5:olympiad:L050",
+      "cluster_size": 8,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 77,
+      "proof_id": "1869",
+      "arm": "generic",
+      "mutation_sha256": "f7c3e344d746ad15f0298d72ff885c531b63280ece57d623ac2168bbbecd33df",
+      "logical_error_cluster": "opus5:olympiad:L058",
+      "cluster_size": 3,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 78,
+      "proof_id": "2084",
+      "arm": "strategies",
+      "mutation_sha256": "d6805f5817352a83fbe733b30bb52370308f73bded9c28426cb3f04d009a3ed0",
+      "logical_error_cluster": "opus5:olympiad:L059",
+      "cluster_size": 2,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 79,
+      "proof_id": "1664",
+      "arm": "strategies",
+      "mutation_sha256": "970796396b575477f3e1eaa61501043903fc5e8de55933bf57e242bac5f94a04",
+      "logical_error_cluster": "opus5:olympiad:L060",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 80,
+      "proof_id": "2892",
+      "arm": "strategies",
+      "mutation_sha256": "2fd2b84cb1ed31440bf1c8c57937b75c21131cda73ed66caefa3a5bbede34b33",
+      "logical_error_cluster": "opus5:olympiad:L005",
+      "cluster_size": 9,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 81,
+      "proof_id": "1869",
+      "arm": "generic",
+      "mutation_sha256": "e42617835f48c4b43d05d6afe1c69440d09e6dec846db7543750f63c35f5fb00",
+      "logical_error_cluster": "opus5:olympiad:L058",
+      "cluster_size": 3,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 82,
+      "proof_id": "1694",
+      "arm": "generic",
+      "mutation_sha256": "3329f8776eebc7fbc28ac46ec05feaf3ac7a648085be73f34bc360872bcb657e",
+      "logical_error_cluster": "opus5:olympiad:L061",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 83,
+      "proof_id": "2126",
+      "arm": "strategies",
+      "mutation_sha256": "a2b7277b3c9b559be8bac5a61730463b6d357fbb8395377438c778fd46a769cd",
+      "logical_error_cluster": "opus5:olympiad:L023",
+      "cluster_size": 4,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 84,
+      "proof_id": "2084",
+      "arm": "strategies",
+      "mutation_sha256": "3e7d2c831ab949423e8a008e398b168af4ecc0f487e047842928e5142c239453",
+      "logical_error_cluster": "opus5:olympiad:L034",
+      "cluster_size": 2,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 85,
+      "proof_id": "1832",
+      "arm": "strategies",
+      "mutation_sha256": "21c8ee1d3648b25a519c5b182b69bd7fba9f112e4c0ae6f506d1508ea4fd2a88",
+      "logical_error_cluster": "opus5:olympiad:L013",
+      "cluster_size": 4,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 86,
+      "proof_id": "2761",
+      "arm": "generic",
+      "mutation_sha256": "c2211f2bd993837ee3d5ac7c276fdb9d7b4d5c71d48db7a5cf5dec006b9b5277",
+      "logical_error_cluster": "opus5:olympiad:L011",
+      "cluster_size": 7,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 87,
+      "proof_id": "2084",
+      "arm": "generic",
+      "mutation_sha256": "5c5e09775c279fec866f2b3a4d674e117e7361b9b7286a2167ed2cc5f0a5819f",
+      "logical_error_cluster": "opus5:olympiad:L038",
+      "cluster_size": 3,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 88,
+      "proof_id": "1718",
+      "arm": "generic",
+      "mutation_sha256": "7ff24c148ebed1aa6af16c3a41365bebfc46dfe5c9e8b21f60f24a7a7513515a",
+      "logical_error_cluster": "opus5:olympiad:L062",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 89,
+      "proof_id": "2910",
+      "arm": "strategies",
+      "mutation_sha256": "f702cff9416334a74553281cf18ef72e7e608e28f885a795e9d34b0156cf1eb4",
+      "logical_error_cluster": "opus5:olympiad:L045",
+      "cluster_size": 7,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 90,
+      "proof_id": "1664",
+      "arm": "strategies",
+      "mutation_sha256": "54608e3cb8ad7a9548373ce3926000daf54845bcd5f59956d266c9eb6713f21a",
+      "logical_error_cluster": "opus5:olympiad:L063",
+      "cluster_size": 2,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 91,
+      "proof_id": "2910",
+      "arm": "strategies",
+      "mutation_sha256": "4dbc349ab2f763e6ea5ea2fafd54e3e0905f679761a9a4198addca35f16a3135",
+      "logical_error_cluster": "opus5:olympiad:L045",
+      "cluster_size": 7,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 92,
+      "proof_id": "1869",
+      "arm": "strategies",
+      "mutation_sha256": "d81e23d6db7f75ce3d0c8ff0ad2f1c2def84f8271c5bb9998a317e7ce717d62f",
+      "logical_error_cluster": "opus5:olympiad:L064",
+      "cluster_size": 2,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 93,
+      "proof_id": "1869",
+      "arm": "strategies",
+      "mutation_sha256": "d238c0bf98482931c631d55c6038f1f3f136dd277f3d4efb0a3961b59193e575",
+      "logical_error_cluster": "opus5:olympiad:L065",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 94,
+      "proof_id": "1664",
+      "arm": "generic",
+      "mutation_sha256": "ebe988589f90ff933e21f6322be0195105acace94399d27725419b6dbf7559bf",
+      "logical_error_cluster": "opus5:olympiad:L066",
+      "cluster_size": 2,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 95,
+      "proof_id": "2427",
+      "arm": "generic",
+      "mutation_sha256": "64f010221066d1db651e57beb3f518d04cd83bfe2cd0a3ceadd9390ae815dcf5",
+      "logical_error_cluster": "opus5:olympiad:L067",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 96,
+      "proof_id": "2761",
+      "arm": "generic",
+      "mutation_sha256": "5e0943e3a19c72c7b2cf3f33c759e1ec984d71e7af6ce325d50729ba02a4b71e",
+      "logical_error_cluster": "opus5:olympiad:L011",
+      "cluster_size": 7,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 97,
+      "proof_id": "2954",
+      "arm": "strategies",
+      "mutation_sha256": "5835158a6bb8cb561351026f6d4c6eb6513ef67a47c095c0f5c680c200e97beb",
+      "logical_error_cluster": "opus5:olympiad:L068",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 98,
+      "proof_id": "2084",
+      "arm": "strategies",
+      "mutation_sha256": "42b0def50cf75ffa84acbbf55fe93977ba3364fb2d8eced34e608542dc8df599",
+      "logical_error_cluster": "opus5:olympiad:L038",
+      "cluster_size": 3,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 99,
+      "proof_id": "2754",
+      "arm": "strategies",
+      "mutation_sha256": "9ea42baf109c7b831ba600d38cf40eed1f59722212ed97fc0cdf9a552d4d68e7",
+      "logical_error_cluster": "opus5:olympiad:L069",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 100,
+      "proof_id": "3086",
+      "arm": "strategies",
+      "mutation_sha256": "c57197ba90255f9d52cc598a246f54ab520001ab6ca18c4d030af481de8a3638",
+      "logical_error_cluster": "opus5:olympiad:L017",
+      "cluster_size": 5,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 101,
+      "proof_id": "2910",
+      "arm": "generic",
+      "mutation_sha256": "1c26d3f8b7db095125bf2c5cf65a39b1acc38e6c399769ddcef95bd27e388911",
+      "logical_error_cluster": "opus5:olympiad:L019",
+      "cluster_size": 3,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 102,
+      "proof_id": "1664",
+      "arm": "generic",
+      "mutation_sha256": "5b4ea5df5c6b0daac26927578b31fa7b508ab8384ad27628fddd511df4159bdc",
+      "logical_error_cluster": "opus5:olympiad:L066",
+      "cluster_size": 2,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 103,
+      "proof_id": "1883",
+      "arm": "strategies",
+      "mutation_sha256": "488f0282afd6f54b27ab3fbf1a5b0e1bc4e4c4714633855f9fc0f99873be8c99",
+      "logical_error_cluster": "opus5:olympiad:L070",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 104,
+      "proof_id": "2754",
+      "arm": "generic",
+      "mutation_sha256": "6f6e5a6de47307283a412ad6de0798d82774b6fbdb153d88b8fd8da75a46e930",
+      "logical_error_cluster": "opus5:olympiad:L071",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 105,
+      "proof_id": "1832",
+      "arm": "strategies",
+      "mutation_sha256": "dca89f3e60c036a2eac8839c6defdadc6192260dd4858ca95aa2f4675f07f82e",
+      "logical_error_cluster": "opus5:olympiad:L072",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 106,
+      "proof_id": "3086",
+      "arm": "generic",
+      "mutation_sha256": "535c3f004e318d28876f4ee3be022091f2423b8629c4992e54248ad393def871",
+      "logical_error_cluster": "opus5:olympiad:L073",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 107,
+      "proof_id": "2761",
+      "arm": "generic",
+      "mutation_sha256": "a7edc0a9ca16fde7ada0c439a64650fb707c356027c0633ab6e6465586d2ec60",
+      "logical_error_cluster": "opus5:olympiad:L011",
+      "cluster_size": 7,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 108,
+      "proof_id": "1869",
+      "arm": "strategies",
+      "mutation_sha256": "502555d4f7711f08faf6100dc663e64a9eb31036339f1b086215ac11ffc969b9",
+      "logical_error_cluster": "opus5:olympiad:L074",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 109,
+      "proof_id": "2710",
+      "arm": "strategies",
+      "mutation_sha256": "8676a4abae6f9289595738e544f8d5a711d2ad9a08886afc564350aed3cd5a13",
+      "logical_error_cluster": "opus5:olympiad:L003",
+      "cluster_size": 5,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 110,
+      "proof_id": "2126",
+      "arm": "generic",
+      "mutation_sha256": "da0657f87ea1a53397fafee53a386f6a303c0690badc9ce4fa2b2f39f80c3708",
+      "logical_error_cluster": "opus5:olympiad:L047",
+      "cluster_size": 5,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 111,
+      "proof_id": "1832",
+      "arm": "generic",
+      "mutation_sha256": "2e5d2486f4eb036f0a6572401960b3d0e6a7fa118d476ba95b103da73d47a733",
+      "logical_error_cluster": "opus5:olympiad:L013",
+      "cluster_size": 4,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 112,
+      "proof_id": "1929",
+      "arm": "strategies",
+      "mutation_sha256": "6439d3e325e9b7de737ae5f9788fbd2f729ca529e2e79c9613beadf485e63815",
+      "logical_error_cluster": "opus5:olympiad:L032",
+      "cluster_size": 8,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 113,
+      "proof_id": "1929",
+      "arm": "strategies",
+      "mutation_sha256": "544b0bde46344e3b4357699e438e829ff9c79aa688dcdc165d46747c534a1d13",
+      "logical_error_cluster": "opus5:olympiad:L032",
+      "cluster_size": 8,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 114,
+      "proof_id": "2427",
+      "arm": "strategies",
+      "mutation_sha256": "de36ec264cd4a968c1442a53bd63ef9157aa13d2f00e5413a7210a7ae574ab06",
+      "logical_error_cluster": "opus5:olympiad:L050",
+      "cluster_size": 8,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 115,
+      "proof_id": "1869",
+      "arm": "generic",
+      "mutation_sha256": "31a567bfff6e8d02e785f3d6ab7fb61b27bd2671832a6fd236be9d01e354d6ec",
+      "logical_error_cluster": "opus5:olympiad:L058",
+      "cluster_size": 3,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 116,
+      "proof_id": "2954",
+      "arm": "generic",
+      "mutation_sha256": "5867e8ffccdbfe46f0ee63f22ab452818dd831e4688e43bbee034e767f1408b8",
+      "logical_error_cluster": "opus5:olympiad:L075",
+      "cluster_size": 3,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 117,
+      "proof_id": "2852",
+      "arm": "strategies",
+      "mutation_sha256": "f787a6757db35bcae1627e9b412b1bdb713259271e1dbbbaaf1b15fae62b3f48",
+      "logical_error_cluster": "opus5:olympiad:L001",
+      "cluster_size": 10,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 118,
+      "proof_id": "2852",
+      "arm": "strategies",
+      "mutation_sha256": "9226e77db6f4cdf90ad78cd72b7b315818b4719af110d2e4a9c148a368d04289",
+      "logical_error_cluster": "opus5:olympiad:L001",
+      "cluster_size": 10,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 119,
+      "proof_id": "2910",
+      "arm": "generic",
+      "mutation_sha256": "1451065fa72c9d53c73cce7dbe0498ba78cf08663f04d4b327e3a8273b624683",
+      "logical_error_cluster": "opus5:olympiad:L019",
+      "cluster_size": 3,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 120,
+      "proof_id": "2954",
+      "arm": "generic",
+      "mutation_sha256": "6113fec983c0317c08c02acaad4d0c3bd0e4311268ab0b7c4ee40d8fc87bd03e",
+      "logical_error_cluster": "opus5:olympiad:L076",
+      "cluster_size": 2,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 121,
+      "proof_id": "2852",
+      "arm": "generic",
+      "mutation_sha256": "b81a1c566b0a3d86a439e611ad2ae027e120e49e0784fc3350de348f494a7a53",
+      "logical_error_cluster": "opus5:olympiad:L001",
+      "cluster_size": 10,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 122,
+      "proof_id": "1869",
+      "arm": "strategies",
+      "mutation_sha256": "ff95395c1ebc1e751696b303c8ddee794e48fcadc622aaf5de6ee29dfce63a27",
+      "logical_error_cluster": "opus5:olympiad:L064",
+      "cluster_size": 2,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 123,
+      "proof_id": "2126",
+      "arm": "generic",
+      "mutation_sha256": "072c43fc32b32a9016f5da0f4d88c932666fe8369b1124d0473967c97a49a0e2",
+      "logical_error_cluster": "opus5:olympiad:L047",
+      "cluster_size": 5,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 124,
+      "proof_id": "2084",
+      "arm": "generic",
+      "mutation_sha256": "666fee19ac5c0bb1d9ed9af5c7f6663337d8c4d7fce0d1bd4e65ba7934402f2b",
+      "logical_error_cluster": "opus5:olympiad:L077",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 125,
+      "proof_id": "2852",
+      "arm": "generic",
+      "mutation_sha256": "b4587dd43858d65f44cc07a346063d7fb836b420f0c03be8d73466452af6ee2d",
+      "logical_error_cluster": "opus5:olympiad:L001",
+      "cluster_size": 10,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 126,
+      "proof_id": "1883",
+      "arm": "generic",
+      "mutation_sha256": "a9cc04fbd33301a3d146b815e509a3b3f18df4a9dd5f8771983fd84287c84f7d",
+      "logical_error_cluster": "opus5:olympiad:L078",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 127,
+      "proof_id": "1883",
+      "arm": "generic",
+      "mutation_sha256": "e00eb025fcb5c2fcb7e65ebbfb25255955480edc56658853ec74bee6a871494d",
+      "logical_error_cluster": "opus5:olympiad:L079",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 128,
+      "proof_id": "1718",
+      "arm": "strategies",
+      "mutation_sha256": "e46da0716d24cede98fb6144c1e162a917acfd2c8f7653373377df5cd6057b0c",
+      "logical_error_cluster": "opus5:olympiad:L080",
+      "cluster_size": 3,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 129,
+      "proof_id": "1832",
+      "arm": "strategies",
+      "mutation_sha256": "2ca23f8b8de5c84dd3c2e93e376690654f83aa868980d5493857876c9771d3f3",
+      "logical_error_cluster": "opus5:olympiad:L081",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 130,
+      "proof_id": "2084",
+      "arm": "generic",
+      "mutation_sha256": "482eabc67b978ce65532464db5e9f82acc767ea4658c6451ac9f00a0e303608d",
+      "logical_error_cluster": "opus5:olympiad:L059",
+      "cluster_size": 2,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 131,
+      "proof_id": "2427",
+      "arm": "strategies",
+      "mutation_sha256": "8b679215da684850454818c420871d9876b1a0c6ce3a638041b3bb18d625433a",
+      "logical_error_cluster": "opus5:olympiad:L050",
+      "cluster_size": 8,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 132,
+      "proof_id": "1929",
+      "arm": "generic",
+      "mutation_sha256": "ab1d1807d5d98ce39f9a1662f3ba554a636abb1b65bf32d185d5b8c016f02cd4",
+      "logical_error_cluster": "opus5:olympiad:L082",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 133,
+      "proof_id": "2852",
+      "arm": "generic",
+      "mutation_sha256": "dc9766e632685e1ba1d5f5d6078b38ecab0a57eb137839b1bd0496b68a08409b",
+      "logical_error_cluster": "opus5:olympiad:L001",
+      "cluster_size": 10,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 134,
+      "proof_id": "2427",
+      "arm": "strategies",
+      "mutation_sha256": "3bfe08e82a0620ceb6cf2c07f462e044dfeb57e68a13206233e08a1434952dba",
+      "logical_error_cluster": "opus5:olympiad:L050",
+      "cluster_size": 8,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 135,
+      "proof_id": "2710",
+      "arm": "generic",
+      "mutation_sha256": "764183962d2b3ae5021e4f2907ef3d1d9d1bca70daeba0a34e9ad0d83f94de54",
+      "logical_error_cluster": "opus5:olympiad:L083",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 136,
+      "proof_id": "1832",
+      "arm": "generic",
+      "mutation_sha256": "e69e3659da823960369d6e0f5438c28470508637f4496981846ff0d62b2275f2",
+      "logical_error_cluster": "opus5:olympiad:L013",
+      "cluster_size": 4,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 137,
+      "proof_id": "2754",
+      "arm": "strategies",
+      "mutation_sha256": "9e3f4e47492552a558f1623bf35c3eb48e91e3b9c5d0b1bf9fd13152f9119530",
+      "logical_error_cluster": "opus5:olympiad:L084",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 138,
+      "proof_id": "1883",
+      "arm": "generic",
+      "mutation_sha256": "da49fad0fdf685b80ca4ff13066784e3a1017901bd11afd59364b5f20134a30c",
+      "logical_error_cluster": "opus5:olympiad:L085",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 139,
+      "proof_id": "2852",
+      "arm": "strategies",
+      "mutation_sha256": "37ebfaf44883ea28cd74090454632bb46ce168265386900d00bc670a6658cf11",
+      "logical_error_cluster": "opus5:olympiad:L001",
+      "cluster_size": 10,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 140,
+      "proof_id": "2754",
+      "arm": "generic",
+      "mutation_sha256": "a768562464114f8c34adf6f0fdef6fb3d13e634f1f3321bcd477e19f80793f82",
+      "logical_error_cluster": "opus5:olympiad:L086",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 141,
+      "proof_id": "2084",
+      "arm": "generic",
+      "mutation_sha256": "4c245c99a82fc2606a8023aaefee6b85aee9b785139102aedee65b090445c0b1",
+      "logical_error_cluster": "opus5:olympiad:L087",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 142,
+      "proof_id": "1718",
+      "arm": "generic",
+      "mutation_sha256": "1d2e243224fe9a108c987d7db8820f5dad92f804621def79b177a98006771f88",
+      "logical_error_cluster": "opus5:olympiad:L080",
+      "cluster_size": 3,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 143,
+      "proof_id": "1832",
+      "arm": "generic",
+      "mutation_sha256": "6725fd5900f468900bc1b4b8ea8dbb7ab883bfc13b24f3bf818bf2da7cab6e84",
+      "logical_error_cluster": "opus5:olympiad:L088",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 144,
+      "proof_id": "2126",
+      "arm": "strategies",
+      "mutation_sha256": "3e21859d19383fef352d722d9a6cd6425fd00184ccbb4b4cd78978f4b0efac82",
+      "logical_error_cluster": "opus5:olympiad:L089",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 145,
+      "proof_id": "1869",
+      "arm": "generic",
+      "mutation_sha256": "18adc5dcba4a92656690405b49abf6e65f1627a224933ff9fe5fe8041eac2e95",
+      "logical_error_cluster": "opus5:olympiad:L090",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 146,
+      "proof_id": "1883",
+      "arm": "strategies",
+      "mutation_sha256": "67e21fe5561b8b62d74a70bd7e48e72cda99c3e6cd5ace71198a4690006eb440",
+      "logical_error_cluster": "opus5:olympiad:L006",
+      "cluster_size": 2,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 147,
+      "proof_id": "2892",
+      "arm": "strategies",
+      "mutation_sha256": "a35fd42d8a16e4d53516f4775fafe00ece3ebb33180095b41a83b3c4336ca1fb",
+      "logical_error_cluster": "opus5:olympiad:L005",
+      "cluster_size": 9,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 148,
+      "proof_id": "2954",
+      "arm": "generic",
+      "mutation_sha256": "f7ce0998dcd1b6525f1913fa794d2ec9864679034a7df9704964ad1dd8e064be",
+      "logical_error_cluster": "opus5:olympiad:L075",
+      "cluster_size": 3,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 149,
+      "proof_id": "2910",
+      "arm": "generic",
+      "mutation_sha256": "8df46cca30f29a312fa6e7fbe6cdb328353b2ad7dbb622875a9e523637cff0ae",
+      "logical_error_cluster": "opus5:olympiad:L045",
+      "cluster_size": 7,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 150,
+      "proof_id": "2084",
+      "arm": "generic",
+      "mutation_sha256": "3b2e2f5c2677350c4fab62d1a5dd0b86cfc86679f45c06971f494421ce7b482c",
+      "logical_error_cluster": "opus5:olympiad:L091",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 151,
+      "proof_id": "2892",
+      "arm": "generic",
+      "mutation_sha256": "fda8a2e1aff0cc881ab56ebf92d9233facc6ec4f3af3d847ae7047528e849234",
+      "logical_error_cluster": "opus5:olympiad:L005",
+      "cluster_size": 9,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 153,
+      "proof_id": "1832",
+      "arm": "generic",
+      "mutation_sha256": "8306b50b2780341b577dd55903e14823a11c10aa11e5ec1c79814bdf34919278",
+      "logical_error_cluster": "opus5:olympiad:L048",
+      "cluster_size": 2,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 154,
+      "proof_id": "2427",
+      "arm": "generic",
+      "mutation_sha256": "8d9e2932f264f741622bfaacb309a56862016b2df808fab909b9057bb8985994",
+      "logical_error_cluster": "opus5:olympiad:L050",
+      "cluster_size": 8,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 155,
+      "proof_id": "1883",
+      "arm": "generic",
+      "mutation_sha256": "1a888ae6ecc9f97ecb03f7bca502d714224cf410c9d0282105a5a9832d425a77",
+      "logical_error_cluster": "opus5:olympiad:L092",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 156,
+      "proof_id": "2954",
+      "arm": "generic",
+      "mutation_sha256": "6f1e8e86d7ad41130909830f857038bae5e2bc5e9f67e45420a73fb995a48169",
+      "logical_error_cluster": "opus5:olympiad:L075",
+      "cluster_size": 3,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 157,
+      "proof_id": "2640",
+      "arm": "generic",
+      "mutation_sha256": "5e11e2d5fb5207adfde7eda90c1d5c73c6fbca439dc7cc374de483e1dabe942c",
+      "logical_error_cluster": "opus5:olympiad:L093",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 158,
+      "proof_id": "2910",
+      "arm": "strategies",
+      "mutation_sha256": "a1589e60fb5c4e88230a21fad799f105ef8e0448102902431cbc5543f63ca1bf",
+      "logical_error_cluster": "opus5:olympiad:L045",
+      "cluster_size": 7,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 159,
+      "proof_id": "1883",
+      "arm": "strategies",
+      "mutation_sha256": "e242bf0691474cef5b64e75bfdc1e5bdf70d32a2ec4f22014412157a51bdd6c2",
+      "logical_error_cluster": "opus5:olympiad:L094",
+      "cluster_size": 2,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 160,
+      "proof_id": "2852",
+      "arm": "strategies",
+      "mutation_sha256": "566a8351e12a98f0bb935b835b0b1ff1db22ac3bb8e56dbe522b2e289e82f455",
+      "logical_error_cluster": "opus5:olympiad:L001",
+      "cluster_size": 10,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 161,
+      "proof_id": "2427",
+      "arm": "generic",
+      "mutation_sha256": "35c0eb8ec5c420a0163f6109f6089e3233f50a0ffddf3b4aa24cd62af2e06ecc",
+      "logical_error_cluster": "opus5:olympiad:L050",
+      "cluster_size": 8,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 162,
+      "proof_id": "2761",
+      "arm": "strategies",
+      "mutation_sha256": "061e879c70c93ec9390f8dc2805d25b7e7affb9e25963ccb751f64c9f9f1c1cc",
+      "logical_error_cluster": "opus5:olympiad:L011",
+      "cluster_size": 7,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 163,
+      "proof_id": "3086",
+      "arm": "generic",
+      "mutation_sha256": "8d6f1319bddf518719b88bb5066cbb9b8dd6ee3dfcdd63010ea3d4968686ce4c",
+      "logical_error_cluster": "opus5:olympiad:L015",
+      "cluster_size": 2,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 164,
+      "proof_id": "3086",
+      "arm": "strategies",
+      "mutation_sha256": "35ed4bdd531c129e152965dc0c1da168ce52528dd69dadb89dc8540613ae22e5",
+      "logical_error_cluster": "opus5:olympiad:L017",
+      "cluster_size": 5,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 165,
+      "proof_id": "1929",
+      "arm": "strategies",
+      "mutation_sha256": "b538707422eba1261595f9e288fd54a921ceb4d3ef212faef2a175dd96fdbda7",
+      "logical_error_cluster": "opus5:olympiad:L032",
+      "cluster_size": 8,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 166,
+      "proof_id": "2954",
+      "arm": "strategies",
+      "mutation_sha256": "83a65ff7190c085d7e4f21a0068ec975da0831c14a1820b07192cb7da3edb032",
+      "logical_error_cluster": "opus5:olympiad:L095",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 167,
+      "proof_id": "2910",
+      "arm": "strategies",
+      "mutation_sha256": "86b857ec4cef1ddcb1ea9ed00a485669e1b4c5bffb11b215c98e1cf08563a1e0",
+      "logical_error_cluster": "opus5:olympiad:L045",
+      "cluster_size": 7,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 168,
+      "proof_id": "2126",
+      "arm": "generic",
+      "mutation_sha256": "0f49e2f710e68e04f5380babbbadfc9c6a5d2e36832b0096e1a5f247a1981d79",
+      "logical_error_cluster": "opus5:olympiad:L047",
+      "cluster_size": 5,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 169,
+      "proof_id": "3086",
+      "arm": "generic",
+      "mutation_sha256": "15f34ebf4b2a43ecba7ddf586cf5d6950f69c6b720ef26acc7161f1beb301c09",
+      "logical_error_cluster": "opus5:olympiad:L017",
+      "cluster_size": 5,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 170,
+      "proof_id": "1869",
+      "arm": "strategies",
+      "mutation_sha256": "de6ea36f3d7c65d8b616d3ecb4cf03bdb8451f968dcec73b8950f0bf6c404ff8",
+      "logical_error_cluster": "opus5:olympiad:L096",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 171,
+      "proof_id": "2852",
+      "arm": "strategies",
+      "mutation_sha256": "5240dda84bf9b4571f735d785fd0b0c0ce84851266a1f8b81c65621fd409990d",
+      "logical_error_cluster": "opus5:olympiad:L001",
+      "cluster_size": 10,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 172,
+      "proof_id": "2892",
+      "arm": "generic",
+      "mutation_sha256": "5cae5e59f0d8970ba5e314ed66f2f7aeb7926e46bfcc5d6326fd002044140303",
+      "logical_error_cluster": "opus5:olympiad:L005",
+      "cluster_size": 9,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 173,
+      "proof_id": "1718",
+      "arm": "generic",
+      "mutation_sha256": "1d2e243224fe9a108c987d7db8820f5dad92f804621def79b177a98006771f88",
+      "logical_error_cluster": "opus5:olympiad:L080",
+      "cluster_size": 3,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 174,
+      "proof_id": "1664",
+      "arm": "strategies",
+      "mutation_sha256": "51b3bc4633b700ae418db8f382ce0aa587083ae184982839cb76a25af80f2b56",
+      "logical_error_cluster": "opus5:olympiad:L063",
+      "cluster_size": 2,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 175,
+      "proof_id": "2754",
+      "arm": "generic",
+      "mutation_sha256": "67404937fa5e8ae3e811f005d9f09ac97d27f7a75ca219099dd561e574d66f09",
+      "logical_error_cluster": "opus5:olympiad:L097",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 176,
+      "proof_id": "2710",
+      "arm": "strategies",
+      "mutation_sha256": "3eb229a5be1586a95ec9bd1a2ca76f270f29173397eae7f23b27dc08addef15b",
+      "logical_error_cluster": "opus5:olympiad:L003",
+      "cluster_size": 5,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 177,
+      "proof_id": "2640",
+      "arm": "strategies",
+      "mutation_sha256": "e11780e0edfa954c19ecca09466245c78198a92b23d03e81a9c5cb64e4597b35",
+      "logical_error_cluster": "opus5:olympiad:L098",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 178,
+      "proof_id": "2710",
+      "arm": "generic",
+      "mutation_sha256": "696ab97b3f7f0ae54e9e7f7a7bfed8a66937f4252b773efade5bff5c96572b22",
+      "logical_error_cluster": "opus5:olympiad:L099",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 179,
+      "proof_id": "2754",
+      "arm": "strategies",
+      "mutation_sha256": "051343fad6d562b0f2cc3ef36514a35c2783e5089a93ee60640cd7d2f16bebd3",
+      "logical_error_cluster": "opus5:olympiad:L100",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 180,
+      "proof_id": "2640",
+      "arm": "strategies",
+      "mutation_sha256": "41877f779ff80143663d9e2492c74198954015235790387167bb4c5be955811c",
+      "logical_error_cluster": "opus5:olympiad:L101",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 181,
+      "proof_id": "2640",
+      "arm": "strategies",
+      "mutation_sha256": "13dfc93c1bc590e5f7d33d1c75d2e42f0682f39c61b36fc5bbb689007dc3cfd3",
+      "logical_error_cluster": "opus5:olympiad:L102",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 182,
+      "proof_id": "2427",
+      "arm": "generic",
+      "mutation_sha256": "612c4683ff2dd77128f6a4bf9a7c65bc1fe1df870d28841645330164e830780d",
+      "logical_error_cluster": "opus5:olympiad:L050",
+      "cluster_size": 8,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 183,
+      "proof_id": "2892",
+      "arm": "strategies",
+      "mutation_sha256": "be867ea818b49b96ddba2de4fd7503b3a46a775089565ac750984987d9b6e34a",
+      "logical_error_cluster": "opus5:olympiad:L005",
+      "cluster_size": 9,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 184,
+      "proof_id": "1716",
+      "arm": "generic",
+      "mutation_sha256": "39e945d0cfe7578daa46eca5062dd312183dcecf36c4f4ea3d9a5aa38b6d1f12",
+      "logical_error_cluster": "opus5:olympiad:L007",
+      "cluster_size": 2,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 185,
+      "proof_id": "2954",
+      "arm": "strategies",
+      "mutation_sha256": "5e66afef786707f1f2e37993e1c18a8c1ac2dbd266b47d98a095f00e401ac46a",
+      "logical_error_cluster": "opus5:olympiad:L076",
+      "cluster_size": 2,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 186,
+      "proof_id": "2754",
+      "arm": "generic",
+      "mutation_sha256": "4c6973a4ed665facc6bceecb5b98008d71d4af9d9409ef46e0f88b4bacc7dbc2",
+      "logical_error_cluster": "opus5:olympiad:L103",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 187,
+      "proof_id": "2892",
+      "arm": "strategies",
+      "mutation_sha256": "74b9ea4b3c15f20dd057f245906930fb8b197c57690a81899e6152805943ce34",
+      "logical_error_cluster": "opus5:olympiad:L104",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 188,
+      "proof_id": "3086",
+      "arm": "strategies",
+      "mutation_sha256": "044826820ffdb1d4b5da24ed848706f515c73d70bca5ab7a808d540968e9e47a",
+      "logical_error_cluster": "opus5:olympiad:L010",
+      "cluster_size": 2,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 189,
+      "proof_id": "2126",
+      "arm": "generic",
+      "mutation_sha256": "69595bc5719d16de77849ec1f24f0b81e593ddcc0293cbad7422c09aebd429a0",
+      "logical_error_cluster": "opus5:olympiad:L047",
+      "cluster_size": 5,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 190,
+      "proof_id": "2710",
+      "arm": "generic",
+      "mutation_sha256": "bf4d87753820682714926f510383b4932f23532e7bd93d03af8fab21eab3c16d",
+      "logical_error_cluster": "opus5:olympiad:L105",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 191,
+      "proof_id": "1694",
+      "arm": "generic",
+      "mutation_sha256": "a3f2a285d45d486a48c73bca7b51965c1799e415462945299fe7cfe1405408e7",
+      "logical_error_cluster": "opus5:olympiad:L016",
+      "cluster_size": 2,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 192,
+      "proof_id": "2427",
+      "arm": "generic",
+      "mutation_sha256": "5c3ce1ddb50b25ab337c0ae8caf3648686686ef9b0831484e162586b7ca4179c",
+      "logical_error_cluster": "opus5:olympiad:L106",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 193,
+      "proof_id": "1883",
+      "arm": "strategies",
+      "mutation_sha256": "a4fbb3ec9a518930d979f652069040093378db0240542ad3bf34e8a987634767",
+      "logical_error_cluster": "opus5:olympiad:L094",
+      "cluster_size": 2,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 194,
+      "proof_id": "2710",
+      "arm": "strategies",
+      "mutation_sha256": "f0f9b92654368441a464e12538d0426e278fb5dd8876dc11bc670e64f81b975b",
+      "logical_error_cluster": "opus5:olympiad:L107",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 195,
+      "proof_id": "1694",
+      "arm": "strategies",
+      "mutation_sha256": "ca07736d38ae116b6c45fdc8d036f7be7e2502794b95db0336a2590e0efbe562",
+      "logical_error_cluster": "opus5:olympiad:L108",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 196,
+      "proof_id": "1694",
+      "arm": "strategies",
+      "mutation_sha256": "0522ae0432fa0117af7f865629b159ecb3ce714ffd1aa75a7d40e56b6132e845",
+      "logical_error_cluster": "opus5:olympiad:L109",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 197,
+      "proof_id": "2126",
+      "arm": "strategies",
+      "mutation_sha256": "4344223f5e1224a7dc3df6dfa5ae24e3be40c9e561c3914b49f7c97a17859a8c",
+      "logical_error_cluster": "opus5:olympiad:L023",
+      "cluster_size": 4,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 198,
+      "proof_id": "1716",
+      "arm": "strategies",
+      "mutation_sha256": "485a958e817eac54368e639fd23a10f92abfd6c4f8fc4f30f6afb62c077c24d9",
+      "logical_error_cluster": "opus5:olympiad:L110",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 199,
+      "proof_id": "1929",
+      "arm": "strategies",
+      "mutation_sha256": "6ac97db2057866eec1cd8827467e7b3601dcc3d0ebf8e62cfe7609a834765fe5",
+      "logical_error_cluster": "opus5:olympiad:L032",
+      "cluster_size": 8,
+      "is_singleton": false
+    },
+    {
+      "dataset": "olympiad",
+      "candidate_index": 200,
+      "proof_id": "1718",
+      "arm": "generic",
+      "mutation_sha256": "c2cf88a943e323291b789bfb70ce9f5c8d83dd8ec971b1c4b033a4a6d2ad464b",
+      "logical_error_cluster": "opus5:olympiad:L022",
+      "cluster_size": 4,
+      "is_singleton": false
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 1,
+      "proof_id": "analysis_measures_integration_hilbert",
+      "arm": "strategies",
+      "mutation_sha256": "11c8d59e183cce9295c5d5ab22cf0272167a5709b7b02159e5fd9acf20a4af2b",
+      "logical_error_cluster": "opus5:graduate_course:L001",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 3,
+      "proof_id": "topology_homological_algebra_kunneth",
+      "arm": "generic",
+      "mutation_sha256": "4aedab77811022d501bd0286f2e1e62fdc0f2361cfe74615932815e15476881e",
+      "logical_error_cluster": "opus5:graduate_course:L002",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 4,
+      "proof_id": "nt_dedekind_domains_etale_algebras",
+      "arm": "generic",
+      "mutation_sha256": "faf9c3e33a59efcc64fe25c43e4ac25c91824b9efaac4645140716284fa6d21d",
+      "logical_error_cluster": "opus5:graduate_course:L003",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 5,
+      "proof_id": "nt_global_fields_geometry_numbers",
+      "arm": "generic",
+      "mutation_sha256": "3a58b7ffbefb644939f204aa5bc55cddd8ec5ab55c3ff5f488adf7500984b8e4",
+      "logical_error_cluster": "opus5:graduate_course:L004",
+      "cluster_size": 2,
+      "is_singleton": false
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 6,
+      "proof_id": "topology_relative_homology_excision",
+      "arm": "generic",
+      "mutation_sha256": "793dc136841de4df8a30bc63c2f8957765368fb1de7e64e2c052a0e7c01b52f0",
+      "logical_error_cluster": "opus5:graduate_course:L005",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 7,
+      "proof_id": "analysis_measures_integration_hilbert",
+      "arm": "strategies",
+      "mutation_sha256": "41a48bb937d45c50cd95d65d977ae845c952449666acead2979797e6f6a3454a",
+      "logical_error_cluster": "opus5:graduate_course:L006",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 8,
+      "proof_id": "analysis_measures_integration_hilbert",
+      "arm": "generic",
+      "mutation_sha256": "d55b555da2d695197760e32d7c8697f3dda711b611241615d9de9a5c09d68e71",
+      "logical_error_cluster": "opus5:graduate_course:L007",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 9,
+      "proof_id": "nt_local_fields_hensel_complete_dvrs",
+      "arm": "generic",
+      "mutation_sha256": "e9e473b092ebdf4fa076e8adb1df1f06bdf9937c9e7a8c22560119f5cec9097a",
+      "logical_error_cluster": "opus5:graduate_course:L008",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 10,
+      "proof_id": "nt_local_fields_hensel_complete_dvrs",
+      "arm": "strategies",
+      "mutation_sha256": "9c5d14988c6c63d8f2c24e2050aeff0556030f9b6d7b40b2f2d3fe94091ed4b6",
+      "logical_error_cluster": "opus5:graduate_course:L009",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 11,
+      "proof_id": "topology_relative_homology_excision",
+      "arm": "generic",
+      "mutation_sha256": "bd031af83d613c0129a192656ea9ed013be88e0e3b93853954ffa1d304015733",
+      "logical_error_cluster": "opus5:graduate_course:L010",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 12,
+      "proof_id": "analysis_measures_integration_hilbert",
+      "arm": "strategies",
+      "mutation_sha256": "d6dfcacbd9f7b16f28e001237e1d6161d35aafb8e2f4353d96bb634498e7aac3",
+      "logical_error_cluster": "opus5:graduate_course:L011",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 13,
+      "proof_id": "nt_local_fields_hensel_complete_dvrs",
+      "arm": "generic",
+      "mutation_sha256": "a7c5fa2835a7d9113f8c596c8170e5e6261601b86caedcb4db0d06afd7faec0f",
+      "logical_error_cluster": "opus5:graduate_course:L012",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 14,
+      "proof_id": "nt_local_fields_hensel_complete_dvrs",
+      "arm": "generic",
+      "mutation_sha256": "5700cc60a0be0f8d31015967b1d86020c0a9cd6eacab93b741bf5cc5dfe6451e",
+      "logical_error_cluster": "opus5:graduate_course:L013",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 15,
+      "proof_id": "nt_ideal_norms_dedekind_kummer",
+      "arm": "generic",
+      "mutation_sha256": "974b7d150bc098512874b644618939087b3b65c88c471d96959bf9fe1b7ce4d2",
+      "logical_error_cluster": "opus5:graduate_course:L014",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 16,
+      "proof_id": "analysis_differential_operators_wavefront_spectral",
+      "arm": "strategies",
+      "mutation_sha256": "afc33967fe2652752cae69a9be72f81a1cced286115a1717b3bff2a87e42be63",
+      "logical_error_cluster": "opus5:graduate_course:L015",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 17,
+      "proof_id": "nt_global_fields_geometry_numbers",
+      "arm": "generic",
+      "mutation_sha256": "3529e28e10c69e590a8559950294ec6acd1f0dc81bdfee6789a3310243fe6e48",
+      "logical_error_cluster": "opus5:graduate_course:L016",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 18,
+      "proof_id": "nt_dedekind_domains_etale_algebras",
+      "arm": "generic",
+      "mutation_sha256": "1a6a44354023bea46e1a8278ecdfd83d6aa45df8db9e649bcd7295f1d1fd2ae3",
+      "logical_error_cluster": "opus5:graduate_course:L017",
+      "cluster_size": 2,
+      "is_singleton": false
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 19,
+      "proof_id": "topology_homological_algebra_kunneth",
+      "arm": "strategies",
+      "mutation_sha256": "4f3dfb10d76f670458b73dab68669241e4c9d85f9603a14e50fe61da5682affc",
+      "logical_error_cluster": "opus5:graduate_course:L018",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 20,
+      "proof_id": "nt_local_fields_hensel_complete_dvrs",
+      "arm": "generic",
+      "mutation_sha256": "6a20ef122472de4fa5788910e6cc3cfa212e8079cbaa6d44a6ca8df19b66271c",
+      "logical_error_cluster": "opus5:graduate_course:L019",
+      "cluster_size": 2,
+      "is_singleton": false
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 21,
+      "proof_id": "nt_local_fields_hensel_complete_dvrs",
+      "arm": "strategies",
+      "mutation_sha256": "7c761f161af1ec8e1ecde823bb0198ac527d828237e35bcbc332c5a3b112258c",
+      "logical_error_cluster": "opus5:graduate_course:L020",
+      "cluster_size": 2,
+      "is_singleton": false
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 22,
+      "proof_id": "nt_dedekind_domains_etale_algebras",
+      "arm": "strategies",
+      "mutation_sha256": "e0cd08b2eeab82fd7b1b2b47374dca2f3e541b6e9275133ab24e755b0d6cc346",
+      "logical_error_cluster": "opus5:graduate_course:L021",
+      "cluster_size": 4,
+      "is_singleton": false
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 23,
+      "proof_id": "geometry_fredholm_smale_transversality",
+      "arm": "strategies",
+      "mutation_sha256": "b7af46c13e26917aed0a89937e97991a85a059f3e44172deea56dfe879dc85b2",
+      "logical_error_cluster": "opus5:graduate_course:L022",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 24,
+      "proof_id": "nt_global_fields_geometry_numbers",
+      "arm": "strategies",
+      "mutation_sha256": "0c138ff605d1643ff37f1122a56555fa2bec914f53b90fdbc76e3c134fa88ea0",
+      "logical_error_cluster": "opus5:graduate_course:L004",
+      "cluster_size": 2,
+      "is_singleton": false
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 25,
+      "proof_id": "analysis_differential_operators_wavefront_spectral",
+      "arm": "generic",
+      "mutation_sha256": "a1fac12557fb9354c30c5c61f45f644cff8d66dda556e1705bc48b651a8abbc6",
+      "logical_error_cluster": "opus5:graduate_course:L023",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 26,
+      "proof_id": "analysis_measures_integration_hilbert",
+      "arm": "generic",
+      "mutation_sha256": "b7daf3dbfd3a0e05185f133718c142b05ec4bea4a1c09cc8bb43c716904a6d7d",
+      "logical_error_cluster": "opus5:graduate_course:L024",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 27,
+      "proof_id": "nt_ideal_norms_dedekind_kummer",
+      "arm": "strategies",
+      "mutation_sha256": "eda73ec5eba662b10ea6481df7fc72bb1645bd7ca3e752962864b3e8e6163ffd",
+      "logical_error_cluster": "opus5:graduate_course:L025",
+      "cluster_size": 3,
+      "is_singleton": false
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 28,
+      "proof_id": "topology_homological_algebra_kunneth",
+      "arm": "strategies",
+      "mutation_sha256": "e9d42a5a5feee006ef3a57e8a421a99074b305194db7ef22bcc3bee3854e2543",
+      "logical_error_cluster": "opus5:graduate_course:L026",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 29,
+      "proof_id": "analysis_measures_integration_hilbert",
+      "arm": "generic",
+      "mutation_sha256": "08ef006ca1c4597e99026e58e4c1bf2b441e2d67c2d0d5d8e5e2c7f9e6f1b453",
+      "logical_error_cluster": "opus5:graduate_course:L027",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 30,
+      "proof_id": "analysis_convergence_lp",
+      "arm": "strategies",
+      "mutation_sha256": "5e810b93a34f4ac723d1c6445fcadd036d880a79f89d412bac16026d944c8edf",
+      "logical_error_cluster": "opus5:graduate_course:L028",
+      "cluster_size": 3,
+      "is_singleton": false
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 31,
+      "proof_id": "nt_dedekind_domains_etale_algebras",
+      "arm": "strategies",
+      "mutation_sha256": "e0cd08b2eeab82fd7b1b2b47374dca2f3e541b6e9275133ab24e755b0d6cc346",
+      "logical_error_cluster": "opus5:graduate_course:L021",
+      "cluster_size": 4,
+      "is_singleton": false
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 32,
+      "proof_id": "analysis_convergence_lp",
+      "arm": "strategies",
+      "mutation_sha256": "c5688f0bbd3c4e5874823f46567b8952f82c1d14dfa28a2a07bb29b6188653f6",
+      "logical_error_cluster": "opus5:graduate_course:L029",
+      "cluster_size": 2,
+      "is_singleton": false
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 33,
+      "proof_id": "geometry_fredholm_smale_transversality",
+      "arm": "strategies",
+      "mutation_sha256": "44d6bd2604e8d080911ea79df3030767597e6c396bbae5c8a5022c8267662abc",
+      "logical_error_cluster": "opus5:graduate_course:L030",
+      "cluster_size": 2,
+      "is_singleton": false
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 34,
+      "proof_id": "topology_homological_algebra_kunneth",
+      "arm": "generic",
+      "mutation_sha256": "19fcacb0a15e07c6af4d09bf47aee57a9f24b1df3cc58f0a8457a4f004178d2a",
+      "logical_error_cluster": "opus5:graduate_course:L031",
+      "cluster_size": 2,
+      "is_singleton": false
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 35,
+      "proof_id": "nt_dedekind_domains_etale_algebras",
+      "arm": "strategies",
+      "mutation_sha256": "b60d1e8fd56c2d7f65bb71ad62677c02b53d30c1b2854756a092e5b58553a9b5",
+      "logical_error_cluster": "opus5:graduate_course:L032",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 36,
+      "proof_id": "geometry_fredholm_smale_transversality",
+      "arm": "generic",
+      "mutation_sha256": "baca186bbfc1baa62325db4e53d93a0799d44314199b0fc5e5be7297f0dca28c",
+      "logical_error_cluster": "opus5:graduate_course:L030",
+      "cluster_size": 2,
+      "is_singleton": false
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 37,
+      "proof_id": "nt_local_fields_hensel_complete_dvrs",
+      "arm": "strategies",
+      "mutation_sha256": "b154e45fde475ddb564dde5131ed8c9a925d072ca8058131e8ca44d980742e5e",
+      "logical_error_cluster": "opus5:graduate_course:L033",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 38,
+      "proof_id": "analysis_differential_operators_wavefront_spectral",
+      "arm": "strategies",
+      "mutation_sha256": "37fab0c5d8745fbb2423f481bb143a3ac2f098525c536fcccc5046c1a1db019a",
+      "logical_error_cluster": "opus5:graduate_course:L034",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 39,
+      "proof_id": "nt_ideal_norms_dedekind_kummer",
+      "arm": "strategies",
+      "mutation_sha256": "6ccba1a41a2f76304dc30dadc7ff088319689e5b7269d2b9f47112ef582dfe38",
+      "logical_error_cluster": "opus5:graduate_course:L025",
+      "cluster_size": 3,
+      "is_singleton": false
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 40,
+      "proof_id": "geometry_fredholm_smale_transversality",
+      "arm": "strategies",
+      "mutation_sha256": "88cf69b5736590948a2bd37492b593f4c0991790939ebce685ec38af38650427",
+      "logical_error_cluster": "opus5:graduate_course:L035",
+      "cluster_size": 2,
+      "is_singleton": false
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 41,
+      "proof_id": "nt_global_fields_geometry_numbers",
+      "arm": "strategies",
+      "mutation_sha256": "5e9633875a9053eb787451fe735a77f3319a30d9a454bf50f64dc3c009bd1383",
+      "logical_error_cluster": "opus5:graduate_course:L036",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 42,
+      "proof_id": "nt_ideal_norms_dedekind_kummer",
+      "arm": "strategies",
+      "mutation_sha256": "1d0abf467a942551e1e14b66399b3ca21aa55ecd8ad539b79e3733a263ca4365",
+      "logical_error_cluster": "opus5:graduate_course:L025",
+      "cluster_size": 3,
+      "is_singleton": false
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 43,
+      "proof_id": "nt_ideal_norms_dedekind_kummer",
+      "arm": "generic",
+      "mutation_sha256": "27150b5c38feefe8b57cc26ce333ae9a0d3b3af98c817971a1f2c863378a71f2",
+      "logical_error_cluster": "opus5:graduate_course:L037",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 44,
+      "proof_id": "topology_homological_algebra_kunneth",
+      "arm": "strategies",
+      "mutation_sha256": "e8eb7b83f3234790119e0d4fa024b3bcfa4ccc0ff3d706a792613715cf361463",
+      "logical_error_cluster": "opus5:graduate_course:L038",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 45,
+      "proof_id": "topology_homological_algebra_kunneth",
+      "arm": "strategies",
+      "mutation_sha256": "1507d52e48021da210485e21dd1a90019a966e0934d942ea82516706d7ca39d8",
+      "logical_error_cluster": "opus5:graduate_course:L039",
+      "cluster_size": 2,
+      "is_singleton": false
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 46,
+      "proof_id": "nt_global_fields_geometry_numbers",
+      "arm": "strategies",
+      "mutation_sha256": "82da7e7d1839319a3312e1bb17f6c45d91f1219eaa664c308cd100f41f301ab2",
+      "logical_error_cluster": "opus5:graduate_course:L040",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 47,
+      "proof_id": "analysis_differential_operators_wavefront_spectral",
+      "arm": "generic",
+      "mutation_sha256": "e20ac3e1b37dd364fc79bcbdf4961d99c3b9d0d865e192018fbfdd9b4f9ff0ef",
+      "logical_error_cluster": "opus5:graduate_course:L041",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 48,
+      "proof_id": "nt_global_fields_geometry_numbers",
+      "arm": "generic",
+      "mutation_sha256": "d6c78e60781d8fe2173793214fd4af9d070ebcf06fd2bfc8868e29d61b210b21",
+      "logical_error_cluster": "opus5:graduate_course:L042",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 49,
+      "proof_id": "analysis_convergence_lp",
+      "arm": "generic",
+      "mutation_sha256": "baa551a000b46ee60cf2f39455519f231f91b4ecde33ad06fd1c7f46d60bb7b1",
+      "logical_error_cluster": "opus5:graduate_course:L043",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 50,
+      "proof_id": "topology_relative_homology_excision",
+      "arm": "strategies",
+      "mutation_sha256": "f4bf41251d10f42547a34cbc966653330c5d3e51ed5e4de35467944ac388144d",
+      "logical_error_cluster": "opus5:graduate_course:L044",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 51,
+      "proof_id": "analysis_convergence_lp",
+      "arm": "generic",
+      "mutation_sha256": "236c78b27007cd28f3c7c4eb814ac7ccd59e90b4b843959a4616823f5334a972",
+      "logical_error_cluster": "opus5:graduate_course:L045",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 52,
+      "proof_id": "nt_ideal_norms_dedekind_kummer",
+      "arm": "generic",
+      "mutation_sha256": "5a5f232f41daaba781d040c70e0a9b7a34b791685acce7398a13d15d800465dd",
+      "logical_error_cluster": "opus5:graduate_course:L046",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 53,
+      "proof_id": "geometry_fredholm_smale_transversality",
+      "arm": "generic",
+      "mutation_sha256": "a426447acaa9f7e50f044f63af6117971a60cb2a826a01a1a95025ceae3fc0a0",
+      "logical_error_cluster": "opus5:graduate_course:L047",
+      "cluster_size": 2,
+      "is_singleton": false
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 54,
+      "proof_id": "analysis_convergence_lp",
+      "arm": "strategies",
+      "mutation_sha256": "ded7d3127cae7c7a02b059907784429b1feddecfdc7b045ef2cb45c7dd079f7f",
+      "logical_error_cluster": "opus5:graduate_course:L028",
+      "cluster_size": 3,
+      "is_singleton": false
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 55,
+      "proof_id": "nt_dedekind_domains_etale_algebras",
+      "arm": "strategies",
+      "mutation_sha256": "0978445f66ea4defa26b74a7e73006e46e2b63d907424dbf976584e3aab56315",
+      "logical_error_cluster": "opus5:graduate_course:L048",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 56,
+      "proof_id": "nt_ideal_norms_dedekind_kummer",
+      "arm": "strategies",
+      "mutation_sha256": "1ad6adeba7f60f94b2dd3884e96f8d28c2fbcf6344b8829881c78686d87ce7cd",
+      "logical_error_cluster": "opus5:graduate_course:L049",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 57,
+      "proof_id": "analysis_measures_integration_hilbert",
+      "arm": "strategies",
+      "mutation_sha256": "f9838e6011221e0fee5e2ae52843ebaee94912762464623370383d4f76faa43e",
+      "logical_error_cluster": "opus5:graduate_course:L050",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 58,
+      "proof_id": "topology_relative_homology_excision",
+      "arm": "strategies",
+      "mutation_sha256": "8df6758e55853c6233b01c1efbb7338383b1cd2d95bed38816b2f875f944c929",
+      "logical_error_cluster": "opus5:graduate_course:L051",
+      "cluster_size": 2,
+      "is_singleton": false
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 59,
+      "proof_id": "topology_relative_homology_excision",
+      "arm": "strategies",
+      "mutation_sha256": "b12646684a61ceff687bcc71d211b6a20ac6c61ba2ac4984977b48904f665810",
+      "logical_error_cluster": "opus5:graduate_course:L052",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 60,
+      "proof_id": "analysis_measures_integration_hilbert",
+      "arm": "strategies",
+      "mutation_sha256": "a4bd8b6e3f688bfcc29370dee0651e74dd5907cbc8c0af02f094e7caafb0078b",
+      "logical_error_cluster": "opus5:graduate_course:L053",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 61,
+      "proof_id": "topology_relative_homology_excision",
+      "arm": "generic",
+      "mutation_sha256": "2ea5bcdce3a50c35fc818416f0224a67c37e89d4def9fcc67a6ae83f346ffa04",
+      "logical_error_cluster": "opus5:graduate_course:L054",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 62,
+      "proof_id": "analysis_differential_operators_wavefront_spectral",
+      "arm": "generic",
+      "mutation_sha256": "cf57a50e237dbcea280297d28d6ada43dbf11bf67638c923ba2b5ca969ff9254",
+      "logical_error_cluster": "opus5:graduate_course:L055",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 63,
+      "proof_id": "analysis_measures_integration_hilbert",
+      "arm": "generic",
+      "mutation_sha256": "abbfe74cf724d3761c8088e9c5f3ea9d63e05985e3db21c253532e2ca49c30e0",
+      "logical_error_cluster": "opus5:graduate_course:L056",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 64,
+      "proof_id": "topology_relative_homology_excision",
+      "arm": "strategies",
+      "mutation_sha256": "65c85ca1795121d0be45906e33ed5681eb13059bad943ba432c6f8552daa8fbf",
+      "logical_error_cluster": "opus5:graduate_course:L057",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 65,
+      "proof_id": "nt_global_fields_geometry_numbers",
+      "arm": "strategies",
+      "mutation_sha256": "aebabbb54a93e49f76bb3ba8601681206a8370b98d38c54b94a6b2b3db47ff67",
+      "logical_error_cluster": "opus5:graduate_course:L058",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 66,
+      "proof_id": "nt_ideal_norms_dedekind_kummer",
+      "arm": "generic",
+      "mutation_sha256": "53f1a6a76a41614791f5d850da7b7cea8db5eacc4dcc353ef753b6a30d93fe1b",
+      "logical_error_cluster": "opus5:graduate_course:L059",
+      "cluster_size": 2,
+      "is_singleton": false
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 67,
+      "proof_id": "nt_global_fields_geometry_numbers",
+      "arm": "generic",
+      "mutation_sha256": "f9b152c58a3e5571cd537dba883a124624c805d7a3d40cb6f98a941cc429720e",
+      "logical_error_cluster": "opus5:graduate_course:L060",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 68,
+      "proof_id": "nt_ideal_norms_dedekind_kummer",
+      "arm": "strategies",
+      "mutation_sha256": "7dae5b163547700bece9b6ee70ce54505ab56fb0cf17306b46c8524a4ffedc46",
+      "logical_error_cluster": "opus5:graduate_course:L061",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 69,
+      "proof_id": "geometry_fredholm_smale_transversality",
+      "arm": "generic",
+      "mutation_sha256": "92cef0c03cb8b67c63548618a0a1fbe83e0ca4b38f35d3b368c2ec867a9b6c3d",
+      "logical_error_cluster": "opus5:graduate_course:L047",
+      "cluster_size": 2,
+      "is_singleton": false
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 70,
+      "proof_id": "topology_homological_algebra_kunneth",
+      "arm": "generic",
+      "mutation_sha256": "1145b6aaea3de1d8a57631a239ed9a4f0554099225ced3f856d903a134ef380b",
+      "logical_error_cluster": "opus5:graduate_course:L062",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 71,
+      "proof_id": "analysis_differential_operators_wavefront_spectral",
+      "arm": "strategies",
+      "mutation_sha256": "edae5fff546fd077147d41657e06536072280f87e89809e6c339f45dae47e1fe",
+      "logical_error_cluster": "opus5:graduate_course:L063",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 72,
+      "proof_id": "analysis_convergence_lp",
+      "arm": "strategies",
+      "mutation_sha256": "265d2a17b430e8e206dc63b0519ccdb0b00f0bfa2e8c8e871c097436bc2af093",
+      "logical_error_cluster": "opus5:graduate_course:L064",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 73,
+      "proof_id": "topology_relative_homology_excision",
+      "arm": "strategies",
+      "mutation_sha256": "4ffcb2eb2b5d80456c7a2a07df90ca2b19c1dab1d2ec3849c25ebb24c3e0bd11",
+      "logical_error_cluster": "opus5:graduate_course:L051",
+      "cluster_size": 2,
+      "is_singleton": false
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 74,
+      "proof_id": "nt_local_fields_hensel_complete_dvrs",
+      "arm": "generic",
+      "mutation_sha256": "6a20ef122472de4fa5788910e6cc3cfa212e8079cbaa6d44a6ca8df19b66271c",
+      "logical_error_cluster": "opus5:graduate_course:L019",
+      "cluster_size": 2,
+      "is_singleton": false
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 75,
+      "proof_id": "nt_dedekind_domains_etale_algebras",
+      "arm": "generic",
+      "mutation_sha256": "e0cd08b2eeab82fd7b1b2b47374dca2f3e541b6e9275133ab24e755b0d6cc346",
+      "logical_error_cluster": "opus5:graduate_course:L021",
+      "cluster_size": 4,
+      "is_singleton": false
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 76,
+      "proof_id": "analysis_convergence_lp",
+      "arm": "generic",
+      "mutation_sha256": "a6acbc31600435ae3b828598c0391476b11cf52265daac89783eeb987d7940de",
+      "logical_error_cluster": "opus5:graduate_course:L028",
+      "cluster_size": 3,
+      "is_singleton": false
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 77,
+      "proof_id": "geometry_fredholm_smale_transversality",
+      "arm": "strategies",
+      "mutation_sha256": "80c54a7fe18ec78102ac09273ac32c78866cb872c5888639b9c0932f5a595272",
+      "logical_error_cluster": "opus5:graduate_course:L065",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 78,
+      "proof_id": "topology_relative_homology_excision",
+      "arm": "generic",
+      "mutation_sha256": "7f886cf191242abb81e584140be8b7cb78b638c2e10dfeb6adb49bc385c9e5ca",
+      "logical_error_cluster": "opus5:graduate_course:L066",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 79,
+      "proof_id": "geometry_fredholm_smale_transversality",
+      "arm": "generic",
+      "mutation_sha256": "24642735351d8420625d7b77ca67b5c7774cc048fef52d21111bf8ef2677afc1",
+      "logical_error_cluster": "opus5:graduate_course:L035",
+      "cluster_size": 2,
+      "is_singleton": false
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 80,
+      "proof_id": "nt_local_fields_hensel_complete_dvrs",
+      "arm": "strategies",
+      "mutation_sha256": "30769def6dbfa80b9a9ec543c5fc8570128f4581db9918fce16dd1816fb621af",
+      "logical_error_cluster": "opus5:graduate_course:L067",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 81,
+      "proof_id": "analysis_convergence_lp",
+      "arm": "generic",
+      "mutation_sha256": "5cd6f773d303b5c089d75abd0b76a75418c69f4373465440571b9df405f0e4a1",
+      "logical_error_cluster": "opus5:graduate_course:L029",
+      "cluster_size": 2,
+      "is_singleton": false
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 82,
+      "proof_id": "topology_homological_algebra_kunneth",
+      "arm": "generic",
+      "mutation_sha256": "6eda922e5f597cac9abd12e00f6d8c6737bc6a94e3f2cc9190120ef4584121ae",
+      "logical_error_cluster": "opus5:graduate_course:L039",
+      "cluster_size": 2,
+      "is_singleton": false
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 83,
+      "proof_id": "nt_ideal_norms_dedekind_kummer",
+      "arm": "generic",
+      "mutation_sha256": "10eb903de2215a31eb332abfbdb3ce8c117604716800cb98a900b2038e85e29b",
+      "logical_error_cluster": "opus5:graduate_course:L059",
+      "cluster_size": 2,
+      "is_singleton": false
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 84,
+      "proof_id": "analysis_differential_operators_wavefront_spectral",
+      "arm": "generic",
+      "mutation_sha256": "6675999c0d4f68a697e2bab041f2bd49bc805e65f0caf9d842c9b85cbfb3a267",
+      "logical_error_cluster": "opus5:graduate_course:L068",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 85,
+      "proof_id": "nt_dedekind_domains_etale_algebras",
+      "arm": "strategies",
+      "mutation_sha256": "df877cb66aab581d1791212ad3be0b1fe17e5fcb6b9096f06c1ea79e5d35c232",
+      "logical_error_cluster": "opus5:graduate_course:L017",
+      "cluster_size": 2,
+      "is_singleton": false
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 86,
+      "proof_id": "topology_relative_homology_excision",
+      "arm": "generic",
+      "mutation_sha256": "a26c389b1fcf2360efbe64167fdf3e83414744a6016eb3c2206a91f02261929a",
+      "logical_error_cluster": "opus5:graduate_course:L069",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 87,
+      "proof_id": "topology_homological_algebra_kunneth",
+      "arm": "strategies",
+      "mutation_sha256": "190ca11e7770ed86bc7f58fe7742a4820059908bab44c4952a61bcd14bbac327",
+      "logical_error_cluster": "opus5:graduate_course:L070",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 88,
+      "proof_id": "geometry_fredholm_smale_transversality",
+      "arm": "generic",
+      "mutation_sha256": "507c93a32e2a28e60afc9d390824edf88ad4605795a31e5433893871f77572b7",
+      "logical_error_cluster": "opus5:graduate_course:L071",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 89,
+      "proof_id": "analysis_differential_operators_wavefront_spectral",
+      "arm": "strategies",
+      "mutation_sha256": "e70c4288de1f483e209c32a8e50eae299335a785f13a39f60d17dbac173e94e8",
+      "logical_error_cluster": "opus5:graduate_course:L072",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 90,
+      "proof_id": "nt_dedekind_domains_etale_algebras",
+      "arm": "generic",
+      "mutation_sha256": "495e99f8008ce3cc5b9d9fa9ab24e9b24d89bdcf6c27630fe28bf33f5025ef5a",
+      "logical_error_cluster": "opus5:graduate_course:L073",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 91,
+      "proof_id": "topology_homological_algebra_kunneth",
+      "arm": "generic",
+      "mutation_sha256": "c118e267d59cd964916c6d45b523e29584b3677b2623e684397e7da11b602792",
+      "logical_error_cluster": "opus5:graduate_course:L031",
+      "cluster_size": 2,
+      "is_singleton": false
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 92,
+      "proof_id": "nt_dedekind_domains_etale_algebras",
+      "arm": "generic",
+      "mutation_sha256": "d3d07f50062ff49bbc92106059d87fe48a5bd5996dfac55ba659117b533a05f1",
+      "logical_error_cluster": "opus5:graduate_course:L021",
+      "cluster_size": 4,
+      "is_singleton": false
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 93,
+      "proof_id": "nt_local_fields_hensel_complete_dvrs",
+      "arm": "strategies",
+      "mutation_sha256": "5000fdec60f4a055b02d6fb194361849bf74dc0b7c3ea2f83f56a8ffa8855601",
+      "logical_error_cluster": "opus5:graduate_course:L020",
+      "cluster_size": 2,
+      "is_singleton": false
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 94,
+      "proof_id": "analysis_differential_operators_wavefront_spectral",
+      "arm": "generic",
+      "mutation_sha256": "36526755d6374e5f748230eb72188169e484783c1ceadc6aa4ee60dff629f3a5",
+      "logical_error_cluster": "opus5:graduate_course:L074",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 95,
+      "proof_id": "analysis_measures_integration_hilbert",
+      "arm": "generic",
+      "mutation_sha256": "9354c08edc9786001ebaa50cd45c126632c1308ec68c47ac0e0faa389c97faae",
+      "logical_error_cluster": "opus5:graduate_course:L075",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 96,
+      "proof_id": "geometry_fredholm_smale_transversality",
+      "arm": "strategies",
+      "mutation_sha256": "1f06b198fbbf1aaad0d7b9e44e195c127e32ff308b283bf4ffc43b96a187e74e",
+      "logical_error_cluster": "opus5:graduate_course:L076",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 97,
+      "proof_id": "analysis_convergence_lp",
+      "arm": "strategies",
+      "mutation_sha256": "10ff7368ccca204a8f30db9cebd021446b7d33e814945c36fa2bfeb53a01c105",
+      "logical_error_cluster": "opus5:graduate_course:L077",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 98,
+      "proof_id": "nt_global_fields_geometry_numbers",
+      "arm": "strategies",
+      "mutation_sha256": "90abed70f43279847ffd29501b11c457e1f94876fe1277dde682bf3eacbdfdc9",
+      "logical_error_cluster": "opus5:graduate_course:L078",
+      "cluster_size": 2,
+      "is_singleton": false
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 99,
+      "proof_id": "nt_global_fields_geometry_numbers",
+      "arm": "generic",
+      "mutation_sha256": "6293ca1bf14372d0a439ab4c9f7528fdea97a2b065263a6e654a7fc4ed1a3829",
+      "logical_error_cluster": "opus5:graduate_course:L078",
+      "cluster_size": 2,
+      "is_singleton": false
+    },
+    {
+      "dataset": "graduate_course",
+      "candidate_index": 100,
+      "proof_id": "analysis_convergence_lp",
+      "arm": "generic",
+      "mutation_sha256": "a4d039789a716861c43d9fab419d03db45d91fed3936944aba403d9e22cdaa2c",
+      "logical_error_cluster": "opus5:graduate_course:L079",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "recent_math",
+      "candidate_index": 1,
+      "proof_id": "arxiv_2507_21862",
+      "arm": "generic",
+      "mutation_sha256": "469daeccf54075d813a2a4205d480e3ed7857034fc5992774b9d87f8be428093",
+      "logical_error_cluster": "opus5:recent_math:L001",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "recent_math",
+      "candidate_index": 2,
+      "proof_id": "arxiv_2507_21862",
+      "arm": "strategies",
+      "mutation_sha256": "e294feea8f7cfc631b12dfd0a19d30adb292ae6dc1fac76cdfed9efb1eea7e5f",
+      "logical_error_cluster": "opus5:recent_math:L002",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "recent_math",
+      "candidate_index": 3,
+      "proof_id": "arxiv_2405_19197",
+      "arm": "strategies",
+      "mutation_sha256": "94b3fdfd3a6c21001cf52085bfe451e0a422c61c04416145f207a6e799903f1f",
+      "logical_error_cluster": "opus5:recent_math:L003",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "recent_math",
+      "candidate_index": 4,
+      "proof_id": "arxiv_2501_05622",
+      "arm": "strategies",
+      "mutation_sha256": "529e83b45f5565d77be1d08b39c947a0094f3365674ab0b1de01551b3ac40ba5",
+      "logical_error_cluster": "opus5:recent_math:L004",
+      "cluster_size": 2,
+      "is_singleton": false
+    },
+    {
+      "dataset": "recent_math",
+      "candidate_index": 5,
+      "proof_id": "arxiv_2505_05324",
+      "arm": "strategies",
+      "mutation_sha256": "d9a3c68d86cf9e3860c04c9e4cac7f5ebd935774aca3158687b0d6bcc76cb10a",
+      "logical_error_cluster": "opus5:recent_math:L005",
+      "cluster_size": 4,
+      "is_singleton": false
+    },
+    {
+      "dataset": "recent_math",
+      "candidate_index": 6,
+      "proof_id": "arxiv_2505_05324",
+      "arm": "generic",
+      "mutation_sha256": "b19d0f3a4b1d2e2827c76cac7645ae8cd7035c9adda496e0cb7bf2f018206484",
+      "logical_error_cluster": "opus5:recent_math:L006",
+      "cluster_size": 4,
+      "is_singleton": false
+    },
+    {
+      "dataset": "recent_math",
+      "candidate_index": 7,
+      "proof_id": "arxiv_2507_21862",
+      "arm": "strategies",
+      "mutation_sha256": "71a2bf529274db4cee52dd29ef88c6f499067527fda03e02d1beeead5392e867",
+      "logical_error_cluster": "opus5:recent_math:L007",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "recent_math",
+      "candidate_index": 8,
+      "proof_id": "arxiv_2406_16806",
+      "arm": "generic",
+      "mutation_sha256": "969271d382e4b466a01bcf4e0f3d0b5addc546de1db3734ae15a80cc136766c7",
+      "logical_error_cluster": "opus5:recent_math:L008",
+      "cluster_size": 3,
+      "is_singleton": false
+    },
+    {
+      "dataset": "recent_math",
+      "candidate_index": 9,
+      "proof_id": "arxiv_2507_21862",
+      "arm": "strategies",
+      "mutation_sha256": "9f79b9c999a127392a0d2abb8641fb39539962f1320ecd87b34ae56342b4f9e7",
+      "logical_error_cluster": "opus5:recent_math:L009",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "recent_math",
+      "candidate_index": 10,
+      "proof_id": "arxiv_2501_05622",
+      "arm": "generic",
+      "mutation_sha256": "3eb06e0565459b01ffcfaa2c8681c05fbe01f4e13f4059a619723d03d4e59032",
+      "logical_error_cluster": "opus5:recent_math:L010",
+      "cluster_size": 2,
+      "is_singleton": false
+    },
+    {
+      "dataset": "recent_math",
+      "candidate_index": 11,
+      "proof_id": "arxiv_2405_19197",
+      "arm": "generic",
+      "mutation_sha256": "6c56d56edabc2735dadd33e6442561270fa7b5a188f02886b0bffc954b5e9d66",
+      "logical_error_cluster": "opus5:recent_math:L011",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "recent_math",
+      "candidate_index": 12,
+      "proof_id": "arxiv_2406_16806",
+      "arm": "strategies",
+      "mutation_sha256": "8a99aa4b701238aa9f4305d333dac86f7fc10b7edff4a0968964af223cfa5f62",
+      "logical_error_cluster": "opus5:recent_math:L012",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "recent_math",
+      "candidate_index": 13,
+      "proof_id": "arxiv_2406_16806",
+      "arm": "generic",
+      "mutation_sha256": "fc465e3c1d2e0081b9a9c0858bb9c002ffe00322782368677367690e639ec8fd",
+      "logical_error_cluster": "opus5:recent_math:L013",
+      "cluster_size": 2,
+      "is_singleton": false
+    },
+    {
+      "dataset": "recent_math",
+      "candidate_index": 14,
+      "proof_id": "arxiv_2505_05324",
+      "arm": "strategies",
+      "mutation_sha256": "3d5fdf1666134a29e97f02d09d42f25c371ccd31f4723ae25def09b17e3ec507",
+      "logical_error_cluster": "opus5:recent_math:L014",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "recent_math",
+      "candidate_index": 15,
+      "proof_id": "arxiv_2405_19197",
+      "arm": "generic",
+      "mutation_sha256": "314b421c5718b1201a1754dcffdf435631a9fcaf79dcc9ebaf88cab48b211fc0",
+      "logical_error_cluster": "opus5:recent_math:L015",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "recent_math",
+      "candidate_index": 16,
+      "proof_id": "arxiv_2507_21862",
+      "arm": "strategies",
+      "mutation_sha256": "f22482d6925ae2ded646aac47a1cee639448061da477fa4449169d7a299baa0a",
+      "logical_error_cluster": "opus5:recent_math:L016",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "recent_math",
+      "candidate_index": 17,
+      "proof_id": "arxiv_2405_19197",
+      "arm": "strategies",
+      "mutation_sha256": "c5c509bd64f5d6b932d4ad8a25f856681af5edcc53abae5b36eaf963249d587d",
+      "logical_error_cluster": "opus5:recent_math:L017",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "recent_math",
+      "candidate_index": 18,
+      "proof_id": "arxiv_2501_05622",
+      "arm": "strategies",
+      "mutation_sha256": "658dbe151c675b05a1090c411f2e12aaad51d518ddf07f6a56e8ad328556d4b7",
+      "logical_error_cluster": "opus5:recent_math:L018",
+      "cluster_size": 3,
+      "is_singleton": false
+    },
+    {
+      "dataset": "recent_math",
+      "candidate_index": 19,
+      "proof_id": "arxiv_2405_19197",
+      "arm": "generic",
+      "mutation_sha256": "ec910fc84eeab18100a2eea12f4069204bbc4522412ca59223ee3a2857372840",
+      "logical_error_cluster": "opus5:recent_math:L019",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "recent_math",
+      "candidate_index": 20,
+      "proof_id": "arxiv_2505_05324",
+      "arm": "generic",
+      "mutation_sha256": "b7ddb1a88379d59004b7ff6a7c432cd182f9285dcadddbabc92809210edc196e",
+      "logical_error_cluster": "opus5:recent_math:L005",
+      "cluster_size": 4,
+      "is_singleton": false
+    },
+    {
+      "dataset": "recent_math",
+      "candidate_index": 21,
+      "proof_id": "arxiv_2406_16806",
+      "arm": "strategies",
+      "mutation_sha256": "87bf67dbd3263d668efc5364a5ea3805b2eeff95b642dae87c5c2cc8c388988b",
+      "logical_error_cluster": "opus5:recent_math:L020",
+      "cluster_size": 2,
+      "is_singleton": false
+    },
+    {
+      "dataset": "recent_math",
+      "candidate_index": 22,
+      "proof_id": "arxiv_2405_19197",
+      "arm": "generic",
+      "mutation_sha256": "606b4b2fb36d5430ada77b8a6670c154023867872ba33857aabd1a6526553077",
+      "logical_error_cluster": "opus5:recent_math:L021",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "recent_math",
+      "candidate_index": 23,
+      "proof_id": "arxiv_2505_05324",
+      "arm": "generic",
+      "mutation_sha256": "0f9df1bad8a8a0360cc9ace02ddb17fb3fbfa6e6a284450887f85daec056f2a8",
+      "logical_error_cluster": "opus5:recent_math:L006",
+      "cluster_size": 4,
+      "is_singleton": false
+    },
+    {
+      "dataset": "recent_math",
+      "candidate_index": 24,
+      "proof_id": "arxiv_2405_19197",
+      "arm": "generic",
+      "mutation_sha256": "da0e20907078f453c8be0797ae3c9fddd89411d00e368c343893bb6287e35635",
+      "logical_error_cluster": "opus5:recent_math:L022",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "recent_math",
+      "candidate_index": 25,
+      "proof_id": "arxiv_2405_19197",
+      "arm": "strategies",
+      "mutation_sha256": "ac4491fb0fc659e4e294673f741413434ab1f8444efd684e740fe2afd1fa27de",
+      "logical_error_cluster": "opus5:recent_math:L023",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "recent_math",
+      "candidate_index": 26,
+      "proof_id": "arxiv_2501_05622",
+      "arm": "generic",
+      "mutation_sha256": "a051a23e70bfbb8f608e02476e9c014d47e89bf30b97912ad3f5340cda56fad0",
+      "logical_error_cluster": "opus5:recent_math:L024",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "recent_math",
+      "candidate_index": 27,
+      "proof_id": "arxiv_2501_05622",
+      "arm": "generic",
+      "mutation_sha256": "4935747f4bfedf21bea86464675b9fb604f42c629e6422c603643376c59dfae7",
+      "logical_error_cluster": "opus5:recent_math:L010",
+      "cluster_size": 2,
+      "is_singleton": false
+    },
+    {
+      "dataset": "recent_math",
+      "candidate_index": 28,
+      "proof_id": "arxiv_2406_16806",
+      "arm": "strategies",
+      "mutation_sha256": "ccf5b8fa042f2ccaf556770615673928cad43a960245b0c6cf534b979ce65764",
+      "logical_error_cluster": "opus5:recent_math:L020",
+      "cluster_size": 2,
+      "is_singleton": false
+    },
+    {
+      "dataset": "recent_math",
+      "candidate_index": 29,
+      "proof_id": "arxiv_2505_05324",
+      "arm": "generic",
+      "mutation_sha256": "89b5e544c4ce4b222b081a4254558972fcb370ae2b5cae962d2e6530d2ed2e91",
+      "logical_error_cluster": "opus5:recent_math:L005",
+      "cluster_size": 4,
+      "is_singleton": false
+    },
+    {
+      "dataset": "recent_math",
+      "candidate_index": 30,
+      "proof_id": "arxiv_2501_05622",
+      "arm": "strategies",
+      "mutation_sha256": "a18b1ede9b5db42d6bb6c11d1c07b8811df122b9cb5f430b1505f176b7d17a21",
+      "logical_error_cluster": "opus5:recent_math:L004",
+      "cluster_size": 2,
+      "is_singleton": false
+    },
+    {
+      "dataset": "recent_math",
+      "candidate_index": 31,
+      "proof_id": "arxiv_2501_05622",
+      "arm": "strategies",
+      "mutation_sha256": "e35951d7b25e4d225345f4b1efe0722f0ecf54c889690c51746f8196c2930de8",
+      "logical_error_cluster": "opus5:recent_math:L018",
+      "cluster_size": 3,
+      "is_singleton": false
+    },
+    {
+      "dataset": "recent_math",
+      "candidate_index": 32,
+      "proof_id": "arxiv_2507_21862",
+      "arm": "generic",
+      "mutation_sha256": "ae304b12dac7f9470250146a73f779cdfc680af7f76aabd72fce8521a65354fe",
+      "logical_error_cluster": "opus5:recent_math:L025",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "recent_math",
+      "candidate_index": 33,
+      "proof_id": "arxiv_2405_19197",
+      "arm": "strategies",
+      "mutation_sha256": "6e328040545b40b067b7c6c1269ee763e6def888d70768b56323e2f1c1617663",
+      "logical_error_cluster": "opus5:recent_math:L026",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "recent_math",
+      "candidate_index": 34,
+      "proof_id": "arxiv_2505_05324",
+      "arm": "strategies",
+      "mutation_sha256": "bb8430890f0793a5521598070c2808d505a7282520ab69a7c8510ee629d7e18c",
+      "logical_error_cluster": "opus5:recent_math:L006",
+      "cluster_size": 4,
+      "is_singleton": false
+    },
+    {
+      "dataset": "recent_math",
+      "candidate_index": 35,
+      "proof_id": "arxiv_2406_16806",
+      "arm": "generic",
+      "mutation_sha256": "6890faf17829b6eed10dd2b3139803fe0d033e808a553eee2d5655f4e2eed9a5",
+      "logical_error_cluster": "opus5:recent_math:L027",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "recent_math",
+      "candidate_index": 36,
+      "proof_id": "arxiv_2406_16806",
+      "arm": "generic",
+      "mutation_sha256": "373e82906bc2734c4744a74a66b52309bb7d80f845375affcfd6fa8abbb8c803",
+      "logical_error_cluster": "opus5:recent_math:L008",
+      "cluster_size": 3,
+      "is_singleton": false
+    },
+    {
+      "dataset": "recent_math",
+      "candidate_index": 37,
+      "proof_id": "arxiv_2507_21862",
+      "arm": "strategies",
+      "mutation_sha256": "8b3fe548fc9661072063b41412438ef881d388ab7c21a81a8eefd92ce95c60a1",
+      "logical_error_cluster": "opus5:recent_math:L028",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "recent_math",
+      "candidate_index": 38,
+      "proof_id": "arxiv_2406_16806",
+      "arm": "strategies",
+      "mutation_sha256": "93251690094039594a7fd2b67a6140cf58ad35089b1e9c063d7db455ae346ee3",
+      "logical_error_cluster": "opus5:recent_math:L008",
+      "cluster_size": 3,
+      "is_singleton": false
+    },
+    {
+      "dataset": "recent_math",
+      "candidate_index": 39,
+      "proof_id": "arxiv_2406_16806",
+      "arm": "generic",
+      "mutation_sha256": "06c8f464278bb9f5f4d136598b5eb50f4d443d9c8d0968fc7929c0bda6213b27",
+      "logical_error_cluster": "opus5:recent_math:L029",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "recent_math",
+      "candidate_index": 40,
+      "proof_id": "arxiv_2405_19197",
+      "arm": "strategies",
+      "mutation_sha256": "f3d39345cbdbc549497f7a447703ac89b894198f3cd4972237bd50c5bea3ceff",
+      "logical_error_cluster": "opus5:recent_math:L030",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "recent_math",
+      "candidate_index": 41,
+      "proof_id": "arxiv_2406_16806",
+      "arm": "strategies",
+      "mutation_sha256": "fc465e3c1d2e0081b9a9c0858bb9c002ffe00322782368677367690e639ec8fd",
+      "logical_error_cluster": "opus5:recent_math:L013",
+      "cluster_size": 2,
+      "is_singleton": false
+    },
+    {
+      "dataset": "recent_math",
+      "candidate_index": 42,
+      "proof_id": "arxiv_2501_05622",
+      "arm": "generic",
+      "mutation_sha256": "a474a9703a15dc4bffa67cf23177999700e250099b5c0128cdf126da15655e49",
+      "logical_error_cluster": "opus5:recent_math:L018",
+      "cluster_size": 3,
+      "is_singleton": false
+    },
+    {
+      "dataset": "recent_math",
+      "candidate_index": 43,
+      "proof_id": "arxiv_2505_05324",
+      "arm": "strategies",
+      "mutation_sha256": "8af7a2d033e9c4ea0fcfec2ce8161cf428c630c49cdb1f477174dbe3375a76a1",
+      "logical_error_cluster": "opus5:recent_math:L005",
+      "cluster_size": 4,
+      "is_singleton": false
+    },
+    {
+      "dataset": "recent_math",
+      "candidate_index": 44,
+      "proof_id": "arxiv_2505_05324",
+      "arm": "strategies",
+      "mutation_sha256": "b4e810d84d53f1f9c509f8d10ac6c818275875d124822c003c3cd84ee4a9bf75",
+      "logical_error_cluster": "opus5:recent_math:L006",
+      "cluster_size": 4,
+      "is_singleton": false
+    },
+    {
+      "dataset": "recent_math",
+      "candidate_index": 45,
+      "proof_id": "arxiv_2501_05622",
+      "arm": "strategies",
+      "mutation_sha256": "8284b007f8bfe48661b8c2d65532c2e859933181286c54adffaacf7e4da3982b",
+      "logical_error_cluster": "opus5:recent_math:L031",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "recent_math",
+      "candidate_index": 46,
+      "proof_id": "arxiv_2507_21862",
+      "arm": "generic",
+      "mutation_sha256": "b7df16985b27cf6517164c4eb98b3d853bb8590d7d847d8debd6712be6ab607c",
+      "logical_error_cluster": "opus5:recent_math:L032",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "recent_math",
+      "candidate_index": 47,
+      "proof_id": "arxiv_2507_21862",
+      "arm": "generic",
+      "mutation_sha256": "e111a170b7cf632abda1b332efdf91a03994e988ae392dead3fe5e3d86ea4a9f",
+      "logical_error_cluster": "opus5:recent_math:L033",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "recent_math",
+      "candidate_index": 48,
+      "proof_id": "arxiv_2505_05324",
+      "arm": "generic",
+      "mutation_sha256": "af9db1b339690a6ff08c3c6748374c3451b8698f0b70ea8776be8c25138c8f16",
+      "logical_error_cluster": "opus5:recent_math:L034",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "recent_math",
+      "candidate_index": 49,
+      "proof_id": "arxiv_2507_21862",
+      "arm": "generic",
+      "mutation_sha256": "ec430704166300e1bd1e11444f2923af52800f384776d0f4cdb83e5ce94ffe6d",
+      "logical_error_cluster": "opus5:recent_math:L035",
+      "cluster_size": 1,
+      "is_singleton": true
+    },
+    {
+      "dataset": "recent_math",
+      "candidate_index": 50,
+      "proof_id": "arxiv_2501_05622",
+      "arm": "generic",
+      "mutation_sha256": "bafad449cbd9b63ae8593406a4084288c20a70216016159abd9b1673de1c8781",
+      "logical_error_cluster": "opus5:recent_math:L036",
+      "cluster_size": 1,
+      "is_singleton": true
+    }
+  ]
+}

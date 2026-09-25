@@ -1,4 +1,4 @@
-# Recent-mathematics span audit
+# ArXivMath span audit
 
 Audited against the annotation protocol, the canonical combined frozen-evaluation
 `results.json`, and the held-out proofs in
@@ -16,7 +16,7 @@ Audited against the annotation protocol, the canonical combined frozen-evaluatio
 - All required fields are present; all endpoints are at or after their starts; and
   every point span lies within its recorded lower and upper bounds.
 - Every `mutation_start_line` agrees with the first added line in the canonical
-  unified diff. The recent-math diffs preserve line numbering.
+  unified diff. The ArXivMath diffs preserve line numbering.
 - I recounted every inclusive start--endpoint interval in the diff-applied dossier,
   excluding blank lines, comments, and purely structural TeX/figure markup as the
   protocol requires. All 50 `span_lines` values are consistent with those intervals.

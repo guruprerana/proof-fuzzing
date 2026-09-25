@@ -1,15 +1,20 @@
 # Project memory
 
-Last updated: 2026-09-24.
+Last updated: 2026-09-25.
 
 ## Current project scope
 
 The headline study covers exactly four datasets:
 
 1. Olympiad
-2. Graduate course dossiers
-3. TCS open problems
-4. Recent mathematical research
+2. GraduateCourses
+3. OpenAI-TCS
+4. ArXivMath
+
+Use these exact public dataset names throughout reporting, prose, tables, and figure
+labels. Internal dataset keys and canonical paths remain unchanged (for example,
+`graduate_course`, `tcs_open_problems`, and `recent_math`) so existing run artifacts
+and orchestration continue to resolve.
 
 These are the only datasets whose results should be used in the paper's analyses,
 quantitative tables, comparisons, and summaries. Historical datasets may remain in
@@ -18,7 +23,7 @@ analysis and should not be introduced unless the user explicitly changes the sco
 Do not add other datasets to active code or bundled inputs unless the user explicitly
 changes the scope.
 
-The current planned extension is to run Claude Opus 5 on the TCS open-problems setup
+The current planned extension is to run Claude Opus 5 on the OpenAI-TCS setup
 used for the GPT-5.6-sol headline result, including discovery and frozen evaluation as
 appropriate. Work may be parallelized across machines.
 
@@ -32,18 +37,18 @@ The self-contained inputs needed by the current runs belong in Git:
 - `local_datasets/recent_math_research_dossiers_clean_v1.json`
 - `local_datasets/openai_ten_advances_2026/proofs_markdown/*.md`
 
-The three split JSON files contain both discovery and held-out examples. The TCS
+The three split JSON files contain both discovery and held-out examples. The OpenAI-TCS
 directory contains the ten Markdown proofs; the reported GPT-5.6-sol study used five
 of them.
 
 Original PDFs retained for source provenance also belong in Git:
 
 - `local_datasets/graduate_course_dossiers_v1_sources/**/*.pdf`: only the 57 PDFs
-  explicitly cited, with hashes, by the graduate-course dossier JSON.
+  explicitly cited, with hashes, by the GraduateCourses JSON.
 - `local_datasets/recent_math_research_dossiers_clean_v1_sources/*.pdf`: the ten
-  arXiv papers referenced by the recent-research dossier JSON.
+  arXiv papers referenced by the ArXivMath dossier JSON.
 - `local_datasets/openai_ten_advances_2026/source/ten-proofs-oai.pdf`: the source of
-  the ten TCS Markdown proofs.
+  the ten OpenAI-TCS Markdown proofs.
 
 These PDFs are provenance material, not runtime inputs. Do not add unrelated course
 files, generated walkthroughs, extraction and cleaning workspaces, nested benchmark
@@ -100,7 +105,7 @@ updated more frequently than this memory file.
 - `logs/` stores prompts, mutations, feedback, assessments, manifests, transcripts,
   session metadata, usage, results, and distilled libraries. It is intentionally
   ignored by Git and is machine-local unless transferred separately.
-- `src/proof_fuzzer/data/` tracks the audited TCS strategy library used by the
+- `src/proof_fuzzer/data/` tracks the audited OpenAI-TCS strategy library used by the
   headline evaluation. Other generated strategy libraries remain ignored.
 - Provider-native session stores and resumable conversation state are machine-local.
   A thread ID or run directory alone may not make a provider session portable.

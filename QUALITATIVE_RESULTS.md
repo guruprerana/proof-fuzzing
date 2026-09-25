@@ -43,11 +43,11 @@ The statement that the existing material is “sufficient” acts as an unsuppor
 
 Artifacts: [mutation diff](logs/by_dataset/reflect/reflect_agent_trace_transfer_terra_low_20260911_151937/evaluation/07/attempts/004/mutation.diff), [introduced-error explanation](logs/by_dataset/reflect/reflect_agent_trace_transfer_terra_low_20260911_151937/evaluation/07/attempts/004/introduced_error.md), [assessment result](logs/by_dataset/reflect/reflect_agent_trace_transfer_terra_low_20260911_151937/evaluation/07/attempts/004/result.json), and [frozen strategy library](logs/by_dataset/reflect/reflect_agent_trace_transfer_terra_low_20260911_151937/distillation/strategies.md).
 
-## Recent mathematical research: replacing equality of curve classes by equality of one number
+## ArXivMath: replacing equality of curve classes by equality of one number
 
 ### Outcome
 
-- Dataset: recent mathematical research
+- Dataset: ArXivMath
 - Source proof: `arxiv_2501_05622`
 - Mutation arm: frozen-strategy guided
 - Validity result: genuine introduced error
@@ -110,11 +110,11 @@ The example follows this advice by constructing two distinct admissible classes 
 
 Artifacts: [mutation diff](logs/by_dataset/recent_math/runs/recent_math_clean_all5_v1_gpt56sol_medium_2judges_v2/sessions/0003/attempts/001/mutation.diff), [introduced-error explanation](logs/by_dataset/recent_math/runs/recent_math_clean_all5_v1_gpt56sol_medium_2judges_v2/sessions/0003/attempts/001/introduced_error.md), [assessment result](logs/by_dataset/recent_math/runs/recent_math_clean_all5_v1_gpt56sol_medium_2judges_v2/sessions/0003/attempts/001/result.json), and [frozen strategy library](logs/by_dataset/recent_math/runs/recent_math_research_clean_all5_distillation_v1_gpt56sol_medium/distillation/strategies.md).
 
-## TCS open problems: dropping a square root from a geometric scale
+## OpenAI-TCS: dropping a square root from a geometric scale
 
 ### Outcome
 
-- Dataset: TCS open problems
+- Dataset: OpenAI-TCS
 - Source proof: `02_binary_and_spherical_codes`
 - Mutation arm: frozen-strategy guided
 - Validity result: genuine introduced error
@@ -169,11 +169,11 @@ The choice $s=1/2$, $|x|=1$ performs exactly this check: it turns the abstract s
 
 Artifacts: [mutation diff](logs/by_dataset/tcs_open_problems/ten_matched_50_gpt-5.6-sol_medium_20260909_202502/attempts/008/mutation.diff), [introduced-error explanation](logs/by_dataset/tcs_open_problems/ten_matched_50_gpt-5.6-sol_medium_20260909_202502/attempts/008/introduced_error.md), [assessment result](logs/by_dataset/tcs_open_problems/ten_matched_50_gpt-5.6-sol_medium_20260909_202502/attempts/008/result.json), and [frozen strategy library](src/proof_fuzzer/data/audited_persistent_strategies_20260909.md).
 
-## TCS open problems: ignoring a ceiling inside a gamma-ratio asymptotic
+## OpenAI-TCS: ignoring a ceiling inside a gamma-ratio asymptotic
 
 ### Outcome
 
-- Dataset: TCS open problems
+- Dataset: OpenAI-TCS
 - Source proof: `01_high_dimensional_sphere_packing`
 - Mutation arm: frozen-strategy guided
 - Validity result: genuine introduced error
@@ -232,11 +232,11 @@ Its validity check says to isolate the fractional-part factor and exhibit a perm
 
 Artifacts: [mutation diff](logs/by_dataset/tcs_open_problems/ten_matched_50_gpt-5.6-sol_medium_20260909_202502/attempts/004/mutation.diff), [introduced-error explanation](logs/by_dataset/tcs_open_problems/ten_matched_50_gpt-5.6-sol_medium_20260909_202502/attempts/004/introduced_error.md), [assessment result](logs/by_dataset/tcs_open_problems/ten_matched_50_gpt-5.6-sol_medium_20260909_202502/attempts/004/result.json), and [frozen strategy library](src/proof_fuzzer/data/audited_persistent_strategies_20260909.md).
 
-## TCS open problems: dropping a floor-dependent factor from a binomial asymptotic
+## OpenAI-TCS: dropping a floor-dependent factor from a binomial asymptotic
 
 ### Outcome
 
-- Dataset: TCS open problems
+- Dataset: OpenAI-TCS
 - Source proof: `02_binary_and_spherical_codes`
 - Mutation arm: frozen-strategy guided
 - Validity result: genuine introduced error
@@ -285,7 +285,7 @@ The strategy's prescribed check is exact here: expanding at $k=\lfloor bn\rfloor
 
 Artifacts: [mutation diff](logs/by_dataset/tcs_open_problems/ten_matched_50_gpt-5.6-sol_medium_20260909_202502/attempts/019/mutation.diff), [introduced-error explanation](logs/by_dataset/tcs_open_problems/ten_matched_50_gpt-5.6-sol_medium_20260909_202502/attempts/019/introduced_error.md), [assessment result](logs/by_dataset/tcs_open_problems/ten_matched_50_gpt-5.6-sol_medium_20260909_202502/attempts/019/result.json), and [frozen strategy library](src/proof_fuzzer/data/audited_persistent_strategies_20260909.md).
 
-## TCS open problems: common patterns across successful mutations
+## OpenAI-TCS: common patterns across successful mutations
 
 Here a *successful mutation* means a strategy-guided candidate that passed the independent validity check and whose introduced error was missed by at least one of the three blind judges. Ten of the 23 valid strategy-guided mutations met this criterion. Three were missed by all three judges, four by two judges, and three by one judge. These ten submissions should not be read as ten independent mechanisms: several deliberately instantiate the same strategy in different locations, and two pairs are close repetitions on the same proof.
 
@@ -309,6 +309,6 @@ Most successful mutations are **locally false but globally dispensable**. The or
 
 They are also **small and linguistically plausible**. Several mutations add one displayed formula or one explanatory sentence; others change a single exponent, square root, or convergence direction. Terms such as “more precisely,” “the rounding is negligible,” and “approaches from above” present the edits as routine elaborations of nearby correct mathematics. This camouflage is strongest when the mutation strengthens a claim without changing anything later, since the unchanged downstream proof gives the false impression that the stronger claim has already been absorbed safely.
 
-Finally, the successful examples concentrate on **bounded effects that survive at exact precision but vanish under coarse analysis**. Fractional-part factors remain bounded away from both zero and infinity but need not converge to one. A finite-size correction has a definite sign but disappears in the limit. A missing quadratic term is lower order in the regime used by the final argument but still too large for the newly asserted uniform bound. This separation between what the theorem needs and what the local sentence claims is the clearest common feature of the successful TCS mutations.
+Finally, the successful examples concentrate on **bounded effects that survive at exact precision but vanish under coarse analysis**. Fractional-part factors remain bounded away from both zero and infinity but need not converge to one. A finite-size correction has a definite sign but disappears in the limit. A missing quadratic term is lower order in the regime used by the final argument but still too large for the newly asserted uniform bound. This separation between what the theorem needs and what the local sentence claims is the clearest common feature of the successful OpenAI-TCS mutations.
 
 Artifacts: [candidate-level evaluation results](logs/by_dataset/tcs_open_problems/ten_matched_50_gpt-5.6-sol_medium_20260909_202502/results.json), [evaluation summary](logs/by_dataset/tcs_open_problems/ten_matched_50_gpt-5.6-sol_medium_20260909_202502/summary.json), and [frozen strategy library](src/proof_fuzzer/data/audited_persistent_strategies_20260909.md).

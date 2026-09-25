@@ -23,9 +23,9 @@ EVALUATIONS = {
 
 DATASET_LABELS = {
     "olympiad": "Olympiad",
-    "graduate_course": "Graduate course dossiers",
-    "tcs_open_problems": "TCS open problems",
-    "recent_math": "Recent mathematical research",
+    "graduate_course": "GraduateCourses",
+    "tcs_open_problems": "OpenAI-TCS",
+    "recent_math": "ArXivMath",
 }
 
 TCS_TOPICS = {
@@ -124,7 +124,11 @@ def _write_data(rows: list[dict]) -> None:
         json.dumps(payload, indent=2, ensure_ascii=False) + "\n"
     )
     with (HERE / "eval_judge_misses_by_subtopic.csv").open("w", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
+        writer = csv.DictWriter(
+            handle,
+            fieldnames=list(rows[0]),
+            lineterminator="\n",
+        )
         writer.writeheader()
         writer.writerows(rows)
 
@@ -134,12 +138,12 @@ def _plot(rows: list[dict]) -> None:
     height_ratios = [4, 3, 5, 5]
     plt.rcParams.update(
         {
-            "font.size": 17,
-            "axes.titlesize": 22,
-            "axes.labelsize": 19,
-            "xtick.labelsize": 16,
-            "ytick.labelsize": 16,
-            "legend.fontsize": 17,
+            "font.size": 30,
+            "axes.titlesize": 34,
+            "axes.labelsize": 34,
+            "xtick.labelsize": 28,
+            "ytick.labelsize": 30,
+            "legend.fontsize": 30,
         }
     )
     fig, axes = plt.subplots(
@@ -170,16 +174,11 @@ def _plot(rows: list[dict]) -> None:
                 f"{total} / {row['review_slots']}",
                 va="center",
                 ha="left",
-                fontsize=14,
+                fontsize=27,
                 color="#333333",
             )
 
-    axes[-1].set_xlabel("Number of missed blind-judge reviews")
-    fig.suptitle(
-        "Judge misses by mathematical area in frozen GPT-5.6-sol evaluation",
-        fontsize=27,
-        fontweight="bold",
-    )
+    axes[-1].set_xlabel("Number of Judge Misses")
     output = HERE / "figures" / "gpt56sol_eval_judge_misses_by_subtopic.png"
     output.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(output, dpi=300)

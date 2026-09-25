@@ -62,7 +62,7 @@ def tcs_candidate(
     folder = TCS_RUN / "attempts" / f"{attempt:03d}"
     return Candidate(
         key=f"tcs_attempt_{attempt:03d}",
-        dataset="TCS open problems",
+        dataset="OpenAI-TCS",
         proof_id=proof_id,
         mutation_sha256=mutation_sha256,
         prompt_path=folder / "judge_1_prompt.txt",
@@ -84,7 +84,7 @@ def recent_candidate(
     folder = run / "sessions" / f"{session:04d}" / "attempts" / "001"
     return Candidate(
         key=key,
-        dataset="Recent mathematical research",
+        dataset="ArXivMath",
         proof_id=proof_id,
         mutation_sha256=mutation_sha256,
         prompt_path=folder / "judge_prompt.txt",

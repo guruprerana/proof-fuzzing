@@ -41,7 +41,7 @@
     },
     {
       "dataset": "graduate_course",
-      "dataset_label": "Graduate course dossiers",
+      "dataset_label": "GraduateCourses",
       "subtopic": "Algebra and number theory",
       "valid_mutations": 39,
       "review_slots": 117,
@@ -50,7 +50,7 @@
     },
     {
       "dataset": "graduate_course",
-      "dataset_label": "Graduate course dossiers",
+      "dataset_label": "GraduateCourses",
       "subtopic": "Analysis",
       "valid_mutations": 29,
       "review_slots": 87,
@@ -59,7 +59,7 @@
     },
     {
       "dataset": "graduate_course",
-      "dataset_label": "Graduate course dossiers",
+      "dataset_label": "GraduateCourses",
       "subtopic": "Geometry and topology",
       "valid_mutations": 30,
       "review_slots": 90,
@@ -68,7 +68,7 @@
     },
     {
       "dataset": "tcs_open_problems",
-      "dataset_label": "TCS open problems",
+      "dataset_label": "OpenAI-TCS",
       "subtopic": "Discrete geometry (sphere packing)",
       "valid_mutations": 9,
       "review_slots": 27,
@@ -77,7 +77,7 @@
     },
     {
       "dataset": "tcs_open_problems",
-      "dataset_label": "TCS open problems",
+      "dataset_label": "OpenAI-TCS",
       "subtopic": "Coding theory",
       "valid_mutations": 8,
       "review_slots": 24,
@@ -86,7 +86,7 @@
     },
     {
       "dataset": "tcs_open_problems",
-      "dataset_label": "TCS open problems",
+      "dataset_label": "OpenAI-TCS",
       "subtopic": "Algebraic complexity",
       "valid_mutations": 10,
       "review_slots": 30,
@@ -95,7 +95,7 @@
     },
     {
       "dataset": "tcs_open_problems",
-      "dataset_label": "TCS open problems",
+      "dataset_label": "OpenAI-TCS",
       "subtopic": "Quantum information",
       "valid_mutations": 8,
       "review_slots": 24,
@@ -104,7 +104,7 @@
     },
     {
       "dataset": "tcs_open_problems",
-      "dataset_label": "TCS open problems",
+      "dataset_label": "OpenAI-TCS",
       "subtopic": "Lattice complexity",
       "valid_mutations": 9,
       "review_slots": 27,
@@ -113,7 +113,7 @@
     },
     {
       "dataset": "recent_math",
-      "dataset_label": "Recent mathematical research",
+      "dataset_label": "ArXivMath",
       "subtopic": "Algebra and number theory",
       "valid_mutations": 10,
       "review_slots": 30,
@@ -122,7 +122,7 @@
     },
     {
       "dataset": "recent_math",
-      "dataset_label": "Recent mathematical research",
+      "dataset_label": "ArXivMath",
       "subtopic": "Geometry and topology",
       "valid_mutations": 10,
       "review_slots": 30,
@@ -131,7 +131,7 @@
     },
     {
       "dataset": "recent_math",
-      "dataset_label": "Recent mathematical research",
+      "dataset_label": "ArXivMath",
       "subtopic": "Analysis and PDE",
       "valid_mutations": 10,
       "review_slots": 30,
@@ -140,7 +140,7 @@
     },
     {
       "dataset": "recent_math",
-      "dataset_label": "Recent mathematical research",
+      "dataset_label": "ArXivMath",
       "subtopic": "Probability and combinatorics",
       "valid_mutations": 10,
       "review_slots": 30,
@@ -149,7 +149,7 @@
     },
     {
       "dataset": "recent_math",
-      "dataset_label": "Recent mathematical research",
+      "dataset_label": "ArXivMath",
       "subtopic": "Logic and dynamics",
       "valid_mutations": 10,
       "review_slots": 30,

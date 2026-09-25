@@ -13,9 +13,9 @@
 The active headline study covers exactly four datasets:
 
 1. Olympiad
-2. Graduate course dossiers
-3. TCS open problems
-4. Recent mathematical research
+2. GraduateCourses
+3. OpenAI-TCS
+4. ArXivMath
 
 Canonical run inputs are version-controlled under `local_datasets/`. The original
 graduate-course, recent-research, and TCS PDFs approved for provenance are tracked

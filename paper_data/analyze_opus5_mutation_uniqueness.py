@@ -1,12 +1,5 @@
 #!/usr/bin/env python3
-"""Build the manually audited evaluation-mutation uniqueness annotations.
-
-Two valid candidates are placed in the same cluster only when they introduce the
-same false assertion or inference in the same source proof.  Different wording,
-counterexamples, dependent edits, or proof hashes do not create a new logical
-error.  Similar mechanisms in different proofs, and materially different false
-claims in the same proof, remain separate.
-"""
+"""Build manually audited Claude Opus 5 mutation-uniqueness annotations."""
 
 from __future__ import annotations
 
@@ -22,51 +15,87 @@ OUT_DIR = ROOT / "paper_data"
 DATASETS = {
     "olympiad": {
         "label": "Olympiad",
-        "path": ROOT / "logs/by_dataset/olympiad/olympiad_20_frozen_eval_gpt56sol_medium_5x3_20260924/results.json",
+        "path": ROOT / (
+            "logs/by_dataset/olympiad/"
+            "olympiad_20_frozen_eval_claude_opus5_default_5x3_20260922/"
+            "results.json"
+        ),
         "repeat_groups": [
-            [56, 102], [152, 198], [55, 57, 88],
-            [63, 85], [74, 105, 111, 129, 136],
-            [81, 108, 145, 170], [92, 93, 122],
-            [6, 155], [75, 103, 127, 193],
-            [23, 38, 112, 132], [37, 87], [141, 150],
-            [110, 168], [65, 182], [76, 131], [95, 114, 161, 192],
-            [2, 36], [3, 109, 194], [99, 104, 137],
-            [73, 140, 179, 186], [12, 30, 49], [54, 86, 107, 162],
             [1, 52, 117, 118, 121, 125, 133, 139, 160, 171],
-            [5, 16, 151, 172], [80, 147],
-            [101, 119, 149, 158, 167], [40, 97],
-            [120, 148, 156, 185], [11, 169],
-            [19, 44, 100, 164, 188],
+            [3, 9, 68, 109, 176],
+            [5, 16, 34, 45, 80, 147, 151, 172, 183],
+            [6, 146],
+            [159, 193],
+            [7, 184],
+            [42, 47, 61],
+            [18, 191],
+            [12, 50, 54, 86, 96, 107, 162],
+            [11, 188],
+            [17, 163],
+            [19, 44, 100, 164, 169],
+            [14, 85, 111, 136],
+            [63, 153],
+            [77, 81, 115],
+            [92, 122],
+            [90, 174],
+            [94, 102],
+            [21, 101, 119],
+            [58, 62, 89, 91, 149, 158, 167],
+            [35, 38, 41, 70, 112, 113, 165, 199],
+            [24, 55, 57, 200],
+            [128, 142, 173],
+            [25, 69, 83, 197],
+            [60, 110, 123, 168, 189],
+            [37, 84],
+            [43, 87, 98],
+            [78, 130],
+            [120, 185],
+            [116, 148, 156],
+            [65, 76, 114, 131, 134, 154, 161, 182],
         ],
     },
     "graduate_course": {
         "label": "GraduateCourses",
-        "path": ROOT / "logs/by_dataset/graduate_course/graduate_course_10_frozen_eval_gpt56sol_medium_5x3_20260923/results.json",
+        "path": ROOT / (
+            "logs/by_dataset/graduate_course/"
+            "graduate_course_10_frozen_eval_claude_opus5_medium_5x3_"
+            "20260923_amended/results.json"
+        ),
         "repeat_groups": [
-            [32, 81, 100], [76, 97], [29, 57],
-            [36, 69, 79, 88], [53, 77], [5, 48],
-            [41, 46, 65], [67, 99], [39, 52, 68],
-            [66, 83], [9, 13, 14], [21, 74], [37, 93],
-            [19, 82], [28, 34, 44], [45, 70, 87, 91],
-            [11, 58, 61], [64, 78],
-        ],
-    },
-    "tcs_open_problems": {
-        "label": "OpenAI-TCS",
-        "path": ROOT / "logs/by_dataset/tcs_open_problems/ten_matched_50_gpt-5.6-sol_medium_20260909_202502/results.json",
-        "repeat_groups": [
-            [4, 50], [1, 18, 29], [2, 26], [21, 43],
-            [9, 12, 23, 47],
+            [34, 91],
+            [45, 82],
+            [22, 31, 75, 92],
+            [18, 85],
+            [5, 24],
+            [98, 99],
+            [58, 73],
+            [20, 74],
+            [21, 93],
+            [27, 39, 42],
+            [66, 83],
+            [33, 36],
+            [40, 79],
+            [53, 69],
+            [30, 54, 76],
+            [32, 81],
         ],
     },
     "recent_math": {
         "label": "ArXivMath",
-        "path": ROOT / "logs/by_dataset/recent_math/runs/recent_math_clean_all5_v1_gpt56sol_medium_25perarm_3judges_combined_20260923/results.json",
+        "path": ROOT / (
+            "logs/by_dataset/recent_math/runs/"
+            "recent_math_5_frozen_eval_claude_opus5_medium_5x3_20260924/"
+            "results.json"
+        ),
         "repeat_groups": [
-            [1, 3, 5, 10], [2, 7, 9], [13, 19],
-            [25, 27, 30], [22, 24], [32, 38],
-            [33, 35, 39, 40], [34, 36], [42, 49],
-            [43, 46, 50], [47, 48],
+            [4, 30],
+            [10, 27],
+            [18, 31, 42],
+            [5, 20, 29, 43],
+            [6, 23, 34, 44],
+            [8, 36, 38],
+            [13, 41],
+            [21, 28],
         ],
     },
 }
@@ -97,12 +126,11 @@ def main() -> None:
                 continue
             cluster_number += 1
             members = grouped.get(i, (i,))
-            cluster_id = f"{dataset}:L{cluster_number:03d}"
+            cluster_id = f"opus5:{dataset}:L{cluster_number:03d}"
             for member in members:
                 cluster_for[member] = cluster_id
 
         sizes = Counter(cluster_for.values())
-        assert len(cluster_for) == len(valid)
         distinct = len(sizes)
         singleton = sum(size == 1 for size in sizes.values())
         summaries.append(
@@ -140,23 +168,35 @@ def main() -> None:
             "Wording, counterexample, dependent-edit, and proof-hash differences "
             "do not split a cluster; analogous errors in different proofs do."
         ),
-        "scope": "Candidates with valid == true in the four frozen GPT-5.6-sol evaluations.",
+        "scope": (
+            "Candidates with valid == true in the three completed frozen Claude "
+            "Opus 5 evaluations. OpenAI-TCS is excluded because its Opus 5 frozen "
+            "evaluation has not been run."
+        ),
         "summary": summaries,
         "annotations": annotations,
     }
-    (OUT_DIR / "mutation_uniqueness_annotations.json").write_text(
+    (OUT_DIR / "opus5_mutation_uniqueness_annotations.json").write_text(
         json.dumps(payload, indent=2) + "\n"
     )
 
-    with (OUT_DIR / "mutation_uniqueness_annotations.csv").open("w", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=list(annotations[0]))
+    with (OUT_DIR / "opus5_mutation_uniqueness_annotations.csv").open(
+        "w", newline=""
+    ) as handle:
+        writer = csv.DictWriter(
+            handle,
+            fieldnames=list(annotations[0]),
+            lineterminator="\n",
+        )
         writer.writeheader()
         writer.writerows(annotations)
 
     for row in summaries:
         print(
-            row["dataset_label"], row["valid_mutations"],
-            row["distinct_logical_errors"], row["singleton_mutations"]
+            row["dataset_label"],
+            row["valid_mutations"],
+            row["distinct_logical_errors"],
+            row["singleton_mutations"],
         )
 
 

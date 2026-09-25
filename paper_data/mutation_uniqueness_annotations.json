@@ -15,7 +15,7 @@
     },
     {
       "dataset": "graduate_course",
-      "dataset_label": "Graduate course dossiers",
+      "dataset_label": "GraduateCourses",
       "generated_candidates": 100,
       "valid_mutations": 98,
       "distinct_logical_errors": 70,
@@ -26,7 +26,7 @@
     },
     {
       "dataset": "tcs_open_problems",
-      "dataset_label": "TCS open problems",
+      "dataset_label": "OpenAI-TCS",
       "generated_candidates": 50,
       "valid_mutations": 44,
       "distinct_logical_errors": 36,
@@ -37,7 +37,7 @@
     },
     {
       "dataset": "recent_math",
-      "dataset_label": "Recent mathematical research",
+      "dataset_label": "ArXivMath",
       "generated_candidates": 50,
       "valid_mutations": 50,
       "distinct_logical_errors": 32,

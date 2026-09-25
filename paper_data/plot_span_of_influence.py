@@ -172,9 +172,9 @@ def _write_data(rows: list[dict], summary: dict) -> None:
 def _plot(summary: dict) -> None:
     dataset_keys = ("graduate_course", "tcs", "recent_math", "all")
     dataset_labels = (
-        "Graduate course\ndossiers",
-        "TCS open\nproblems",
-        "Recent mathematical\nresearch",
+        "GraduateCourses",
+        "OpenAI-TCS",
+        "ArXivMath",
         "Pooled",
     )
     outcome_series = (
@@ -184,11 +184,11 @@ def _plot(summary: dict) -> None:
 
     plt.rcParams.update(
         {
-            "font.size": 25.5,
-            "axes.titlesize": 31,
-            "axes.labelsize": 28.5,
-            "xtick.labelsize": 25.5,
-            "ytick.labelsize": 25.5,
+            "font.size": 34,
+            "axes.labelsize": 38,
+            "xtick.labelsize": 34,
+            "ytick.labelsize": 34,
+            "legend.fontsize": 32,
         }
     )
     fig, ax = plt.subplots(figsize=(20, 10.8), layout="constrained")
@@ -217,9 +217,8 @@ def _plot(summary: dict) -> None:
             bars,
             labels=[f"{mean:.1f}\n(n={count})" for mean, count in zip(means, counts)],
             padding=8,
-            fontsize=18,
+            fontsize=26,
         )
-    ax.set_title("Span of influence of valid GPT-5.6-sol mutations")
     ax.set_ylabel("Mean nonblank proof lines")
     ax.set_xlabel("Evaluation dataset")
     ax.set_xticks(x, dataset_labels)
@@ -235,7 +234,7 @@ def _plot(summary: dict) -> None:
         transform=ax.transAxes,
         ha="left",
         va="top",
-        fontsize=18,
+        fontsize=26,
         color="#555555",
     )
     output = HERE / "figures" / "gpt56sol_span_of_influence.png"
