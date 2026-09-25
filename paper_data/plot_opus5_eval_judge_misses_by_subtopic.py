@@ -8,7 +8,10 @@ import json
 from pathlib import Path
 
 import matplotlib.pyplot as plt
+from matplotlib.ticker import PercentFormatter
 import numpy as np
+
+from plotting_stats import wilson_interval
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -100,6 +103,8 @@ def _summarize() -> list[dict]:
                 for review in reviews
             ):
                 raise ValueError(f"unexpected review outcome in {dataset}: {topic}")
+            misses = sum(review["detection"] == "missed" for review in reviews)
+            low, high = wilson_interval(misses, len(reviews))
             output.append(
                 {
                     "dataset": dataset,
@@ -107,9 +112,10 @@ def _summarize() -> list[dict]:
                     "subtopic": topic,
                     "valid_mutations": len(subset),
                     "review_slots": len(reviews),
-                    "judge_misses": sum(
-                        review["detection"] == "missed" for review in reviews
-                    ),
+                    "judge_misses": misses,
+                    "judge_miss_rate": misses / len(reviews),
+                    "wilson_95_ci_lower": low,
+                    "wilson_95_ci_upper": high,
                     "ambiguous_reviews": sum(
                         review["detection"] == "ambiguous" for review in reviews
                     ),
@@ -125,6 +131,7 @@ def _write_data(rows: list[dict]) -> None:
         "miss_definition": (
             "review.detection == 'missed'; ambiguous reviews are not misses"
         ),
+        "confidence_interval": "95% Wilson score interval over review slots",
         "rows": rows,
     }
     (HERE / "opus5_eval_judge_misses_by_subtopic.json").write_text(
@@ -161,32 +168,47 @@ def _plot(rows: list[dict]) -> None:
         gridspec_kw={"height_ratios": [4, 3, 5]},
         layout="constrained",
     )
-    max_misses = max(row["judge_misses"] for row in rows)
-    x_limit = max_misses + 4
     for ax, dataset in zip(axes, dataset_order):
         subset = [row for row in rows if row["dataset"] == dataset]
         y = np.arange(len(subset))
-        totals = np.array([row["judge_misses"] for row in subset])
-        ax.barh(y, totals, color="#4C78A8")
+        rates = np.array([row["judge_miss_rate"] for row in subset]) * 100
+        intervals = np.array(
+            [
+                [row["wilson_95_ci_lower"], row["wilson_95_ci_upper"]]
+                for row in subset
+            ]
+        ) * 100
+        errors = np.vstack((rates - intervals[:, 0], intervals[:, 1] - rates))
+        ax.barh(
+            y,
+            rates,
+            xerr=errors,
+            color="#4C78A8",
+            capsize=6,
+            error_kw={"elinewidth": 2.0, "capthick": 2.0},
+        )
         ax.set_yticks(y, [row["subtopic"] for row in subset])
         ax.invert_yaxis()
-        ax.set_xlim(0, x_limit)
+        ax.set_xlim(0, 100)
+        ax.xaxis.set_major_formatter(PercentFormatter(xmax=100, decimals=0))
         ax.set_title(DATASET_LABELS[dataset], loc="left", fontweight="bold")
         ax.grid(axis="x", color="#D9D9D9", linewidth=0.8)
         ax.set_axisbelow(True)
         ax.spines[["top", "right"]].set_visible(False)
-        for index, (total, row) in enumerate(zip(totals, subset)):
+        for index, (rate, upper, row) in enumerate(
+            zip(rates, intervals[:, 1], subset)
+        ):
             ax.text(
-                max(total + 0.25, 0.25),
+                min(max(upper + 1.5, rate + 1.5), 96),
                 index,
-                f"{total} / {row['review_slots']}",
+                f"{row['judge_misses']} / {row['review_slots']}",
                 va="center",
                 ha="left",
                 fontsize=27,
                 color="#333333",
             )
 
-    axes[-1].set_xlabel("Number of Judge Misses")
+    axes[-1].set_xlabel("Judge Miss Rate")
     output = HERE / "figures" / "opus5_eval_judge_misses_by_subtopic.png"
     output.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(output, dpi=300)

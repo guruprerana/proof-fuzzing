@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import PercentFormatter
 import numpy as np
 
+from plotting_stats import wilson_interval
+
 
 DATASETS = (
     "Olympiad",
@@ -27,6 +29,14 @@ def percentages(counts: tuple[tuple[int, int], ...]) -> np.ndarray:
     return np.array([misses / total * 100 for misses, total in counts])
 
 
+def error_bars(counts: tuple[tuple[int, int], ...]) -> np.ndarray:
+    values = percentages(counts)
+    intervals = np.array(
+        [wilson_interval(misses, total) for misses, total in counts]
+    ) * 100
+    return np.vstack((values - intervals[:, 0], intervals[:, 1] - values))
+
+
 def main() -> None:
     plt.rcParams.update(
         {
@@ -38,34 +48,44 @@ def main() -> None:
         }
     )
     series = (
-        ("Discovery", percentages(DISCOVERY_COUNTS), "#4C78A8"),
-        ("Strategy-guided", percentages(GUIDED_COUNTS), "#54A24B"),
-        ("Unguided", percentages(UNGUIDED_COUNTS), "#F58518"),
+        ("Discovery", DISCOVERY_COUNTS, "#4C78A8"),
+        ("Strategy-guided", GUIDED_COUNTS, "#54A24B"),
+        ("Unguided", UNGUIDED_COUNTS, "#F58518"),
     )
     x = np.arange(len(DATASETS))
     width = 0.24
     offset_width = width
 
     fig, ax = plt.subplots(figsize=(18, 10.8), layout="constrained")
-    for series_index, (offset, (label, values, color)) in enumerate(zip(
+    for offset, (label, counts, color) in zip(
         (-offset_width, 0, offset_width), series
-    )):
-        bars = ax.bar(x + offset, values, width, label=label, color=color)
-        annotations = ax.bar_label(
-            bars,
-            labels=[f"{value:.1f}%" for value in values],
-            padding=14 if series_index == 1 else 4,
-            fontsize=24,
+    ):
+        values = percentages(counts)
+        errors = error_bars(counts)
+        bars = ax.bar(
+            x + offset,
+            values,
+            width,
+            yerr=errors,
+            capsize=6,
+            label=label,
+            color=color,
+            error_kw={"elinewidth": 2.0, "capthick": 2.0},
         )
-        if series_index == 0:
-            annotations[2].set_horizontalalignment("right")
-        elif series_index == 1:
-            annotations[2].set_horizontalalignment("left")
+        for bar, value, upper_error in zip(bars, values, errors[1]):
+            ax.text(
+                bar.get_x() + bar.get_width() / 2,
+                value + upper_error + 0.8,
+                f"{value:.1f}%",
+                ha="center",
+                va="bottom",
+                fontsize=22,
+            )
 
     ax.set_ylabel("Judge Miss Rate")
     ax.yaxis.set_major_formatter(PercentFormatter(xmax=100, decimals=0))
     ax.set_xticks(x, DATASETS)
-    ax.set_ylim(0, 38)
+    ax.set_ylim(0, 52)
     ax.grid(axis="y", color="#D9D9D9", linewidth=0.8)
     ax.set_axisbelow(True)
     ax.spines[["top", "right"]].set_visible(False)

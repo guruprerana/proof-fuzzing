@@ -8,6 +8,12 @@ The strategy-guided agent is additionally given access to the strategy file.
 We provide each with several independent attempts at mutating each proof.
 Then all these mutated proofs are similarly passed to the error checker agent followed by three independent judge agents, and finally the judge error checker.
 
+All bar charts report 95% confidence intervals. Judge-miss proportions use Wilson
+score intervals for the displayed numerator and denominator; continuous-outcome
+means use percentile bootstrap intervals over valid candidates. The Wilson intervals
+are descriptive and treat review slots as Bernoulli observations, without adjusting
+for clustering of reviews within mutations or mutations within proofs.
+
 ### Datasets.
 
 We study four datasets spanning short competition solutions, graduate-level
@@ -45,7 +51,8 @@ mutation received three blind reviews, so the two evaluation percentages are the
 number of reviews that missed the introduced error divided by all review slots for
 valid mutations in that arm. Invalid mutations are excluded. The strategy library
 was frozen before evaluation, and every evaluation candidate was generated in a
-fresh session without feedback from earlier candidates.
+fresh session without feedback from earlier candidates. Error bars are 95% Wilson
+score intervals.
 
 ![Grouped bar plot of Claude Opus 5 judge miss rates during discovery, unguided
 evaluation, and strategy-guided evaluation on the three datasets with completed
@@ -54,7 +61,8 @@ results.](./figures/opus5_transfer_judge_miss_rates.png)
 **Figure: Claude Opus 5 judge miss rates on the three completed datasets.** The
 percentages use the same denominators as the GPT-5.6-sol figure: independently
 assessed mutations for discovery and individual blind-review slots over valid
-mutations for held-out evaluation. ArXivMath had the highest
+mutations for held-out evaluation. Error bars are 95% Wilson score intervals.
+ArXivMath had the highest
 Claude miss rate in discovery (30/125, 24.0%) and in both held-out arms: 13/75
 (17.3%) for unguided mutations and 28/75 (37.3%) for strategy-guided mutations.
 
@@ -161,7 +169,7 @@ mutations.](./figures/cross_model_judge_miss_rates.png)
 bar summarizes ten mutations. GPT-5.6-sol missed 3/10 Claude mutations in Olympiad,
 5/10 in GraduateCourses, and 7/10 in ArXivMath. Claude Opus 5
 missed 2/10 GPT mutations in Olympiad, 1/10 in GraduateCourses, and 2/10 in
-ArXivMath.
+ArXivMath. Error bars are 95% Wilson score intervals.
 
 | Evaluation dataset | GPT-5.6-sol judge / Claude Opus 5 mutations, caught | GPT-5.6-sol judge / Claude Opus 5 mutations, missed | Claude Opus 5 judge / GPT-5.6-sol mutations, caught | Claude Opus 5 judge / GPT-5.6-sol mutations, missed |
 |---|---:|---:|---:|---:|
@@ -325,8 +333,9 @@ and combinatorics none. Within GraduateCourses, algebra and number theory had
 were concentrated in coding theory (14) and discrete geometry/sphere packing (nine).
 ArXivMath misses were highest in algebra and number theory (19), probability
 and combinatorics (11), and logic and dynamics (10), while analysis and PDE had
-none. These are descriptive raw counts from small area samples, not evidence that
-subject area itself causes judge failure.
+none. Bars show miss rates, labels retain the underlying miss/review counts, and
+error bars are 95% Wilson score intervals. These are descriptive estimates from
+small area samples, not evidence that subject area itself causes judge failure.
 
 The plotted counts are in
 [`eval_judge_misses_by_subtopic.csv`](./eval_judge_misses_by_subtopic.csv),
@@ -351,8 +360,9 @@ Within GraduateCourses, algebra and number theory had 33 misses, analysis had 22
 and geometry and topology had seven. ArXivMath misses were highest in probability
 and combinatorics (15) and geometry and topology (14), followed by analysis and PDE
 (seven), algebra and number theory (three), and logic and dynamics (two). These are
-descriptive raw review counts from small area samples and do not establish an effect
-of subject area.
+plotted as miss rates with the underlying counts retained in each label; error bars
+are 95% Wilson score intervals. These descriptive estimates from small area samples
+do not establish an effect of subject area.
 
 The Opus 5 plotted counts are in
 [`opus5_eval_judge_misses_by_subtopic.csv`](./opus5_eval_judge_misses_by_subtopic.csv),

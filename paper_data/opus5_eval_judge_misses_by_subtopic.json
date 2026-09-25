@@ -2,6 +2,7 @@
   "scope": "Frozen Claude Opus 5 evaluation only; discovery excluded.",
   "unit": "Individual blind-judge review",
   "miss_definition": "review.detection == 'missed'; ambiguous reviews are not misses",
+  "confidence_interval": "95% Wilson score interval over review slots",
   "rows": [
     {
       "dataset": "olympiad",
@@ -10,6 +11,9 @@
       "valid_mutations": 49,
       "review_slots": 147,
       "judge_misses": 10,
+      "judge_miss_rate": 0.06802721088435375,
+      "wilson_95_ci_lower": 0.037367568349765325,
+      "wilson_95_ci_upper": 0.12068883740957281,
       "ambiguous_reviews": 0
     },
     {
@@ -19,6 +23,9 @@
       "valid_mutations": 50,
       "review_slots": 150,
       "judge_misses": 8,
+      "judge_miss_rate": 0.05333333333333334,
+      "wilson_95_ci_lower": 0.027269539920193833,
+      "wilson_95_ci_upper": 0.10170387838195459,
       "ambiguous_reviews": 0
     },
     {
@@ -28,6 +35,9 @@
       "valid_mutations": 50,
       "review_slots": 150,
       "judge_misses": 6,
+      "judge_miss_rate": 0.04,
+      "wilson_95_ci_lower": 0.01845916060207442,
+      "wilson_95_ci_upper": 0.08451346421655605,
       "ambiguous_reviews": 0
     },
     {
@@ -37,6 +47,9 @@
       "valid_mutations": 50,
       "review_slots": 150,
       "judge_misses": 8,
+      "judge_miss_rate": 0.05333333333333334,
+      "wilson_95_ci_lower": 0.027269539920193833,
+      "wilson_95_ci_upper": 0.10170387838195459,
       "ambiguous_reviews": 0
     },
     {
@@ -46,6 +59,9 @@
       "valid_mutations": 40,
       "review_slots": 120,
       "judge_misses": 33,
+      "judge_miss_rate": 0.275,
+      "wilson_95_ci_lower": 0.20302896661264858,
+      "wilson_95_ci_upper": 0.36092965827576806,
       "ambiguous_reviews": 2
     },
     {
@@ -55,6 +71,9 @@
       "valid_mutations": 29,
       "review_slots": 87,
       "judge_misses": 22,
+      "judge_miss_rate": 0.25287356321839083,
+      "wilson_95_ci_lower": 0.1733321115907558,
+      "wilson_95_ci_upper": 0.35331573666898186,
       "ambiguous_reviews": 9
     },
     {
@@ -64,6 +83,9 @@
       "valid_mutations": 30,
       "review_slots": 90,
       "judge_misses": 7,
+      "judge_miss_rate": 0.07777777777777778,
+      "wilson_95_ci_lower": 0.038184815317289005,
+      "wilson_95_ci_upper": 0.15193860182592026,
       "ambiguous_reviews": 6
     },
     {
@@ -73,6 +95,9 @@
       "valid_mutations": 10,
       "review_slots": 30,
       "judge_misses": 3,
+      "judge_miss_rate": 0.1,
+      "wilson_95_ci_lower": 0.03459988874733419,
+      "wilson_95_ci_upper": 0.25621082579184085,
       "ambiguous_reviews": 6
     },
     {
@@ -82,6 +107,9 @@
       "valid_mutations": 10,
       "review_slots": 30,
       "judge_misses": 14,
+      "judge_miss_rate": 0.4666666666666667,
+      "wilson_95_ci_lower": 0.3023238890769976,
+      "wilson_95_ci_upper": 0.638577003801267,
       "ambiguous_reviews": 1
     },
     {
@@ -91,6 +119,9 @@
       "valid_mutations": 10,
       "review_slots": 30,
       "judge_misses": 7,
+      "judge_miss_rate": 0.23333333333333334,
+      "wilson_95_ci_lower": 0.11792388144489502,
+      "wilson_95_ci_upper": 0.4092832615812217,
       "ambiguous_reviews": 0
     },
     {
@@ -100,6 +131,9 @@
       "valid_mutations": 10,
       "review_slots": 30,
       "judge_misses": 15,
+      "judge_miss_rate": 0.5,
+      "wilson_95_ci_lower": 0.3315412564053377,
+      "wilson_95_ci_upper": 0.6684587435946623,
       "ambiguous_reviews": 0
     },
     {
@@ -109,6 +143,9 @@
       "valid_mutations": 10,
       "review_slots": 30,
       "judge_misses": 2,
+      "judge_miss_rate": 0.06666666666666667,
+      "wilson_95_ci_lower": 0.01847702379127039,
+      "wilson_95_ci_upper": 0.21323458362616918,
       "ambiguous_reviews": 1
     }
   ]

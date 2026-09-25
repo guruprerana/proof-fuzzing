@@ -1,18 +1,18 @@
-dataset,dataset_label,subtopic,valid_mutations,review_slots,judge_misses,ambiguous_reviews
-olympiad,Olympiad,Algebra,50,150,1,0
-olympiad,Olympiad,Combinatorics,50,150,0,0
-olympiad,Olympiad,Geometry,50,150,1,0
-olympiad,Olympiad,Number Theory,50,150,2,0
-graduate_course,GraduateCourses,Algebra and number theory,39,117,17,9
-graduate_course,GraduateCourses,Analysis,29,87,7,2
-graduate_course,GraduateCourses,Geometry and topology,30,90,10,4
-tcs_open_problems,OpenAI-TCS,Discrete geometry (sphere packing),9,27,9,2
-tcs_open_problems,OpenAI-TCS,Coding theory,8,24,14,1
-tcs_open_problems,OpenAI-TCS,Algebraic complexity,10,30,1,2
-tcs_open_problems,OpenAI-TCS,Quantum information,8,24,1,1
-tcs_open_problems,OpenAI-TCS,Lattice complexity,9,27,2,1
-recent_math,ArXivMath,Algebra and number theory,10,30,19,1
-recent_math,ArXivMath,Geometry and topology,10,30,4,0
-recent_math,ArXivMath,Analysis and PDE,10,30,0,0
-recent_math,ArXivMath,Probability and combinatorics,10,30,11,1
-recent_math,ArXivMath,Logic and dynamics,10,30,10,0
+dataset,dataset_label,subtopic,valid_mutations,review_slots,judge_misses,judge_miss_rate,wilson_95_ci_lower,wilson_95_ci_upper,ambiguous_reviews
+olympiad,Olympiad,Algebra,50,150,1,0.006666666666666667,0.0011778013350174366,0.036792839774818134,0
+olympiad,Olympiad,Combinatorics,50,150,0,0.0,0.0,0.024970244368076586,0
+olympiad,Olympiad,Geometry,50,150,1,0.006666666666666667,0.0011778013350174366,0.036792839774818134,0
+olympiad,Olympiad,Number Theory,50,150,2,0.013333333333333334,0.0036641291512270503,0.047306908700367495,0
+graduate_course,GraduateCourses,Algebra and number theory,39,117,17,0.1452991452991453,0.09273939280804754,0.220410243003977,9
+graduate_course,GraduateCourses,Analysis,29,87,7,0.08045977011494253,0.03952027108986881,0.15688188990922064,2
+graduate_course,GraduateCourses,Geometry and topology,30,90,10,0.1111111111111111,0.061483191892977115,0.1925778502126103,4
+tcs_open_problems,OpenAI-TCS,Discrete geometry (sphere packing),9,27,9,0.3333333333333333,0.18643261498715652,0.5217523949267993,2
+tcs_open_problems,OpenAI-TCS,Coding theory,8,24,14,0.5833333333333334,0.3883466586522877,0.7553239739018824,1
+tcs_open_problems,OpenAI-TCS,Algebraic complexity,10,30,1,0.03333333333333333,0.005908590381612455,0.1667039099140917,2
+tcs_open_problems,OpenAI-TCS,Quantum information,8,24,1,0.041666666666666664,0.00739345616550581,0.20241806478655933,1
+tcs_open_problems,OpenAI-TCS,Lattice complexity,9,27,2,0.07407407407407407,0.02055465406098865,0.23369592683023144,1
+recent_math,ArXivMath,Algebra and number theory,10,30,19,0.6333333333333333,0.45513563654794875,0.7812607919389928,1
+recent_math,ArXivMath,Geometry and topology,10,30,4,0.13333333333333333,0.053096554840547455,0.2968132668203629,0
+recent_math,ArXivMath,Analysis and PDE,10,30,0,0.0,0.0,0.11351339317396873,0
+recent_math,ArXivMath,Probability and combinatorics,10,30,11,0.36666666666666664,0.21873920806100713,0.5448643634520512,1
+recent_math,ArXivMath,Logic and dynamics,10,30,10,0.3333333333333333,0.19230498083676142,0.5121994835545616,0

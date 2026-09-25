@@ -2,6 +2,7 @@
   "scope": "Frozen GPT-5.6-sol evaluation only; discovery excluded.",
   "unit": "Individual blind-judge review",
   "miss_definition": "review.detection == 'missed'; ambiguous reviews are not misses",
+  "confidence_interval": "95% Wilson score interval over review slots",
   "rows": [
     {
       "dataset": "olympiad",
@@ -10,6 +11,9 @@
       "valid_mutations": 50,
       "review_slots": 150,
       "judge_misses": 1,
+      "judge_miss_rate": 0.006666666666666667,
+      "wilson_95_ci_lower": 0.0011778013350174366,
+      "wilson_95_ci_upper": 0.036792839774818134,
       "ambiguous_reviews": 0
     },
     {
@@ -19,6 +23,9 @@
       "valid_mutations": 50,
       "review_slots": 150,
       "judge_misses": 0,
+      "judge_miss_rate": 0.0,
+      "wilson_95_ci_lower": 0.0,
+      "wilson_95_ci_upper": 0.024970244368076586,
       "ambiguous_reviews": 0
     },
     {
@@ -28,6 +35,9 @@
       "valid_mutations": 50,
       "review_slots": 150,
       "judge_misses": 1,
+      "judge_miss_rate": 0.006666666666666667,
+      "wilson_95_ci_lower": 0.0011778013350174366,
+      "wilson_95_ci_upper": 0.036792839774818134,
       "ambiguous_reviews": 0
     },
     {
@@ -37,6 +47,9 @@
       "valid_mutations": 50,
       "review_slots": 150,
       "judge_misses": 2,
+      "judge_miss_rate": 0.013333333333333334,
+      "wilson_95_ci_lower": 0.0036641291512270503,
+      "wilson_95_ci_upper": 0.047306908700367495,
       "ambiguous_reviews": 0
     },
     {
@@ -46,6 +59,9 @@
       "valid_mutations": 39,
       "review_slots": 117,
       "judge_misses": 17,
+      "judge_miss_rate": 0.1452991452991453,
+      "wilson_95_ci_lower": 0.09273939280804754,
+      "wilson_95_ci_upper": 0.220410243003977,
       "ambiguous_reviews": 9
     },
     {
@@ -55,6 +71,9 @@
       "valid_mutations": 29,
       "review_slots": 87,
       "judge_misses": 7,
+      "judge_miss_rate": 0.08045977011494253,
+      "wilson_95_ci_lower": 0.03952027108986881,
+      "wilson_95_ci_upper": 0.15688188990922064,
       "ambiguous_reviews": 2
     },
     {
@@ -64,6 +83,9 @@
       "valid_mutations": 30,
       "review_slots": 90,
       "judge_misses": 10,
+      "judge_miss_rate": 0.1111111111111111,
+      "wilson_95_ci_lower": 0.061483191892977115,
+      "wilson_95_ci_upper": 0.1925778502126103,
       "ambiguous_reviews": 4
     },
     {
@@ -73,6 +95,9 @@
       "valid_mutations": 9,
       "review_slots": 27,
       "judge_misses": 9,
+      "judge_miss_rate": 0.3333333333333333,
+      "wilson_95_ci_lower": 0.18643261498715652,
+      "wilson_95_ci_upper": 0.5217523949267993,
       "ambiguous_reviews": 2
     },
     {
@@ -82,6 +107,9 @@
       "valid_mutations": 8,
       "review_slots": 24,
       "judge_misses": 14,
+      "judge_miss_rate": 0.5833333333333334,
+      "wilson_95_ci_lower": 0.3883466586522877,
+      "wilson_95_ci_upper": 0.7553239739018824,
       "ambiguous_reviews": 1
     },
     {
@@ -91,6 +119,9 @@
       "valid_mutations": 10,
       "review_slots": 30,
       "judge_misses": 1,
+      "judge_miss_rate": 0.03333333333333333,
+      "wilson_95_ci_lower": 0.005908590381612455,
+      "wilson_95_ci_upper": 0.1667039099140917,
       "ambiguous_reviews": 2
     },
     {
@@ -100,6 +131,9 @@
       "valid_mutations": 8,
       "review_slots": 24,
       "judge_misses": 1,
+      "judge_miss_rate": 0.041666666666666664,
+      "wilson_95_ci_lower": 0.00739345616550581,
+      "wilson_95_ci_upper": 0.20241806478655933,
       "ambiguous_reviews": 1
     },
     {
@@ -109,6 +143,9 @@
       "valid_mutations": 9,
       "review_slots": 27,
       "judge_misses": 2,
+      "judge_miss_rate": 0.07407407407407407,
+      "wilson_95_ci_lower": 0.02055465406098865,
+      "wilson_95_ci_upper": 0.23369592683023144,
       "ambiguous_reviews": 1
     },
     {
@@ -118,6 +155,9 @@
       "valid_mutations": 10,
       "review_slots": 30,
       "judge_misses": 19,
+      "judge_miss_rate": 0.6333333333333333,
+      "wilson_95_ci_lower": 0.45513563654794875,
+      "wilson_95_ci_upper": 0.7812607919389928,
       "ambiguous_reviews": 1
     },
     {
@@ -127,6 +167,9 @@
       "valid_mutations": 10,
       "review_slots": 30,
       "judge_misses": 4,
+      "judge_miss_rate": 0.13333333333333333,
+      "wilson_95_ci_lower": 0.053096554840547455,
+      "wilson_95_ci_upper": 0.2968132668203629,
       "ambiguous_reviews": 0
     },
     {
@@ -136,6 +179,9 @@
       "valid_mutations": 10,
       "review_slots": 30,
       "judge_misses": 0,
+      "judge_miss_rate": 0.0,
+      "wilson_95_ci_lower": 0.0,
+      "wilson_95_ci_upper": 0.11351339317396873,
       "ambiguous_reviews": 0
     },
     {
@@ -145,6 +191,9 @@
       "valid_mutations": 10,
       "review_slots": 30,
       "judge_misses": 11,
+      "judge_miss_rate": 0.36666666666666664,
+      "wilson_95_ci_lower": 0.21873920806100713,
+      "wilson_95_ci_upper": 0.5448643634520512,
       "ambiguous_reviews": 1
     },
     {
@@ -154,6 +203,9 @@
       "valid_mutations": 10,
       "review_slots": 30,
       "judge_misses": 10,
+      "judge_miss_rate": 0.3333333333333333,
+      "wilson_95_ci_lower": 0.19230498083676142,
+      "wilson_95_ci_upper": 0.5121994835545616,
       "ambiguous_reviews": 0
     }
   ]

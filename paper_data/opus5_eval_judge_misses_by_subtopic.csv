@@ -1,13 +1,13 @@
-dataset,dataset_label,subtopic,valid_mutations,review_slots,judge_misses,ambiguous_reviews
-olympiad,Olympiad,Algebra,49,147,10,0
-olympiad,Olympiad,Combinatorics,50,150,8,0
-olympiad,Olympiad,Geometry,50,150,6,0
-olympiad,Olympiad,Number Theory,50,150,8,0
-graduate_course,GraduateCourses,Algebra and number theory,40,120,33,2
-graduate_course,GraduateCourses,Analysis,29,87,22,9
-graduate_course,GraduateCourses,Geometry and topology,30,90,7,6
-recent_math,ArXivMath,Algebra and number theory,10,30,3,6
-recent_math,ArXivMath,Geometry and topology,10,30,14,1
-recent_math,ArXivMath,Analysis and PDE,10,30,7,0
-recent_math,ArXivMath,Probability and combinatorics,10,30,15,0
-recent_math,ArXivMath,Logic and dynamics,10,30,2,1
+dataset,dataset_label,subtopic,valid_mutations,review_slots,judge_misses,judge_miss_rate,wilson_95_ci_lower,wilson_95_ci_upper,ambiguous_reviews
+olympiad,Olympiad,Algebra,49,147,10,0.06802721088435375,0.037367568349765325,0.12068883740957281,0
+olympiad,Olympiad,Combinatorics,50,150,8,0.05333333333333334,0.027269539920193833,0.10170387838195459,0
+olympiad,Olympiad,Geometry,50,150,6,0.04,0.01845916060207442,0.08451346421655605,0
+olympiad,Olympiad,Number Theory,50,150,8,0.05333333333333334,0.027269539920193833,0.10170387838195459,0
+graduate_course,GraduateCourses,Algebra and number theory,40,120,33,0.275,0.20302896661264858,0.36092965827576806,2
+graduate_course,GraduateCourses,Analysis,29,87,22,0.25287356321839083,0.1733321115907558,0.35331573666898186,9
+graduate_course,GraduateCourses,Geometry and topology,30,90,7,0.07777777777777778,0.038184815317289005,0.15193860182592026,6
+recent_math,ArXivMath,Algebra and number theory,10,30,3,0.1,0.03459988874733419,0.25621082579184085,6
+recent_math,ArXivMath,Geometry and topology,10,30,14,0.4666666666666667,0.3023238890769976,0.638577003801267,1
+recent_math,ArXivMath,Analysis and PDE,10,30,7,0.23333333333333334,0.11792388144489502,0.4092832615812217,0
+recent_math,ArXivMath,Probability and combinatorics,10,30,15,0.5,0.3315412564053377,0.6684587435946623,0
+recent_math,ArXivMath,Logic and dynamics,10,30,2,0.06666666666666667,0.01847702379127039,0.21323458362616918,1
