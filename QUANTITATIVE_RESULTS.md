@@ -18,6 +18,7 @@
 | Olympiad (Claude Code) | Claude Opus 5 (medium) | 20 | 25 | 500 | 500 | 494 | 29 | 5.9% | 28 | 14 |
 | Graduate course dossiers (Claude Code) | Claude Opus 5 (medium) | 10 | 25 | 250 | 250 | 250 | 28 | 11.2% | 27 | 16 |
 | Recent mathematical research (Claude Code) | Claude Opus 5 (medium) | 5 | 25 | 125 | 125 | 125 | 30 | 24.0% | 28 | 11 |
+| TCS open problems (Claude Code; resource-limited) | Claude Opus 5 (medium) | 5 | 25 for 4 proofs; 20 for 1 | 125 | 120 | 120 | 10 | 8.3% | 10 | 11§ |
 
 ## Frozen-strategy evaluation
 
@@ -43,6 +44,17 @@ Discovery mechanisms are counted within source sessions and may be merged during
 † The recent-mathematical-research discovery budget was completed on 2026-09-23 by adding the ten previously missing attempts (attempts 21–25 for each extension manuscript). All ten new attempts received independent validity and matching assessments. The 24-strategy distillation predates those attempts and has not been rerun. The frozen evaluation was subsequently extended, without changing that frozen strategy library, from three to five candidates per proof and arm and from two to three judges per valid candidate.
 
 ‡ The fifth TCS source, “Circuit and Formula Lower Bounds for the Permanent,” completed all 25 discovery attempts on 2026-09-23. All 25 received blind error-inventory judgments, but they have not yet received the retrospective independent validity, error-matching, and mechanism audit used for the original four sources. Consequently, the 29 verified misses, 29.0% miss rate, 10 mechanism groups, and 10 distilled strategies remain based on the audited 100-attempt snapshot and exclude this new run.
+
+§ The Claude Code TCS discovery run stopped for resource limits on 2026-09-25
+after 120 of 125 planned usable attempts: 25 attempts for each of the nonsofic,
+Connes-rigidity, Ehrhart-volume, and extremal-number sources and 20 for the
+arithmetic-circuit source. The five uncompleted arithmetic-circuit slots are
+resource-limit-censored and are not counted as misses. Among the 120 observed,
+independently assessed attempts, 107 were caught, 10 were verified misses, and 3
+were ambiguous; the 10 misses had 10 distinct within-session mechanism IDs. A
+no-timeout distillation frozen at this 120-attempt snapshot produced 11 strategy
+entries. No 125-attempt final distillation exists, and the automated validity,
+matching, and mechanism labels have not received an independent human audit.
 
 Every run compares a generic mutator with a frozen-strategy-guided mutator, independently checks whether the introduced error is genuine, and sends each valid mutation to multiple blind error-inventory judges. A separate matcher determines whether each judge report identified the introduced error. The mean is the total number of blind reviews that missed the introduced error divided by the number of valid mutations in that arm. Parentheses report the candidate-level sample standard deviation (SD) of the number of missed judges. Invalid mutations are excluded. The maximum is three judges.
 
@@ -85,6 +97,15 @@ the same persistent Claude Code threads and continued their feedback histories.
 The 28 misses represent 27 distinct within-dossier mechanisms and were distilled
 into 16 cross-dossier strategies. These automated validity and matching labels
 have not yet received an independent human audit.
+
+The resource-limited Claude Code TCS discovery run used the same five-proof
+discovery partition as the GPT-5.6-sol headline study. Four proof sessions reached
+25 usable attempts, while the arithmetic-circuit session stopped at 20 after its
+remaining budget exceeded the available resources. Technical failures and the five
+unobserved planned slots are excluded from the assessed denominator rather than
+imputed as judge misses. The resulting 120-attempt snapshot was distilled without
+a call timeout; it is a partial-budget result and has not yet been used in a frozen
+held-out evaluation.
 
 The completed GPT-5.6-sol graduate-course discovery run used the same ten
 discovery dossiers, 25-attempt budget, and seed as the Claude Code run. It
@@ -214,8 +235,12 @@ The paths below are relative to the repository root.
 | Recent mathematical research | Discovery | [Pilot-three run](logs/by_dataset/recent_math/runs/recent_math_research_clean_pilot3_v1_gpt56sol_medium/) · [Extension-two run](logs/by_dataset/recent_math/runs/recent_math_research_clean_extension2_v1_gpt56sol_medium/) |
 | Recent mathematical research | Distillation | [Distillation run](logs/by_dataset/recent_math/runs/recent_math_research_clean_all5_distillation_v1_gpt56sol_medium/) · [Distilled strategies](logs/by_dataset/recent_math/runs/recent_math_research_clean_all5_distillation_v1_gpt56sol_medium/distillation/strategies.md) |
 | Recent mathematical research | Frozen evaluation | [Combined manifest](logs/by_dataset/recent_math/runs/recent_math_clean_all5_v1_gpt56sol_medium_25perarm_3judges_combined_20260923/manifest.json) · [Combined summary](logs/by_dataset/recent_math/runs/recent_math_clean_all5_v1_gpt56sol_medium_25perarm_3judges_combined_20260923/summary.json) · [Candidate-level results](logs/by_dataset/recent_math/runs/recent_math_clean_all5_v1_gpt56sol_medium_25perarm_3judges_combined_20260923/results.json) |
+<<<<<<< Updated upstream
 | Recent mathematical research (Claude Code) | Discovery and distillation | [Run directory](logs/by_dataset/recent_math/runs/recent_math_5_discovery_claude_opus5_medium_25x_20260923/) · [Run manifest](logs/by_dataset/recent_math/runs/recent_math_5_discovery_claude_opus5_medium_25x_20260923/manifest.json) · [Discovery records](logs/by_dataset/recent_math/runs/recent_math_5_discovery_claude_opus5_medium_25x_20260923/discovery/) · [Distillation manifest](logs/by_dataset/recent_math/runs/recent_math_5_discovery_claude_opus5_medium_25x_20260923/distillation/manifest.json) · [Distilled strategies](logs/by_dataset/recent_math/runs/recent_math_5_discovery_claude_opus5_medium_25x_20260923/distillation/strategies.md) |
 | Recent mathematical research (Claude Code) | Frozen evaluation | [Evaluation manifest](logs/by_dataset/recent_math/runs/recent_math_5_frozen_eval_claude_opus5_medium_5x3_20260924/manifest.json) · [Evaluation summary](logs/by_dataset/recent_math/runs/recent_math_5_frozen_eval_claude_opus5_medium_5x3_20260924/summary.json) · [Candidate-level results](logs/by_dataset/recent_math/runs/recent_math_5_frozen_eval_claude_opus5_medium_5x3_20260924/results.json) · [Resource-limit adjudication](logs/by_dataset/recent_math/runs/recent_math_5_frozen_eval_claude_opus5_medium_5x3_20260924/resource_limit_adjudication.json) |
+=======
+| TCS open problems (Claude Code) | Resource-limited discovery and snapshot distillation | [Run directory](logs/by_dataset/tcs_open_problems/opus5_discovery/) · [Run manifest](logs/by_dataset/tcs_open_problems/opus5_discovery/manifest.json) · [Stopping record](logs/by_dataset/tcs_open_problems/opus5_discovery/resource_limit_stop.json) · [Discovery records](logs/by_dataset/tcs_open_problems/opus5_discovery/discovery/) · [Snapshot distillation manifest](logs/by_dataset/tcs_open_problems/opus5_discovery/distillation_preview_120/manifest.json) · [Snapshot strategies](logs/by_dataset/tcs_open_problems/opus5_discovery/distillation_preview_120/strategies.md) |
+>>>>>>> Stashed changes
 | TCS open problems | Discovery and audit | [Nonsofic-groups run](logs/by_dataset/tcs_open_problems/ten_persistent_25train_03_nonsofic_groups_gpt-5.6-sol_medium_20260908_235224/) · [Connes-rigidity run](logs/by_dataset/tcs_open_problems/ten_persistent_25train_04_connes_rigidity_conjecture_gpt-5.6-sol_medium_20260908_235224/) · [Arithmetic-circuit run (unaudited)](logs/by_dataset/tcs_open_problems/ten_persistent_25train_05_arithmetic_circuit_complexity_gpt-5.6-sol_medium_20260923/) · [Ehrhart-volume run](logs/by_dataset/tcs_open_problems/ten_persistent_25train_08_ehrhart_volume_conjecture_gpt-5.6-sol_medium_20260908_235224/) · [Extremal-number run](logs/by_dataset/tcs_open_problems/ten_persistent_25train_10_extremal_number_conjectures_gpt-5.6-sol_medium_20260908_235224/) |
 | TCS open problems | Distillation | [Audited strategy library](src/proof_fuzzer/data/audited_persistent_strategies_20260909.md) · [Machine-readable strategies](src/proof_fuzzer/data/audited_persistent_strategies_20260909.jsonl) |
 | TCS open problems | Frozen evaluation | [Evaluation summary](logs/by_dataset/tcs_open_problems/ten_matched_50_gpt-5.6-sol_medium_20260909_202502/summary.json) · [Candidate-level results](logs/by_dataset/tcs_open_problems/ten_matched_50_gpt-5.6-sol_medium_20260909_202502/results.json) |
