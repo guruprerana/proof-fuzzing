@@ -1,0 +1,13 @@
+dataset,dataset_label,subtopic,valid_mutations,review_slots,judge_misses,ambiguous_reviews
+olympiad,Olympiad,Algebra,49,147,10,0
+olympiad,Olympiad,Combinatorics,50,150,8,0
+olympiad,Olympiad,Geometry,50,150,6,0
+olympiad,Olympiad,Number Theory,50,150,8,0
+graduate_course,GraduateCourses,Algebra and number theory,40,120,33,2
+graduate_course,GraduateCourses,Analysis,29,87,22,9
+graduate_course,GraduateCourses,Geometry and topology,30,90,7,6
+recent_math,ArXivMath,Algebra and number theory,10,30,3,6
+recent_math,ArXivMath,Geometry and topology,10,30,14,1
+recent_math,ArXivMath,Analysis and PDE,10,30,7,0
+recent_math,ArXivMath,Probability and combinatorics,10,30,15,0
+recent_math,ArXivMath,Logic and dynamics,10,30,2,1
