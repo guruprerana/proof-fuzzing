@@ -77,6 +77,10 @@ Provider-native session state must still be available on that machine.
   --reviews-per-valid-candidate 3
 ```
 
+Judge and assessment calls normally have a 20-minute wall-clock timeout. Pass
+`--no-call-timeout` to allow those calls to finish without a hard time limit. The
+selected policy is frozen in the evaluation manifest as `call_timeout_seconds`.
+
 For TCS, replace `--split-json ...` with:
 
 ```text

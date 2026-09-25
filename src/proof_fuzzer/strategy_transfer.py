@@ -32,9 +32,10 @@ def digest(text: str) -> str:
 
 
 def client(root: Path, model: str, effort: str, *, provider: str = "codex",
-           safeguards: bool = True):
+           safeguards: bool = True, disable_call_timeout: bool = False):
     options = dict(model=model, workspace_root=root / "workspaces", log_events=True,
-        call_timeout_seconds=SAFEGUARDED_CALL_TIMEOUT_SECONDS if safeguards else None,
+        call_timeout_seconds=(SAFEGUARDED_CALL_TIMEOUT_SECONDS
+                              if safeguards and not disable_call_timeout else None),
         detect_repetitive_output=safeguards,
         technical_retries=SAFEGUARDED_TECHNICAL_RETRIES if safeguards else 0)
     if provider == "codex":
@@ -281,14 +282,16 @@ def assign_reward(mechanism, novelty, detection):
 
 
 def run_session(root, proof, attempts, model, effort, strategy=None, reviews=1, profile=None,
-                extra_guidance='', provider='codex'):
+                extra_guidance='', provider='codex', disable_call_timeout=False):
     root.mkdir(parents=True)
     workspace = root / 'mutator_workspace'
     workspace.mkdir()
     save(root / 'source.json', example_metadata(proof))
     mutator = client(root / 'mutator', model, effort, provider=provider, safeguards=False)
-    judge = client(root / 'judge', model, effort, provider=provider)
-    auditor = client(root / 'assessments', model, effort, provider=provider)
+    judge = client(root / 'judge', model, effort, provider=provider,
+                   disable_call_timeout=disable_call_timeout)
+    auditor = client(root / 'assessments', model, effort, provider=provider,
+                     disable_call_timeout=disable_call_timeout)
     assessor = MechanismAssessor(root / 'assessments', auditor, reviews, profile)
     try:
         if provider == 'claude-code':

@@ -103,7 +103,29 @@ class FrozenEvaluationTests(unittest.TestCase):
             manifest = json.loads((output / "manifest.json").read_text())
             self.assertEqual(manifest["provider"], "claude-code")
             self.assertEqual(manifest["model"], "claude-opus-5")
+            self.assertEqual(manifest["call_timeout_seconds"], 20 * 60)
             self.assertTrue(json.loads((output / "status.json").read_text())["complete"])
+
+    def test_no_call_timeout_is_preregistered_and_forwarded(self):
+        strategy = "# Strategies:\n\n- Check.\n\n# Do not:\n\n- Guess.\n\n# Before returning:\n\n- Verify.\n"
+        fake_record = {"attempt": 1, "status": "judged", "assessment": {"valid": True,
+            "reviews": [{"detection": "caught"}] * 3}, "elapsed_seconds": 0}
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            strategy_path = root / "strategy.md"
+            strategy_path.write_text(strategy)
+            output = root / "run"
+            kwargs = dict(heldout=[Example("a")], strategy_path=strategy_path,
+                storage_dir=output, attempts_per_arm=1, workers=1,
+                disable_call_timeout=True)
+            run_frozen_evaluation(**kwargs, dry_run=True)
+            manifest = json.loads((output / "manifest.json").read_text())
+            self.assertIsNone(manifest["call_timeout_seconds"])
+            with patch("src.proof_fuzzer.frozen_evaluation.run_session",
+                       return_value=[fake_record]) as mocked:
+                run_frozen_evaluation(**kwargs)
+            self.assertTrue(all(call.kwargs["disable_call_timeout"]
+                                for call in mocked.call_args_list))
 
     def test_resume_uses_fresh_retry_names_after_prior_slots_exist(self):
         strategy = "# Strategies:\n\n- Check a claim.\n\n# Do not:\n\n- Guess.\n\n# Before returning:\n\n- Verify.\n"

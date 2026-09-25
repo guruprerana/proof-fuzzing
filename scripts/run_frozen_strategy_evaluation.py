@@ -30,6 +30,10 @@ def main() -> None:
     parser.add_argument("--workers", type=int, default=5)
     parser.add_argument("--reviews-per-valid-candidate", type=int, default=3)
     parser.add_argument(
+        "--no-call-timeout", action="store_true",
+        help="Allow judge and assessment calls to run without a hard wall-clock timeout",
+    )
+    parser.add_argument(
         "--required-missed-reviews", type=int,
         help="Successful candidate threshold; defaults to all blind reviews missing the error",
     )
@@ -56,7 +60,8 @@ def main() -> None:
         workers=args.workers, dry_run=args.dry_run,
         reviews_per_valid_candidate=args.reviews_per_valid_candidate,
         required_missed_reviews=args.required_missed_reviews,
-        strategy_assignments=assignments)
+        strategy_assignments=assignments,
+        disable_call_timeout=args.no_call_timeout)
 
 
 if __name__ == "__main__":

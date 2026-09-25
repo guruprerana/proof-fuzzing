@@ -8,7 +8,8 @@ from pathlib import Path
 import random
 
 from .strategy_transfer import (
-    digest, example_metadata, proof_key, run_session, save, _validate_strategy,
+    SAFEGUARDED_CALL_TIMEOUT_SECONDS, digest, example_metadata, proof_key, run_session,
+    save, _validate_strategy,
 )
 
 
@@ -97,7 +98,8 @@ def run_frozen_evaluation(*, heldout: list, strategy_path: Path, storage_dir: Pa
                           dry_run: bool = False,
                           reviews_per_valid_candidate: int = 3,
                           required_missed_reviews: int | None = None,
-                          strategy_assignments: dict[str, list[str]] | None = None) -> None:
+                          strategy_assignments: dict[str, list[str]] | None = None,
+                          disable_call_timeout: bool = False) -> None:
     if not heldout:
         raise ValueError("Held-out examples must be nonempty")
     proof_ids = [proof.example_id for proof in heldout]
@@ -148,6 +150,9 @@ def run_frozen_evaluation(*, heldout: list, strategy_path: Path, storage_dir: Pa
         "fresh_session_per_candidate": True,
         "evaluation_feedback_between_candidates": False,
         "reviews_per_valid_candidate": reviews_per_valid_candidate,
+        "call_timeout_seconds": (
+            None if disable_call_timeout else SAFEGUARDED_CALL_TIMEOUT_SECONDS
+        ),
         "required_missed_reviews": required_missed_reviews,
         "primary_endpoint": (
             "proof has >=1 valid candidate missed by >="
@@ -211,6 +216,7 @@ def run_frozen_evaluation(*, heldout: list, strategy_path: Path, storage_dir: Pa
                     strategy if job["arm"] == "strategies" else None,
                     reviews_per_valid_candidate,
                     provider=provider,
+                    disable_call_timeout=disable_call_timeout,
                     extra_guidance=("\nAssigned strategy for this candidate:\n"
                         + assignments[selector_for(job["proof"])][job["candidate"] - 1]
                         + "\nImplement this assigned mechanism when mathematically applicable. "
