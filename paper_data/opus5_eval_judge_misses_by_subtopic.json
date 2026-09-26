@@ -89,6 +89,66 @@
       "ambiguous_reviews": 6
     },
     {
+      "dataset": "tcs_open_problems",
+      "dataset_label": "OpenAI-TCS",
+      "subtopic": "Discrete geometry (sphere packing)",
+      "valid_mutations": 10,
+      "review_slots": 30,
+      "judge_misses": 0,
+      "judge_miss_rate": 0.0,
+      "wilson_95_ci_lower": 0.0,
+      "wilson_95_ci_upper": 0.11351339317396873,
+      "ambiguous_reviews": 11
+    },
+    {
+      "dataset": "tcs_open_problems",
+      "dataset_label": "OpenAI-TCS",
+      "subtopic": "Coding theory",
+      "valid_mutations": 9,
+      "review_slots": 27,
+      "judge_misses": 13,
+      "judge_miss_rate": 0.48148148148148145,
+      "wilson_95_ci_lower": 0.30743226976218474,
+      "wilson_95_ci_upper": 0.6601438424504771,
+      "ambiguous_reviews": 3
+    },
+    {
+      "dataset": "tcs_open_problems",
+      "dataset_label": "OpenAI-TCS",
+      "subtopic": "Quantum information",
+      "valid_mutations": 9,
+      "review_slots": 27,
+      "judge_misses": 3,
+      "judge_miss_rate": 0.1111111111111111,
+      "wilson_95_ci_lower": 0.03852034828309843,
+      "wilson_95_ci_upper": 0.2805780081827982,
+      "ambiguous_reviews": 0
+    },
+    {
+      "dataset": "tcs_open_problems",
+      "dataset_label": "OpenAI-TCS",
+      "subtopic": "Lattice complexity",
+      "valid_mutations": 8,
+      "review_slots": 24,
+      "judge_misses": 2,
+      "judge_miss_rate": 0.08333333333333333,
+      "wilson_95_ci_lower": 0.02315881529704336,
+      "wilson_95_ci_upper": 0.25848802193210674,
+      "ambiguous_reviews": 2
+    },
+    {
+      "dataset": "tcs_open_problems",
+      "dataset_label": "OpenAI-TCS",
+      "subtopic": "Combinatorics (Ramsey theory)",
+      "valid_mutations": 10,
+      "review_slots": 30,
+      "judge_misses": 6,
+      "judge_miss_rate": 0.2,
+      "wilson_95_ci_lower": 0.09505107177289876,
+      "wilson_95_ci_upper": 0.3730569641314826,
+      "ambiguous_reviews": 0
+    },
+    {
       "dataset": "recent_math",
       "dataset_label": "ArXivMath",
       "subtopic": "Algebra and number theory",

@@ -98,7 +98,7 @@ feedback is never returned to later mutation candidates.
 ## Cross-model judge evaluation
 
 `run_cross_model_judge_evaluation.py` selects the strongest valid strategy-guided
-mutations from the completed Olympiad, GraduateCourses, and ArXivMath frozen
+mutations from completed frozen evaluations
 evaluations and sends each archived blind-judge prompt to the other model family.
 Selection is frozen by mutation hash and ranked by the number of original missed
 reviews. Each cross-model judge report receives a separate fresh matcher call from
@@ -112,6 +112,19 @@ result rows are reused.
   --workers 40
 ```
 
-Use `--dry-run` to validate and print the frozen 60-candidate selection without
+Use `--dry-run` to validate and print the frozen 80-candidate selection without
 making model calls. The default target reasoning effort is medium and the default
 per-call timeout is 20 minutes.
+
+Restrict a run to OpenAI-TCS and give Claude Code a 128,000-token output ceiling
+with:
+
+```bash
+.venv/bin/python scripts/run_cross_model_judge_evaluation.py \
+  --output-dir logs/by_dataset/cross_model/top10_tcs_medium_20260925 \
+  --dataset tcs_open_problems \
+  --top-k 10 \
+  --workers 20 \
+  --no-call-timeout \
+  --claude-max-output-tokens 128000
+```

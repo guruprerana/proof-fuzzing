@@ -12,6 +12,7 @@ from plotting_stats import wilson_interval
 DATASETS = (
     "Olympiad",
     "GraduateCourses",
+    "OpenAI-TCS",
     "ArXivMath",
 )
 
@@ -19,9 +20,9 @@ DATASETS = (
 # assessed attempts. Evaluation values are missed blind reviews divided by all
 # three review slots for every valid mutation. Counts come from
 # QUANTITATIVE_RESULTS.md and its indexed run artifacts.
-DISCOVERY_COUNTS = ((29, 494), (28, 250), (30, 125))
-UNGUIDED_COUNTS = ((8, 300), (15, 150), (13, 75))
-GUIDED_COUNTS = ((24, 297), (47, 147), (28, 75))
+DISCOVERY_COUNTS = ((29, 494), (28, 250), (10, 120), (30, 125))
+UNGUIDED_COUNTS = ((8, 300), (15, 150), (4, 72), (13, 75))
+GUIDED_COUNTS = ((24, 297), (47, 147), (20, 66), (28, 75))
 
 
 def percentages(counts: tuple[tuple[int, int], ...]) -> np.ndarray:

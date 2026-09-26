@@ -9,6 +9,7 @@ from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 import hashlib
 import json
+import os
 from pathlib import Path
 import re
 import shutil
@@ -96,6 +97,14 @@ RECENT_CLAUDE = Path(
     "logs/by_dataset/recent_math/runs/"
     "recent_math_5_frozen_eval_claude_opus5_medium_5x3_20260924"
 )
+TCS_GPT = Path(
+    "logs/by_dataset/tcs_open_problems/"
+    "ten_matched_50_gpt-5.6-sol_medium_20260909_202502"
+)
+TCS_CLAUDE = Path(
+    "logs/by_dataset/tcs_open_problems/"
+    "opus5_snapshot120_frozen_eval_5x3_20260925"
+)
 
 
 SOURCE_RUNS = (
@@ -107,6 +116,10 @@ SOURCE_RUNS = (
               GRADUATE_GPT / "results.json", (GRADUATE_GPT,)),
     SourceRun("graduate_course", "GraduateCourses", "claude-code", "claude-opus-5",
               GRADUATE_CLAUDE / "results.json", (GRADUATE_CLAUDE, GRADUATE_CLAUDE_SOURCE)),
+    SourceRun("tcs_open_problems", "OpenAI-TCS", "codex", "gpt-5.6-sol",
+              TCS_GPT / "results.json", (TCS_GPT,)),
+    SourceRun("tcs_open_problems", "OpenAI-TCS", "claude-code", "claude-opus-5",
+              TCS_CLAUDE / "results.json", (TCS_CLAUDE,)),
     SourceRun("recent_math", "ArXivMath", "codex", "gpt-5.6-sol",
               RECENT_GPT / "results.json", (RECENT_GPT_BASE, RECENT_GPT_EXTENSION)),
     SourceRun("recent_math", "ArXivMath", "claude-code", "claude-opus-5",
@@ -132,6 +145,16 @@ def safe_key(value: object) -> str:
     return re.sub(r"[^A-Za-z0-9_.-]+", "_", str(value)).strip("_")
 
 
+def candidate_index(row: dict[str, object]) -> int:
+    """Return the candidate index across current and legacy result schemas."""
+    return int(row.get("candidate", row.get("repeat", 0)))
+
+
+def session_index(row: dict[str, object]) -> int:
+    """Return the session/attempt index across current and legacy schemas."""
+    return int(row.get("session_index", row.get("attempt", 0)))
+
+
 def select_rows(rows: list[dict[str, object]], top_k: int) -> list[dict[str, object]]:
     eligible = []
     for row in rows:
@@ -152,8 +175,8 @@ def select_rows(rows: list[dict[str, object]], top_k: int) -> list[dict[str, obj
     eligible.sort(key=lambda row: (
         -int(row["original_missed_reviews"]),
         str(row.get("proof_id", "")),
-        int(row.get("candidate", 0)),
-        int(row.get("session_index", 0)),
+        candidate_index(row),
+        session_index(row),
         str(row["mutation_sha256"]),
     ))
     unique = []
@@ -172,11 +195,15 @@ def select_rows(rows: list[dict[str, object]], top_k: int) -> list[dict[str, obj
 
 
 def candidate_artifact_dirs(root: Path):
-    sessions = repository_path(root) / "sessions"
-    if not sessions.is_dir():
-        return
-    for mutated in sessions.glob("*/attempts/001/mutated_proof.md"):
-        yield mutated.parent
+    resolved_root = repository_path(root)
+    sessions = resolved_root / "sessions"
+    if sessions.is_dir():
+        for mutated in sessions.glob("*/attempts/001/mutated_proof.md"):
+            yield mutated.parent
+    attempts = resolved_root / "attempts"
+    if attempts.is_dir():
+        for mutated in attempts.glob("*/mutated_proof.md"):
+            yield mutated.parent
 
 
 def resolve_artifacts(source: SourceRun, hashes: set[str]) -> dict[str, Path]:
@@ -203,9 +230,14 @@ def judge_prompt_path(artifact_dir: Path) -> Path:
     raise FileNotFoundError(f"No archived blind-judge prompt in {artifact_dir}")
 
 
-def build_selection(top_k: int = 10) -> list[SelectedCandidate]:
+def build_selection(
+    top_k: int = 10,
+    dataset_keys: set[str] | None = None,
+) -> list[SelectedCandidate]:
     selected: list[SelectedCandidate] = []
     for source in SOURCE_RUNS:
+        if dataset_keys is not None and source.dataset_key not in dataset_keys:
+            continue
         results_path = repository_path(source.results_path)
         if not results_path.is_file():
             raise FileNotFoundError(results_path)
@@ -232,7 +264,7 @@ def build_selection(top_k: int = 10) -> list[SelectedCandidate]:
                 "from_gpt56sol" if source.source_model == "gpt-5.6-sol" else "from_opus5",
                 f"rank_{rank:02d}",
                 safe_key(proof_id),
-                f"candidate_{int(row.get('candidate', 0)):02d}",
+                f"candidate_{candidate_index(row):02d}",
             ))
             selected.append(SelectedCandidate(
                 key=key,
@@ -245,8 +277,8 @@ def build_selection(top_k: int = 10) -> list[SelectedCandidate]:
                 target_reasoning_effort=target_effort,
                 rank=rank,
                 proof_id=proof_id,
-                candidate=int(row.get("candidate", 0)),
-                session_index=int(row.get("session_index", 0)),
+                candidate=candidate_index(row),
+                session_index=session_index(row),
                 mutation_sha256=mutation_hash,
                 original_missed_reviews=int(row["original_missed_reviews"]),
                 original_review_count=int(row["original_review_count"]),
@@ -466,12 +498,35 @@ def main() -> None:
     parser.add_argument("--output-dir", required=True, type=Path)
     parser.add_argument("--workers", type=int, default=40)
     parser.add_argument("--top-k", type=int, default=10)
+    parser.add_argument(
+        "--dataset",
+        action="append",
+        choices=sorted({source.dataset_key for source in SOURCE_RUNS}),
+        help="Restrict to one or more dataset keys; repeat the option as needed.",
+    )
+    parser.add_argument(
+        "--claude-max-output-tokens",
+        type=int,
+        help="Set CLAUDE_CODE_MAX_OUTPUT_TOKENS for Claude judge and matcher calls.",
+    )
     parser.add_argument("--no-call-timeout", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
-    if args.workers < 1 or args.top_k < 1:
-        raise ValueError("--workers and --top-k must be positive")
-    candidates = build_selection(args.top_k)
+    if (
+        args.workers < 1
+        or args.top_k < 1
+        or (
+            args.claude_max_output_tokens is not None
+            and args.claude_max_output_tokens < 1
+        )
+    ):
+        raise ValueError("workers, top-k, and any output-token limit must be positive")
+    if args.claude_max_output_tokens is not None:
+        os.environ["CLAUDE_CODE_MAX_OUTPUT_TOKENS"] = str(
+            args.claude_max_output_tokens
+        )
+    dataset_keys = set(args.dataset) if args.dataset else None
+    candidates = build_selection(args.top_k, dataset_keys)
     if args.dry_run:
         for candidate_spec in candidates:
             print(json.dumps(serializable_candidate(candidate_spec), sort_keys=True))
@@ -488,7 +543,7 @@ def main() -> None:
             "mutations by descending original missed-review count, then proof ID, candidate "
             "index, session index, and mutation hash; retain the first top_k."
         ),
-        "datasets": ["olympiad", "graduate_course", "recent_math"],
+        "datasets": list(dict.fromkeys(row.dataset_key for row in candidates)),
         "source_models": ["gpt-5.6-sol", "claude-opus-5"],
         "cross_judges": {
             "gpt-5.6-sol mutations": "claude-opus-5 medium via Claude Code",
@@ -499,6 +554,7 @@ def main() -> None:
         "matcher_queries": len(candidates),
         "workers": args.workers,
         "call_timeout_seconds": None if args.no_call_timeout else 1200,
+        "claude_code_max_output_tokens": args.claude_max_output_tokens,
         "fresh_judge_and_matcher_session_per_candidate": True,
         "prompt_policy": "byte-for-byte copy of each candidates archived blind-judge prompt",
         "matcher_policy": "exact or logically equivalent causal diagnosis; exact_only parser",

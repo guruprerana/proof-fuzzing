@@ -7,9 +7,11 @@ from unittest.mock import patch
 
 from scripts.run_cross_model_judge_evaluation import (
     SourceRun,
+    candidate_index,
     reconcile_manifest,
     resolve_artifacts,
     select_rows,
+    session_index,
     summarize,
 )
 
@@ -77,6 +79,29 @@ class CrossModelSelectionTests(unittest.TestCase):
             ):
                 resolved = resolve_artifacts(source, {mutation_hash})
             self.assertEqual(resolved[mutation_hash], archive)
+
+    def test_resolve_artifacts_supports_legacy_flat_attempts(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            archive = root / "run/attempts/019"
+            archive.mkdir(parents=True)
+            content = "legacy mutated proof"
+            (archive / "mutated_proof.md").write_text(content)
+            mutation_hash = hashlib.sha256(content.encode()).hexdigest()
+            source = SourceRun(
+                "dataset", "Dataset", "codex", "gpt-5.6-sol",
+                Path("run/results.json"), (Path("run"),),
+            )
+            with patch(
+                "scripts.run_cross_model_judge_evaluation.REPOSITORY_ROOT", root
+            ):
+                resolved = resolve_artifacts(source, {mutation_hash})
+            self.assertEqual(resolved[mutation_hash], archive)
+
+    def test_legacy_candidate_and_session_indices(self):
+        legacy = {"repeat": 4, "attempt": 19}
+        self.assertEqual(candidate_index(legacy), 4)
+        self.assertEqual(session_index(legacy), 19)
 
     def test_summarize_groups_cross_judge_outcomes(self):
         results = [

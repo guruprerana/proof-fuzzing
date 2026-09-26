@@ -55,14 +55,14 @@ fresh session without feedback from earlier candidates. Error bars are 95% Wilso
 score intervals.
 
 ![Grouped bar plot of Claude Opus 5 judge miss rates during discovery, unguided
-evaluation, and strategy-guided evaluation on the three datasets with completed
-results.](./figures/opus5_transfer_judge_miss_rates.png)
+evaluation, and strategy-guided evaluation across the four datasets.](./figures/opus5_transfer_judge_miss_rates.png)
 
-**Figure: Claude Opus 5 judge miss rates on the three completed datasets.** The
+**Figure: Claude Opus 5 judge miss rates across discovery and held-out evaluation.** The
 percentages use the same denominators as the GPT-5.6-sol figure: independently
 assessed mutations for discovery and individual blind-review slots over valid
-mutations for held-out evaluation. Error bars are 95% Wilson score intervals.
-ArXivMath had the highest
+mutations for held-out evaluation. The OpenAI-TCS discovery value is the
+resource-limited 120-attempt snapshot from which its strategy library was frozen.
+Error bars are 95% Wilson score intervals. ArXivMath had the highest
 Claude miss rate in discovery (30/125, 24.0%) and in both held-out arms: 13/75
 (17.3%) for unguided mutations and 28/75 (37.3%) for strategy-guided mutations.
 
@@ -70,12 +70,19 @@ Claude miss rate in discovery (30/125, 24.0%) and in both held-out arms: 13/75
 |---|---:|---:|---:|---:|
 | Olympiad | 0 / 20 | 3 / 20 | +0.15 | 0.125 |
 | GraduateCourses | 0 / 10 | 6 / 10 | +0.60 | 0.015625 |
+| OpenAI-TCS | 0 / 5 | 3 / 5 | +0.60 | 0.125 |
 | ArXivMath | 2 / 5 | 4 / 5 | +0.40 | 0.25 |
 
 A proof-arm succeeds at this strict endpoint when at least one valid candidate is
-missed by all three blind judges. All three Claude evaluations favor the frozen
+missed by all three blind judges. All four Claude evaluations favor the frozen
 strategy arm descriptively, but none meets the preregistered familywise threshold
-of $\alpha=0.01$. The ArXivMath evaluation completed all 50 candidates, all
+of $\alpha=0.01$. The OpenAI-TCS evaluation completed all 50 candidates; 24 of
+25 unguided and 22 of 25 strategy-guided candidates were valid. Its manifest records
+two post-launch amendments: unresolved jobs were relaunched with Claude Code's
+output-token ceiling raised from 64,000 to 128,000, and reviews still unresolved
+after two retries were labeled resource-limit misses. The rule affected three
+candidates and is included in the plotted 4/72 unguided and 20/66 strategy-guided
+counts. The ArXivMath evaluation completed all 50 candidates, all
 of which passed the independent validity check. Its manifest records two
 post-launch amendments: the 20-minute call timeout was removed after 29 candidates,
 and the final candidate was adjudicated under the user-specified rule that an
@@ -91,7 +98,7 @@ ArXivMath has the highest held-out review-level miss rate for
 both completed models and in both mutation arms. For GPT-5.6-sol, judges missed
 19/75 reviews (25.3%) in the unguided arm and 25/75 (33.3%) in the strategy-guided
 arm. For Claude Opus 5, the corresponding counts are 13/75 (17.3%) and 28/75
-(37.3%). The discovery pattern is less uniform: ArXivMath is highest for
+(37.3%); on OpenAI-TCS they are 4/72 (5.6%) and 20/66 (30.3%). The discovery pattern is less uniform: ArXivMath is highest for
 Claude (24.0%), while the GPT-5.6-sol rates for ArXivMath (28.4%) and OpenAI-TCS
 (29.0%) are nearly equal. These are descriptive comparisons across
 different source proofs and independently generated mutations; they do not isolate
@@ -161,36 +168,44 @@ fresh call from that model to match the resulting error inventory against the
 planted error.
 
 ![Grouped bar plot of cross-model judge miss rates for Olympiad, GraduateCourses,
-and ArXivMath mutations. Each dataset has one bar for GPT-5.6-sol judging
+OpenAI-TCS, and ArXivMath mutations. Each dataset has one bar for GPT-5.6-sol judging
 Claude Opus 5 mutations and one for Claude Opus 5 judging GPT-5.6-sol
 mutations.](./figures/cross_model_judge_miss_rates.png)
 
 **Figure: Cross-model judge miss rates on selected strategy-guided mutations.** Each
 bar summarizes ten mutations. GPT-5.6-sol missed 3/10 Claude mutations in Olympiad,
-5/10 in GraduateCourses, and 7/10 in ArXivMath. Claude Opus 5
-missed 2/10 GPT mutations in Olympiad, 1/10 in GraduateCourses, and 2/10 in
-ArXivMath. Error bars are 95% Wilson score intervals.
+5/10 in GraduateCourses, 7/10 in OpenAI-TCS, and 7/10 in ArXivMath. Claude Opus 5
+missed 2/10 GPT mutations in Olympiad, 1/10 in GraduateCourses, 5/10 in OpenAI-TCS,
+and 2/10 in ArXivMath. Error bars are 95% Wilson score intervals.
 
 | Evaluation dataset | GPT-5.6-sol judge / Claude Opus 5 mutations, caught | GPT-5.6-sol judge / Claude Opus 5 mutations, missed | Claude Opus 5 judge / GPT-5.6-sol mutations, caught | Claude Opus 5 judge / GPT-5.6-sol mutations, missed |
 |---|---:|---:|---:|---:|
 | Olympiad | 7 | 3 | 8 | 2 |
 | GraduateCourses | 5 | 5 | 9 | 1 |
+| OpenAI-TCS | 3 | 7 | 5 | 5 |
 | ArXivMath | 3 | 7 | 8 | 2 |
-| **Total** | **15** | **15** | **25** | **5** |
+| **Total** | **18** | **22** | **30** | **10** |
 
-Across these selected candidates, GPT-5.6-sol missed 15/30 Claude-generated
-mutations (50.0%), whereas Claude Opus 5 missed 5/30 GPT-generated mutations
-(16.7%). This difference is descriptive rather than a controlled comparison of
+Across these selected candidates, GPT-5.6-sol missed 22/40 Claude-generated
+mutations (55.0%), whereas Claude Opus 5 missed 10/40 GPT-generated mutations
+(25.0%). OpenAI-TCS is the only dataset in which Claude Opus 5 missed half of the
+selected GPT-generated mutations. This difference is descriptive rather than a controlled comparison of
 judge quality: the two judges saw different mutations, and selection was conditional
 on success against the mutation source model's original judges. In particular, the
 GPT-5.6-sol Olympiad strategy arm contained only two candidates with an original
-miss, so eight of its ten selected candidates had zero original misses. The other
-cells contain different mixtures of one-, two-, and three-review original misses.
-One ArXivMath Claude judgment of a GPT-generated mutation returned no usable
+miss, so eight of its ten selected candidates had zero original misses; likewise,
+the Claude Opus 5 OpenAI-TCS strategy arm contained seven candidates with an
+original miss, so three of its ten selected candidates had zero original misses. The
+other cells contain different mixtures of one-, two-, and three-review original
+misses. One ArXivMath Claude judgment of a GPT-generated mutation returned no usable
 verdict after exceeding Claude Code's 64,000-output-token limit and is counted as a
-miss under the recorded resource-limit adjudication. The complete manifest,
-candidate records, responses, matching results, usage data, and adjudication are in
-`logs/by_dataset/cross_model/top10_first3_medium_20260925/`.
+miss under the recorded resource-limit adjudication. The OpenAI-TCS cells were run
+separately with Claude Code's output-token ceiling raised to 128,000; all 20 of its
+judgments returned usable inventories, so no resource-limit adjudication was needed.
+The complete manifests, candidate records, responses, matching results, usage data,
+and adjudication are in
+`logs/by_dataset/cross_model/top10_first3_medium_20260925/` and
+`logs/by_dataset/cross_model/top10_tcs_medium_20260925/`.
 
 ### Higher reasoning catches some, but not all, selected misses.
 
@@ -203,19 +218,31 @@ medium judges and one by all three. We submitted the same archived blind-judge
 prompt for each mutation to one fresh GPT-5.6-sol judge at ultra reasoning effort,
 with no timeout.
 
-| Dataset | Selected mutations | Medium-reasoning reviews that missed | Ultra judges that caught | Ultra judges that missed |
-|---|---:|---:|---:|---:|
-| OpenAI-TCS | 6 | 15 / 18 | 2 / 6 | 4 / 6 |
-| ArXivMath | 6 | 16 / 18 | 3 / 6 | 3 / 6 |
-| **Overall** | **12** | **31 / 36** | **5 / 12** | **7 / 12** |
+We separately selected the six strongest valid strategy-guided mutations from the
+Claude Opus 5 ArXivMath evaluation and submitted the same archived prompts to fresh
+Opus 5 judges at max effort. All six had been missed by all three original
+medium-effort reviews. A first launch produced no verdicts because every call
+exhausted Claude Code's default 64,000-output-token ceiling. A clean rerun changed
+only that ceiling to 128,000 tokens and produced six usable inventories.
+
+| Judge model / effort | Dataset | Selected mutations | Medium-reasoning reviews that missed | Higher-reasoning judges that caught | Higher-reasoning judges that missed |
+|---|---|---:|---:|---:|---:|
+| GPT-5.6-sol / ultra | OpenAI-TCS | 6 | 15 / 18 | 2 / 6 | 4 / 6 |
+| GPT-5.6-sol / ultra | ArXivMath | 6 | 16 / 18 | 3 / 6 | 3 / 6 |
+| **GPT-5.6-sol / ultra** | **Overall** | **12** | **31 / 36** | **5 / 12** | **7 / 12** |
+| Claude Opus 5 / max | ArXivMath | 6 | 18 / 18 | 0 / 6 | 6 / 6 |
 
 Exact manual matching found that the ultra judge caught five of the twelve planted
 errors: two OpenAI-TCS errors and three ArXivMath errors. All six mutations in the
 initial, strongest batch remained undetected, whereas five of the six next-ranked
 mutations were caught. Thus additional reasoning recovered some prior misses but did
-not eliminate them. These results should not be read as a general estimate of the
-effect of reasoning effort: the cases were chosen post hoc conditional on prior
-medium-reasoning misses, and each candidate received only one ultra-reasoning review.
+not eliminate them. Exact manual matching found that the six max-effort Claude judges
+also missed all six planted errors. Two reported an unrelated order-versus-degree sign
+issue at the location of the generic-versus-special-fiber mutation, which does not
+count as detection under the exact-match policy. These results should not be read as
+a general estimate of the effect of reasoning effort: the cases were chosen post hoc
+conditional on prior medium-reasoning misses, and each candidate received only one
+higher-reasoning review.
 
 ### Span of influence of mutations.
 
@@ -344,20 +371,21 @@ The plotted counts are in
 
 #### Claude Opus 5
 
-We apply the same counting rule to the three completed Claude Opus 5 frozen
-evaluations. OpenAI-TCS is omitted because its Opus 5 frozen evaluation has not been
-run. As in the GPT-5.6-sol figure, the two evaluation arms are pooled, invalid
+We apply the same counting rule to the four completed Claude Opus 5 frozen
+evaluations. As in the GPT-5.6-sol figure, the two evaluation arms are pooled, invalid
 mutations are excluded, and each label gives missed reviews divided by all review
 slots for valid mutations in that area.
 
-![Three-panel horizontal bar plot of missed blind-judge reviews by mathematical area
-in the Olympiad, GraduateCourses, and ArXivMath frozen Claude Opus 5
+![Four-panel horizontal bar plot of missed blind-judge reviews by mathematical area
+in the Olympiad, GraduateCourses, OpenAI-TCS, and ArXivMath frozen Claude Opus 5
 evaluations.](./figures/opus5_eval_judge_misses_by_subtopic.png)
 
 **Figure: Claude Opus 5 evaluation judge misses by mathematical area.** In Olympiad,
 algebra had ten misses, combinatorics and number theory eight each, and geometry six.
 Within GraduateCourses, algebra and number theory had 33 misses, analysis had 22,
-and geometry and topology had seven. ArXivMath misses were highest in probability
+and geometry and topology had seven. Within OpenAI-TCS, coding theory had 13 misses,
+Ramsey theory six, quantum information three, lattice complexity two, and sphere
+packing none. ArXivMath misses were highest in probability
 and combinatorics (15) and geometry and topology (14), followed by analysis and PDE
 (seven), algebra and number theory (three), and logic and dynamics (two). These are
 plotted as miss rates with the underlying counts retained in each label; error bars
@@ -409,9 +437,10 @@ groups are in
 
 #### Claude Opus 5
 
-Applying the same candidate-level semantic audit to the three completed Claude
-Opus 5 frozen evaluations gives the following results. OpenAI-TCS is omitted because
-its Opus 5 frozen evaluation has not been run.
+Applying the same candidate-level semantic audit gives the following results for
+the three previously annotated Claude Opus 5 evaluations. The now-complete
+OpenAI-TCS evaluation is not included because its 46 valid mutations have not yet
+received the manual semantic-cluster annotation required for this analysis.
 
 | Evaluation data | Generated candidates | Valid mutations | Distinct logical errors (% of valid) | Singleton mutations (% of valid) |
 |---|---:|---:|---:|---:|

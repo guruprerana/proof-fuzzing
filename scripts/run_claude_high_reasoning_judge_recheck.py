@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Rejudge the six strongest Opus 5 ArXivMath misses at max effort."""
+"""Rejudge the six strongest Opus 5 evaluation misses at max effort."""
 
 from __future__ import annotations
 
@@ -21,15 +21,30 @@ from src.proof_fuzzer.judging import parse_judge_result
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
-SOURCE_RUN = Path(
-    "logs/by_dataset/recent_math/runs/"
-    "recent_math_5_frozen_eval_claude_opus5_medium_5x3_20260924"
-)
+SOURCE_RUNS = {
+    "arxiv_math": (
+        "ArXivMath",
+        "arxiv",
+        Path(
+            "logs/by_dataset/recent_math/runs/"
+            "recent_math_5_frozen_eval_claude_opus5_medium_5x3_20260924"
+        ),
+    ),
+    "tcs_open_problems": (
+        "OpenAI-TCS",
+        "tcs",
+        Path(
+            "logs/by_dataset/tcs_open_problems/"
+            "opus5_snapshot120_frozen_eval_5x3_20260925"
+        ),
+    ),
+}
 
 
 @dataclass(frozen=True)
 class Candidate:
     key: str
+    dataset: str
     proof_id: str
     session_index: int
     mutation_sha256: str
@@ -47,11 +62,15 @@ def save(path: Path, value: object) -> None:
     path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n")
 
 
-def locate_attempt(session_index: int, mutation_sha256: str) -> Path:
+def locate_attempt(
+    source_run: Path,
+    session_index: int,
+    mutation_sha256: str,
+) -> Path:
     pattern = f"sessions/{session_index:04d}*/attempts/001/mutated_proof.md"
     matches = [
         path.parent
-        for path in (REPOSITORY_ROOT / SOURCE_RUN).glob(pattern)
+        for path in (REPOSITORY_ROOT / source_run).glob(pattern)
         if digest(path) == mutation_sha256
     ]
     if len(matches) != 1:
@@ -61,8 +80,9 @@ def locate_attempt(session_index: int, mutation_sha256: str) -> Path:
     return matches[0]
 
 
-def select_candidates() -> tuple[Candidate, ...]:
-    results_path = REPOSITORY_ROOT / SOURCE_RUN / "results.json"
+def select_candidates(dataset_key: str) -> tuple[Candidate, ...]:
+    dataset, key_prefix, source_run = SOURCE_RUNS[dataset_key]
+    results_path = REPOSITORY_ROOT / source_run / "results.json"
     rows = json.loads(results_path.read_text())
     ranked = sorted(
         (
@@ -84,10 +104,11 @@ def select_candidates() -> tuple[Candidate, ...]:
             raise ValueError("The top six candidates must each be a three-of-three miss")
         session_index = int(row["session_index"])
         mutation_sha256 = str(row["mutation_sha256"])
-        attempt = locate_attempt(session_index, mutation_sha256)
+        attempt = locate_attempt(source_run, session_index, mutation_sha256)
         candidates.append(
             Candidate(
-                key=f"opus5_arxiv_session_{session_index:04d}",
+                key=f"opus5_{key_prefix}_session_{session_index:04d}",
+                dataset=dataset,
                 proof_id=str(row["proof_id"]),
                 session_index=session_index,
                 mutation_sha256=mutation_sha256,
@@ -122,7 +143,7 @@ def run_candidate(
 
     record: dict[str, object] = {
         "key": candidate.key,
-        "dataset": "ArXivMath",
+        "dataset": candidate.dataset,
         "proof_id": candidate.proof_id,
         "session_index": candidate.session_index,
         "mutation_sha256": candidate.mutation_sha256,
@@ -167,8 +188,18 @@ def run_candidate(
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-dir", required=True, type=Path)
+    parser.add_argument(
+        "--dataset",
+        choices=sorted(SOURCE_RUNS),
+        default="arxiv_math",
+    )
     parser.add_argument("--workers", type=int, default=6)
     parser.add_argument("--max-output-tokens", type=int, default=128_000)
+    parser.add_argument(
+        "--keys",
+        nargs="+",
+        help="Run only these selected candidate keys, e.g. to relaunch interrupted calls.",
+    )
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
     if args.workers < 1:
@@ -176,7 +207,15 @@ def main() -> None:
     if args.max_output_tokens < 1:
         raise ValueError("--max-output-tokens must be positive")
 
-    candidates = select_candidates()
+    candidates = select_candidates(args.dataset)
+    selected_candidates = candidates
+    if args.keys:
+        unknown = sorted(set(args.keys) - {candidate.key for candidate in candidates})
+        if unknown:
+            raise ValueError(f"unknown candidate keys: {', '.join(unknown)}")
+        candidates = [
+            candidate for candidate in candidates if candidate.key in set(args.keys)
+        ]
     if args.dry_run:
         for candidate in candidates:
             print(
@@ -202,16 +241,22 @@ def main() -> None:
         output_root / "manifest.json",
         {
             "created_at": datetime.now(timezone.utc).isoformat(),
-            "design": "rejudge the six strongest Opus 5 ArXivMath evaluation misses",
+            "design": (
+                f"rejudge the six strongest Opus 5 {selected_candidates[0].dataset} "
+                "evaluation misses"
+            ),
             "selection": (
                 "top six valid strategy-guided mutations ranked by original missed "
                 "reviews, then session index; all six were missed three of three times"
             ),
-            "source_run": str(SOURCE_RUN),
+            "dataset_key": args.dataset,
+            "dataset": candidates[0].dataset,
+            "source_run": str(SOURCE_RUNS[args.dataset][2]),
             "provider": "claude-code",
             "model": "claude-opus-5",
             "reasoning_effort": "max",
             "fresh_thread_per_candidate": True,
+            "key_subset": sorted(args.keys) if args.keys else None,
             "judge_queries": len(candidates),
             "workers": min(args.workers, len(candidates)),
             "call_timeout_seconds": None,

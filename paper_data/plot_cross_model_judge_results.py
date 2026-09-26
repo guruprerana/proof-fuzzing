@@ -12,13 +12,15 @@ from plotting_stats import wilson_interval
 DATASETS = (
     "Olympiad",
     "GraduateCourses",
+    "OpenAI-TCS",
     "ArXivMath",
 )
 
 # Each cell contains ten valid strategy-guided mutations selected by descending
-# original missed-review count. Counts come from the finalized cross-model run.
-GPT_JUDGE_CLAUDE_MUTATIONS = ((3, 10), (5, 10), (7, 10))
-CLAUDE_JUDGE_GPT_MUTATIONS = ((2, 10), (1, 10), (2, 10))
+# original missed-review count. Counts come from the finalized cross-model runs;
+# OpenAI-TCS was run separately in top10_tcs_medium_20260925.
+GPT_JUDGE_CLAUDE_MUTATIONS = ((3, 10), (5, 10), (7, 10), (7, 10))
+CLAUDE_JUDGE_GPT_MUTATIONS = ((2, 10), (1, 10), (5, 10), (2, 10))
 
 
 def percentages(counts: tuple[tuple[int, int], ...]) -> np.ndarray:
@@ -58,7 +60,7 @@ def main() -> None:
     x = np.arange(len(DATASETS))
     width = 0.32
 
-    fig, ax = plt.subplots(figsize=(18, 10.8), layout="constrained")
+    fig, ax = plt.subplots(figsize=(18, 12), layout="constrained")
     for offset, (label, counts, color) in zip((-width / 2, width / 2), series):
         values = percentages(counts)
         errors = error_bars(counts)
@@ -89,7 +91,9 @@ def main() -> None:
     ax.grid(axis="y", color="#D9D9D9", linewidth=0.8)
     ax.set_axisbelow(True)
     ax.spines[["top", "right"]].set_visible(False)
-    ax.legend(frameon=False, ncols=1, loc="upper left")
+    ax.legend(
+        frameon=False, ncols=1, loc="lower center", bbox_to_anchor=(0.5, 1.0)
+    )
 
     output = Path(__file__).parent / "figures" / "cross_model_judge_miss_rates.png"
     output.parent.mkdir(parents=True, exist_ok=True)

@@ -27,6 +27,10 @@ EVALUATIONS = {
         "graduate_course_10_frozen_eval_claude_opus5_medium_5x3_"
         "20260923_amended"
     ),
+    "tcs_open_problems": ROOT / (
+        "logs/by_dataset/tcs_open_problems/"
+        "opus5_snapshot120_frozen_eval_5x3_20260925"
+    ),
     "recent_math": ROOT / (
         "logs/by_dataset/recent_math/runs/"
         "recent_math_5_frozen_eval_claude_opus5_medium_5x3_20260924"
@@ -36,6 +40,7 @@ EVALUATIONS = {
 DATASET_LABELS = {
     "olympiad": "Olympiad",
     "graduate_course": "GraduateCourses",
+    "tcs_open_problems": "OpenAI-TCS",
     "recent_math": "ArXivMath",
 }
 
@@ -51,6 +56,14 @@ GRADUATE_AREA_LABELS = {
     "algebra and number theory": "Algebra and number theory",
     "analysis": "Analysis",
     "geometry and topology": "Geometry and topology",
+}
+
+TCS_TOPICS = {
+    "01_high_dimensional_sphere_packing": "Discrete geometry (sphere packing)",
+    "02_binary_and_spherical_codes": "Coding theory",
+    "06_quantum_parallel_repetition": "Quantum information",
+    "07_closest_vector_problem": "Lattice complexity",
+    "09_multicolor_ramsey_numbers": "Combinatorics (Ramsey theory)",
 }
 
 
@@ -73,6 +86,7 @@ def _proof_topics() -> dict[str, dict[str, str]]:
             row["example_id"]: GRADUATE_AREA_LABELS[row["broad_area"]]
             for row in graduate_manifest["heldout"]
         },
+        "tcs_open_problems": TCS_TOPICS,
         "recent_math": {
             row["example_id"]: RECENT_AREA_LABELS[row["metadata"]["area"]]
             for row in recent_dataset["heldout"]
@@ -162,10 +176,10 @@ def _plot(rows: list[dict]) -> None:
         }
     )
     fig, axes = plt.subplots(
-        3,
+        4,
         1,
-        figsize=(19, 14),
-        gridspec_kw={"height_ratios": [4, 3, 5]},
+        figsize=(19, 19),
+        gridspec_kw={"height_ratios": [4, 3, 5, 5]},
         layout="constrained",
     )
     for ax, dataset in zip(axes, dataset_order):
