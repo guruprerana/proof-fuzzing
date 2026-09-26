@@ -175,7 +175,7 @@ def _plot(rows: list[dict]) -> None:
             y,
             rates,
             xerr=errors,
-            color="#4C78A8",
+            color="#2A78D6",
             capsize=6,
             error_kw={"elinewidth": 2.0, "capthick": 2.0},
         )

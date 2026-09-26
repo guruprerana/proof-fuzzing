@@ -223,23 +223,52 @@ Claude Opus 5 ArXivMath evaluation and submitted the same archived prompts to fr
 Opus 5 judges at max effort. All six had been missed by all three original
 medium-effort reviews. A first launch produced no verdicts because every call
 exhausted Claude Code's default 64,000-output-token ceiling. A clean rerun changed
-only that ceiling to 128,000 tokens and produced six usable inventories.
+only that ceiling to 128,000 tokens and produced six usable inventories. We applied
+the same design, with the 128,000-token ceiling, to the six strongest valid
+strategy-guided mutations from the Claude Opus 5 OpenAI-TCS evaluation, all of which
+had also been missed by all three original medium-effort reviews. The first launch
+stopped after two calls had completed; the four unfinished candidates were relaunched
+with identical settings. Of these four, one returned a usable inventory, two exceeded
+the 128,000-token ceiling without a verdict and are counted as resource-limit misses
+under the user-specified rule, and one failed with a request timeout after ten API
+retries and is excluded as a technical failure.
+
+![Grouped bar plot of higher-reasoning judge miss rates for OpenAI-TCS, ArXivMath,
+and both datasets combined. Each group has one bar for GPT-5.6-sol at ultra effort
+and one for Claude Opus 5 at max effort.](./figures/higher_reasoning_judge_miss_rates.png)
+
+**Figure: Higher-reasoning judge miss rates on selected prior misses.** Each bar is
+the fraction of higher-reasoning judges that missed the planted error, with the
+underlying counts in each label. Each model judged its own mutations, so the two
+bars in a group cover different mutations. The GPT-5.6-sol selection includes
+next-ranked candidates with two-of-three original misses, whereas every Claude Opus 5
+candidate had been missed by all three medium-effort reviews. The Claude OpenAI-TCS
+bar counts two token-limit misses and excludes one timed-out call.
 
 | Judge model / effort | Dataset | Selected mutations | Medium-reasoning reviews that missed | Higher-reasoning judges that caught | Higher-reasoning judges that missed |
 |---|---|---:|---:|---:|---:|
 | GPT-5.6-sol / ultra | OpenAI-TCS | 6 | 15 / 18 | 2 / 6 | 4 / 6 |
 | GPT-5.6-sol / ultra | ArXivMath | 6 | 16 / 18 | 3 / 6 | 3 / 6 |
 | **GPT-5.6-sol / ultra** | **Overall** | **12** | **31 / 36** | **5 / 12** | **7 / 12** |
+| Claude Opus 5 / max | OpenAI-TCS | 6 | 18 / 18 | 0 / 5 | 5 / 5 |
 | Claude Opus 5 / max | ArXivMath | 6 | 18 / 18 | 0 / 6 | 6 / 6 |
+| **Claude Opus 5 / max** | **Overall** | **12** | **36 / 36** | **0 / 11** | **11 / 11** |
 
 Exact manual matching found that the ultra judge caught five of the twelve planted
 errors: two OpenAI-TCS errors and three ArXivMath errors. All six mutations in the
 initial, strongest batch remained undetected, whereas five of the six next-ranked
 mutations were caught. Thus additional reasoning recovered some prior misses but did
-not eliminate them. Exact manual matching found that the six max-effort Claude judges
-also missed all six planted errors. Two reported an unrelated order-versus-degree sign
+not eliminate them. Exact manual matching found that the six ArXivMath max-effort
+Claude judges also missed all six planted errors. Two reported an unrelated order-versus-degree sign
 issue at the location of the generic-versus-special-fiber mutation, which does not
-count as detection under the exact-match policy. These results should not be read as
+count as detection under the exact-match policy. On OpenAI-TCS, none of the five
+adjudicated max-effort Claude judges caught its planted error: the three usable
+inventories reported only unrelated issues, and two of the five misses are
+resource-limit misses. Two OpenAI-TCS judges independently flagged the same
+pre-existing construction issue in the introduction of the Ramsey chapter, and one
+reviewer's summary explicitly restated the unmutated rate estimate as verified.
+The OpenAI-TCS higher-effort denominator is five because the timed-out candidate is
+excluded. These results should not be read as
 a general estimate of the effect of reasoning effort: the cases were chosen post hoc
 conditional on prior medium-reasoning misses, and each candidate received only one
 higher-reasoning review.
@@ -459,6 +488,52 @@ The Opus 5 candidate-level assignments and reproducible aggregation are in
 [`opus5_mutation_uniqueness_annotations.csv`](./opus5_mutation_uniqueness_annotations.csv),
 and
 [`analyze_opus5_mutation_uniqueness.py`](./analyze_opus5_mutation_uniqueness.py).
+
+### Judge runtime.
+
+We measure the wall-clock runtime of each completed blind-judge call in the canonical
+frozen evaluations, pooling the unguided and strategy-guided arms. Calls are
+restricted to sessions whose mutated proof matches a valid candidate in the
+canonical results, so superseded retries are excluded; imported and supplemental
+components of the combined evaluations are included. Runtime is the recorded call
+duration; for the earlier GPT-5.6-sol OpenAI-TCS run, which did not record it, we
+use the span of the call's event trace, which agrees with the recorded duration to
+within about one second on later runs.
+
+![Grouped bar plot of mean blind-judge runtime in minutes for GPT-5.6-sol and
+Claude Opus 5 across the Olympiad, GraduateCourses, OpenAI-TCS, and ArXivMath frozen
+evaluations.](./figures/judge_eval_runtime.png)
+
+**Figure: Mean blind-judge runtime by dataset and model.** Bars show mean minutes per
+completed blind-judge call; error bars are percentile 95% bootstrap confidence
+intervals over calls. All eight evaluations used medium reasoning effort.
+
+| Evaluation dataset | Model | Completed judge calls | Mean minutes (95% CI) | Median minutes | Max minutes | Excluded failed or unfinished calls |
+|---|---|---:|---:|---:|---:|---:|
+| Olympiad | GPT-5.6-sol | 600 | 0.61 (0.59--0.64) | 0.56 | 2.1 | 0 |
+| Olympiad | Claude Opus 5 | 597 | 0.37 (0.36--0.38) | 0.36 | 0.8 | 0 |
+| GraduateCourses | GPT-5.6-sol | 301 | 3.11 (3.03--3.19) | 3.10 | 8.0 | 5 |
+| GraduateCourses | Claude Opus 5 | 293 | 4.73 (4.61--4.84) | 4.67 | 7.7 | 8 |
+| OpenAI-TCS | GPT-5.6-sol | 131 | 5.49 (5.20--5.81) | 5.02 | 11.5 | 1 |
+| OpenAI-TCS | Claude Opus 5 | 116 | 13.42 (11.67--15.29) | 10.71 | 43.4 | 22 |
+| ArXivMath | GPT-5.6-sol | 154 | 3.72 (3.54--3.90) | 3.54 | 6.4 | 1 |
+| ArXivMath | Claude Opus 5 | 142 | 9.61 (8.58--10.81) | 7.55 | 50.3 | 25 |
+
+Judge runtime grows from well under a minute on Olympiad solutions to several
+minutes on the long manuscripts. Claude Opus 5 is faster than GPT-5.6-sol on
+Olympiad but slower on the three long-form datasets, most markedly on OpenAI-TCS
+and ArXivMath. The Claude means for those two datasets are underestimates of the
+time a judge needs: every excluded Claude call there had already run for 20 to 101
+minutes before hitting the 20-minute call timeout used for the first ArXivMath
+candidates or Claude Code's output-token ceiling. Excluded calls in the other cells
+are mostly immediate provider or capacity errors. Wall-clock time also reflects
+provider latency and run concurrency, which differed across runs, so these are
+operational measurements rather than controlled comparisons of model speed.
+
+The call-level durations, summary statistics, and reproducible analysis are in
+[`judge_runtime_calls.csv`](./judge_runtime_calls.csv),
+[`judge_runtime_summary.json`](./judge_runtime_summary.json), and
+[`plot_judge_runtime.py`](./plot_judge_runtime.py).
 
 ## Appendix: Dataset details
 

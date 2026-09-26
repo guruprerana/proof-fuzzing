@@ -48,9 +48,9 @@ def main() -> None:
         }
     )
     series = (
-        ("Discovery", DISCOVERY_COUNTS, "#4C78A8"),
-        ("Strategy-guided", GUIDED_COUNTS, "#54A24B"),
-        ("Unguided", UNGUIDED_COUNTS, "#F58518"),
+        ("Discovery", DISCOVERY_COUNTS, "#2A78D6"),
+        ("Strategy-guided", GUIDED_COUNTS, "#1BAF7A"),
+        ("Unguided", UNGUIDED_COUNTS, "#EB6834"),
     )
     x = np.arange(len(DATASETS))
     width = 0.24

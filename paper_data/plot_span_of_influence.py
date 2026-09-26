@@ -178,8 +178,8 @@ def _plot(summary: dict) -> None:
         "Pooled",
     )
     outcome_series = (
-        ("Successful", "successful", "#E45756"),
-        ("Unsuccessful", "unsuccessful", "#4C78A8"),
+        ("Successful", "successful", "#E34948"),
+        ("Unsuccessful", "unsuccessful", "#2A78D6"),
     )
 
     plt.rcParams.update(

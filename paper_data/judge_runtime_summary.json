@@ -1,0 +1,146 @@
+{
+  "definition": "wall-clock seconds per completed blind-judge call in the canonical frozen evaluations, pooled over arms; failed and unfinished calls are excluded",
+  "bootstrap_samples": 50000,
+  "seed": 20260925,
+  "cells": {
+    "Olympiad / GPT-5.6-sol": {
+      "dataset": "Olympiad",
+      "model": "GPT-5.6-sol",
+      "valid_mutations": 197,
+      "completed_calls": 600,
+      "excluded_failed_or_unfinished_calls": 0,
+      "mean_minutes": 0.6123237635287353,
+      "bootstrap_95_ci_minutes": [
+        0.5850766391950013,
+        0.6401665528881274
+      ],
+      "median_minutes": 0.5631080261276414,
+      "max_minutes": 2.077098689880222,
+      "runs": [
+        "logs/by_dataset/olympiad/olympiad_20_frozen_eval_gpt56sol_medium_5x3_20260924"
+      ]
+    },
+    "Olympiad / Claude Opus 5": {
+      "dataset": "Olympiad",
+      "model": "Claude Opus 5",
+      "valid_mutations": 196,
+      "completed_calls": 597,
+      "excluded_failed_or_unfinished_calls": 0,
+      "mean_minutes": 0.3674748310002866,
+      "bootstrap_95_ci_minutes": [
+        0.3558340334391134,
+        0.37906547902928434
+      ],
+      "median_minutes": 0.3552025260403752,
+      "max_minutes": 0.8014069428977867,
+      "runs": [
+        "logs/by_dataset/olympiad/olympiad_20_frozen_eval_claude_opus5_default_5x3_20260922"
+      ]
+    },
+    "GraduateCourses / GPT-5.6-sol": {
+      "dataset": "GraduateCourses",
+      "model": "GPT-5.6-sol",
+      "valid_mutations": 84,
+      "completed_calls": 301,
+      "excluded_failed_or_unfinished_calls": 5,
+      "mean_minutes": 3.105691041794409,
+      "bootstrap_95_ci_minutes": [
+        3.0283732313017446,
+        3.186298566597964
+      ],
+      "median_minutes": 3.1040447052878637,
+      "max_minutes": 8.029490386663626,
+      "runs": [
+        "logs/by_dataset/graduate_course/graduate_course_10_frozen_eval_gpt56sol_medium_5x3_20260923"
+      ]
+    },
+    "GraduateCourses / Claude Opus 5": {
+      "dataset": "GraduateCourses",
+      "model": "Claude Opus 5",
+      "valid_mutations": 96,
+      "completed_calls": 293,
+      "excluded_failed_or_unfinished_calls": 8,
+      "mean_minutes": 4.727547847511049,
+      "bootstrap_95_ci_minutes": [
+        4.612131114056166,
+        4.842669183746058
+      ],
+      "median_minutes": 4.671492016067107,
+      "max_minutes": 7.734050342192252,
+      "runs": [
+        "logs/by_dataset/graduate_course/graduate_course_10_frozen_eval_claude_opus5_medium_5x3_20260923_amended",
+        "logs/by_dataset/graduate_course/graduate_course_10_frozen_eval_claude_opus5_medium_10x3_20260923"
+      ]
+    },
+    "OpenAI-TCS / GPT-5.6-sol": {
+      "dataset": "OpenAI-TCS",
+      "model": "GPT-5.6-sol",
+      "valid_mutations": 42,
+      "completed_calls": 131,
+      "excluded_failed_or_unfinished_calls": 1,
+      "mean_minutes": 5.49377524783715,
+      "bootstrap_95_ci_minutes": [
+        5.196477201882951,
+        5.806678159653308
+      ],
+      "median_minutes": 5.019982733333333,
+      "max_minutes": 11.521838133333334,
+      "runs": [
+        "logs/by_dataset/tcs_open_problems/ten_matched_50_gpt-5.6-sol_medium_20260909_202502"
+      ]
+    },
+    "OpenAI-TCS / Claude Opus 5": {
+      "dataset": "OpenAI-TCS",
+      "model": "Claude Opus 5",
+      "valid_mutations": 46,
+      "completed_calls": 116,
+      "excluded_failed_or_unfinished_calls": 22,
+      "mean_minutes": 13.417276352153149,
+      "bootstrap_95_ci_minutes": [
+        11.667213967110035,
+        15.285633629761008
+      ],
+      "median_minutes": 10.711961295471216,
+      "max_minutes": 43.41896435525268,
+      "runs": [
+        "logs/by_dataset/tcs_open_problems/opus5_snapshot120_frozen_eval_5x3_20260925"
+      ]
+    },
+    "ArXivMath / GPT-5.6-sol": {
+      "dataset": "ArXivMath",
+      "model": "GPT-5.6-sol",
+      "valid_mutations": 39,
+      "completed_calls": 154,
+      "excluded_failed_or_unfinished_calls": 1,
+      "mean_minutes": 3.723186364638244,
+      "bootstrap_95_ci_minutes": [
+        3.54347691319776,
+        3.902756498188258
+      ],
+      "median_minutes": 3.5449861948844044,
+      "max_minutes": 6.41272006308039,
+      "runs": [
+        "logs/by_dataset/recent_math/runs/recent_math_clean_all5_v1_gpt56sol_medium_2judges_v2",
+        "logs/by_dataset/recent_math/runs/recent_math_clean_all5_v1_gpt56sol_medium_25perarm_3judges_extension_20260923",
+        "logs/by_dataset/recent_math/runs/recent_math_clean_all5_v1_gpt56sol_medium_existing_third_reviews_20260923"
+      ]
+    },
+    "ArXivMath / Claude Opus 5": {
+      "dataset": "ArXivMath",
+      "model": "Claude Opus 5",
+      "valid_mutations": 49,
+      "completed_calls": 142,
+      "excluded_failed_or_unfinished_calls": 25,
+      "mean_minutes": 9.614719316545445,
+      "bootstrap_95_ci_minutes": [
+        8.575950363007873,
+        10.814709913129853
+      ],
+      "median_minutes": 7.548936401323105,
+      "max_minutes": 50.25583037811642,
+      "runs": [
+        "logs/by_dataset/recent_math/runs/recent_math_5_frozen_eval_claude_opus5_medium_5x3_20260924"
+      ]
+    }
+  }
+}

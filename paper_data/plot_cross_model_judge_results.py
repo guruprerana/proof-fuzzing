@@ -49,12 +49,12 @@ def main() -> None:
         (
             "GPT-5.6-sol judge / Claude Opus 5 mutations",
             GPT_JUDGE_CLAUDE_MUTATIONS,
-            "#4C78A8",
+            "#2A78D6",
         ),
         (
             "Claude Opus 5 judge / GPT-5.6-sol mutations",
             CLAUDE_JUDGE_GPT_MUTATIONS,
-            "#F58518",
+            "#EB6834",
         ),
     )
     x = np.arange(len(DATASETS))
